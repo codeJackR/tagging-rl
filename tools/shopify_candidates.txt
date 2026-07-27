@@ -1,0 +1,33 @@
+# Candidate apparel stores to probe for a public /products.json endpoint.
+#
+# This is a starting list, NOT a list of known-good domains. Most Shopify stores
+# answer products.json with an HTML page — the endpoint is disabled, or a bot wall
+# replies first. Run `probe` and keep what survives:
+#
+#   python tools/fetch_shopify.py probe \
+#       --stores-file tools/shopify_candidates.txt \
+#       --write-working tools/shopify_stores.txt
+#
+# Check a store's terms before pulling at volume, and keep --delay sane. This
+# reads public product data stores publish for programmatic use; treat it that way.
+
+www.allbirds.com
+www.rothys.com
+www.taylorstitch.com
+www.buckmason.com
+www.marinelayer.com
+www.outdoorvoices.com
+www.mizzenandmain.com
+naadam.co
+www.vuori.com
+fahertybrand.com
+wearpact.com
+www.girlfriend.com
+www.thursdayboots.com
+ministryofsupply.com
+www.american-giant.com
+www.everlane.com
+kotn.com
+www.tentree.com
+www.untuckit.com
+shop.gymshark.com

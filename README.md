@@ -207,10 +207,51 @@ escalation queue; built once, imported twice.
   vocabulary prefix stays byte-identical and cacheable at ~0.1×. Perturbing the
   system prompt would quietly cost near-full price on every one of the N×k requests.
 
+### Getting a feed
+
+Sovrn's Product Data API turns out to be the wrong tool for this: it looks up a
+product you already have a URL for, and explicitly **does not support catalog
+browsing or batch requests**. It is an enrichment layer, not a source of product
+lists — and approval requires live affiliate links already generating clicks.
+
+So the feed comes from public Shopify `/products.json` endpoints, which the plan
+already names as source #2:
+
+```bash
+python tools/fetch_shopify.py probe --stores-file tools/shopify_candidates.txt \
+    --write-working tools/shopify_stores.txt
+python tools/fetch_shopify.py fetch --stores-file tools/shopify_stores.txt \
+    --target 4000 --out data/raw/feed.jsonl
+```
+
+`probe` exists because the endpoint is far less universal than advertised: of 20
+real apparel stores, **14 served JSON and 6 returned HTTP 200 with an HTML page**
+(endpoint disabled, or a bot wall answered). A fetcher that assumes JSON yields
+zero rows and blames the parser.
+
+Three things the fetcher does that a naive one wouldn't:
+
+- **Round-robin with a per-store quota.** Sequential fill let one store supply a
+  third of a 700-row corpus; breadth across retailers is the whole reason for
+  pulling from many. Leftover products are buffered, not discarded.
+- **Prunes store-ubiquitous tags.** A tag on 52 of a store's 52 products has zero
+  discriminative content and pure token cost on every one of the N×k requests.
+  Tags matching the pack's own vocabulary are exempt — a store selling only tops
+  tags everything "tops", which is ubiquitous *and* the evidence we want. Plural
+  forms are matched against the singular vocabulary, or every category tag would
+  lose its exemption.
+- **Filters to apparel using the pack's category aliases**, so a different pack
+  gets the right filter for free.
+
+Measured on a 700-row pull: 35 brands, 138 product types, 14% of rows have an
+empty description, 638 ubiquitous tags pruned. Residual tag noise remains
+(`cf-size-large`, campaign codes) — below the ubiquity threshold and cheap enough
+to leave to the labeler.
+
 ### What's still blocked
 
-`data/raw/` holds the Fashionpedia ontology and nothing else. Step 3 needs a real
-Sovrn feed (~4k rows) and an API key. Everything above runs today against
+Only the API key. `data/raw/` holds the Fashionpedia ontology; a real feed is now
+one command away. Everything above runs today against
 `tools/make_synthetic_feed.py`, which plants a known bias so the reliability table
 can be shown to catch it rather than merely look plausible.
 

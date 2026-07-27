@@ -1,0 +1,17 @@
+# Domains verified to serve a usable public /products.json.
+# Probed 2026-07-27. Point-in-time: stores enable and disable this
+# endpoint without notice, so re-run `probe` before trusting the list.
+www.allbirds.com
+www.rothys.com
+www.taylorstitch.com
+www.marinelayer.com
+www.outdoorvoices.com
+naadam.co
+fahertybrand.com
+www.girlfriend.com
+www.thursdayboots.com
+ministryofsupply.com
+www.american-giant.com
+www.everlane.com
+www.tentree.com
+www.untuckit.com
