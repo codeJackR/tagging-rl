@@ -99,6 +99,32 @@ def export_vocab_reference(pack, path: str | Path) -> str:
     return str(path)
 
 
+def snapshot_unreviewed(rows: list[Row]) -> int:
+    """Give every remaining row a frontier snapshot equal to its current labels.
+
+    A row the consensus pass never flagged has no cells in the review CSV, so the
+    import never touches it and it ends up in the eval set with no snapshot. The
+    ceiling run then drops it — 19 of 300 rows silently missing, in the first real
+    run of this pipeline.
+
+    For such a row the frontier's answer *is* the accepted answer: nobody
+    contradicted it. Recording that makes the ceiling run cover the whole eval set.
+
+    It does NOT set `human_corrected` — nobody looked, so these rows are an
+    assumption, not evidence, and the reliability table correctly ignores them.
+    That is also why the ceiling is a ceiling: it is optimistic by exactly the
+    share of cells the sampling shortcut skipped.
+    """
+    n = 0
+    for row in rows:
+        if row.provenance.frontier_labels is None:
+            row.provenance.frontier_labels = {
+                k: v.model_copy(deep=True) for k, v in row.labels.items()
+            }
+            n += 1
+    return n
+
+
 def _flat(label: AttributeLabel) -> str:
     if label.status is not LabelStatus.LABELED:
         return ""

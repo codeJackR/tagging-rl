@@ -14,7 +14,19 @@ Plan: `~/Downloads/rl-catalog-plan-stepwise.html`
 | W1 | 1 · Adapt Fashionpedia's ontology | **done** — `packs/vastraa_taste_v1/vocab.yaml` |
 | W1 | 2 · Schema pack format (Pydantic + vocab + rules) | **done** — `verifier/`, 102 tests green |
 | W1 | 3 · Eval set (300, frozen) + train set (3–5k, weak) | **machinery built** — blocked on feed + API key |
-| W1 | 4 · Eval harness v0 | |
+| W1 | 4 · Eval harness v0 | **done** — `python -m evalharness.report`, 122 tests green |
+
+## Results
+
+| model | macro-F1 | validity | rule viol. | cost/SKU |
+|---|---|---|---|---|
+| frontier (ceiling) | — | — | — | — |
+| SFT baseline (W2) | | | | |
+| GRPO (W2) | | | | |
+
+Fill the first row by running the harness against the frozen eval set with
+`--from-frontier`; no API call is needed, because Step 3 already stored the
+frontier's original answers. Everything after has to beat it.
 
 ---
 
@@ -206,6 +218,58 @@ can be shown to catch it rather than merely look plausible.
 within-group disagreement, so rows that every rollout gets right or wrong are dead
 weight, but that can only be measured against the W2 SFT baseline, never guessed
 from the data.
+
+---
+
+## W1 Step 4 — the eval harness
+
+```bash
+python -m evalharness.report --gold data/eval_300 --from-frontier \
+    --markdown-row "frontier (ceiling)"
+
+python -m evalharness.report --gold data/eval_300 --pred runs/sft.jsonl
+python -m evalharness.report --gold data/eval_300 --pred runs/sft.jsonl --json
+```
+
+Prints schema validity, per-attribute exact match and F1, macro-F1, and the
+rule-violation count — one command, one report.
+
+### Three metric decisions
+
+**A gold cell of `unknown` is not scorable.** It means the listing never said, so
+there is no ground truth; the model could be right and be marked wrong. Those
+cells are excluded and counted in their own column, not folded in.
+
+**Abstention is reported twice, never once.** The headline macro-F1 counts a
+declined answer as a miss, so abstaining everywhere scores 0 rather than 1.
+Alongside it, `selective macro-F1` (accuracy when the model commits) is always
+quoted with the `coverage` that produced it. That pair is the same
+accuracy-vs-coverage frontier W4's λ sweep traces, so the harness already speaks
+W4's language.
+
+**`not_applicable` is a class, not a gap.** Predicting that a sleeveless dress has
+no sleeve length is a skill, and it gets an F1 term like any value.
+
+### Why macro-F1 is the headline
+
+Apparel values are Zipf-distributed. A model answering "crew, cotton, casual" to
+everything scores ~90% on accuracy and **~0.03 on macro-F1** — measured, in
+`test_macro_f1_punishes_the_majority_guesser`. If the headline metric can't be
+shown to punish that model, it isn't doing the job it was chosen for.
+
+`trusted macro-F1` repeats the headline over only the attributes Step 3's
+reliability table found the frontier reliable on — scoring against gold the
+labeler was biased about measures agreement with a bias.
+
+### Two guardrails
+
+- **The frozen eval set is checksum-verified before any number prints.** Drift
+  exits 2 and refuses; `--allow-drift` overrides and says so in the output.
+- **Schema validity is only measured from raw model output.** A pre-parsed
+  prediction file has already discarded its format errors, so the harness reports
+  `n/a` rather than a flattering 100%. Validity is scored over *attempts*, not
+  survivors — unparseable rows are dropped from scoring but stay in the
+  denominator.
 
 ---
 

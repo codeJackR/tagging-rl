@@ -28,7 +28,7 @@
   .wrap{max-width:920px;margin:0 auto}
 
   .eyebrow{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
-  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(26px,4.4vw,38px);line-height:1.1;letter-spacing:-.015em;max-width:20ch}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(26px,4.4vw,38px);line-height:1.1;letter-spacing:-.015em;max-width:27ch}
   .sub{margin-top:13px;color:var(--soft);font-size:15.5px;max-width:66ch}
 
   .totals{display:flex;flex-wrap:wrap;gap:9px;margin:26px 0 4px}
@@ -92,16 +92,17 @@
 <body>
 <div class="wrap">
 
-  <div class="eyebrow">tagging-rl · design notes · W1 steps 1–3</div>
-  <h1>One list, one marker, and an answer key nobody can quietly edit.</h1>
-  <p class="sub">Everything built so far, explained without jargon. Three of week one's four steps, the pieces every later week reuses — and the handful of things that only became visible once real data ran through them.</p>
+  <div class="eyebrow">tagging-rl · design notes · W1 complete</div>
+  <h1>A list, a marker, an answer key nobody can quietly edit — and a scoreboard that refuses to flatter you.</h1>
+  <p class="sub">Everything built so far, explained without jargon. All four steps of week one, the pieces every later week reuses — and the handful of things that only became visible once real data ran through them.</p>
 
   <div class="totals">
     <span class="chip">15 fields · <b>156 values</b></span>
     <span class="chip">34 rules <b>25 written + 9 auto</b></span>
-    <span class="chip"><b>102 tests</b> green</span>
+    <span class="chip"><b>122 tests</b> green</span>
     <span class="chip">packs <b>2</b> (1 real, 1 fake)</span>
     <span class="chip">review queue <b>−86%</b></span>
+    <span class="chip">lazy model scores <b>0.03</b></span>
     <span class="chip">python <b>0 lines</b> inside a pack</span>
   </div>
 
@@ -305,7 +306,7 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
   <div class="card" style="--wk:var(--done)">
     <div class="card-head">
       <h3>What now exists</h3>
-      <div class="card-meta">runs today against a synthetic fixture · <em>102 tests green</em></div>
+      <div class="card-meta">runs today against a synthetic fixture · <em>fully tested</em></div>
     </div>
     <div class="card-body">
       <div class="step"><div class="num">✓</div><div>
@@ -541,6 +542,80 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
   </div>
 
   <!-- ===================================================================== -->
+  <h2 class="sec">Step 4 · The report card</h2>
+
+  <div class="card" style="--wk:var(--career)">
+    <div class="card-head">
+      <h3>One command that tells you how good a model actually is</h3>
+      <div class="card-meta">built · <em>python -m evalharness.report</em></div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4>What it does</h4>
+        <p>You point it at the frozen answer key and at whatever a model produced. It prints one report: how often the output was even valid, how well each field scored, one headline number, and how many self-contradictions there were.</p>
+        <pre><code>python -m evalharness.report --gold data/eval_300 --pred runs/sft.jsonl</code></pre>
+        <p>That's the whole interface. It has to be one command, because you'll run it after every experiment for the next month — anything that takes thought won't get run.</p>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4>The headline number, and why it isn't accuracy</h4>
+        <p>Imagine a multiple-choice test where the answer is "C" most of the time. A student who writes C for every single question scores well — and has learned nothing.</p>
+        <div class="analogy">Clothing data is exactly like that. Most tops are black, most fabric is cotton, most things are casual. A model that just answers <b>"crew, cotton, casual"</b> to everything looks great on plain accuracy.</div>
+        <p><b>Macro-F1</b> grades each possible answer separately and then averages, so being useless on the rare ones actually costs you. We built that lazy model on purpose and measured it:</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>The "always guess the common answer" model</th><th>Score</th></tr>
+          <tr><td>plain accuracy</td><td><b>~90%</b> — looks excellent</td></tr>
+          <tr><td>macro-F1 (the headline)</td><td><b>0.03</b> — correctly, almost zero</td></tr>
+        </table></div>
+        <div class="win">That gap <em>is</em> the reason for the metric, so it's a test rather than a comment. If the headline number can't be shown to punish that model, it isn't doing the job it was picked for.</div>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4>You can't mark a question the answer key left blank</h4>
+        <p>Remember the three kinds of blank. When the answer key itself says <code>unknown</code> — the shop never mentioned the fabric — there's no right answer to compare against.</p>
+        <p>So those cells are pulled out and counted in their own column. Scoring them would mean marking the model wrong for disagreeing with our own ignorance.</p>
+      </div></div>
+
+      <div class="step"><div class="num">4</div><div>
+        <h4>"I don't know" gets two scores, not one</h4>
+        <p>This is the subtle one. If the model declines to answer, what should that be worth?</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>If declining counted as…</th><th>Then…</th></tr>
+          <tr><td><b>right</b></td><td>the model says "dunno" to everything and scores 100%</td></tr>
+          <tr><td><b>wrong</b></td><td>honesty is punished, and week 4's whole experiment has nowhere to live</td></tr>
+        </table></div>
+        <p>Neither works, so the report prints <b>two numbers side by side</b>: how well it does when it commits, and <em>how often it commits</em>. One without the other is meaningless — and quoting only the flattering half is the sort of thing that gets noticed.</p>
+        <div class="win">That pair is exactly the trade-off week 4 is built to explore. The report card already speaks the language before the experiment exists.</div>
+      </div></div>
+
+      <div class="step"><div class="num">5</div><div>
+        <h4>The ceiling comes free</h4>
+        <p>The plan says: run it once against the big AI's own answers, and that's your ceiling — the score to beat.</p>
+        <p>No API call needed. Step 3 already tucked away the big AI's original answers before you corrected them, so the harness just reads them back.</p>
+        <div class="note">It's a <em>ceiling</em>, not a score, and honestly so: the rows nobody reviewed are counted as the AI getting them right, because nobody ever contradicted it. The report says as much rather than pretending otherwise.</div>
+      </div></div>
+
+      <div class="step"><div class="num">6</div><div>
+        <h4>It refuses to grade against a changed answer key</h4>
+        <p>Before printing anything, it checks the fingerprint from Step 3. If even one character of the answer key has changed, it stops and says so — non-zero exit, no numbers.</p>
+        <div class="analogy">A number measured against a quietly edited answer key is <b>worse than no number</b>. It looks authoritative, and it isn't comparable to anything you measured last week.</div>
+        <p>You can override it if you changed the key deliberately. It still says so in the output.</p>
+      </div></div>
+
+      <div class="step"><div class="num">7</div><div>
+        <h4>The bug it found in itself</h4>
+        <p>First real run printed this:</p>
+        <pre><code>schema validity   <span class="no">100.0%</span>   (20 unparseable)</code></pre>
+        <p>Both halves can't be true. The cause: it was dividing by the outputs that <em>parsed</em> — which excludes precisely the ones that failed.</p>
+        <div class="analogy">Grading only the exam papers that got handed in, and announcing a 100% pass rate.</div>
+        <div class="win">Now it divides by everything the model attempted: <b>93.3% — 280 of 300</b>. There's a test pinning it, because "the format metric hides format failures" is a bug that would have quietly survived all of week 2.</div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
   <h2 class="sec">Where your sketch and reality disagreed</h2>
 
   <div class="card" style="--wk:var(--revise)">
@@ -629,6 +704,11 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
 &nbsp;&nbsp;review.py <span class="c">— spreadsheet out, corrections back in</span><br>
 &nbsp;&nbsp;freeze.py <span class="c">— fingerprint, so "frozen" is checkable</span><br>
 <br>
+<span class="d">evalharness/</span> <span class="c">— step 4</span><br>
+&nbsp;&nbsp;metrics.py <span class="c">— macro-F1, coverage, the three scoring decisions</span><br>
+&nbsp;&nbsp;predictions.py <span class="c">— loads model output, grades its shape on the way in</span><br>
+&nbsp;&nbsp;report.py <span class="c">— the one command</span><br>
+<br>
 <span class="d">scripts/</span><br>
 &nbsp;&nbsp;prelabel.py <span class="c">— asks the big AI, in one cheap batch job</span><br>
 &nbsp;&nbsp;build_dataset.py <span class="c">— plan → (you) → finalize → verify</span><br>
@@ -637,6 +717,7 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
 &nbsp;&nbsp;test_pack_agnostic.py <span class="c">— same tests, both packs. this file IS the claim</span><br>
 &nbsp;&nbsp;test_vastraa_rules.py <span class="c">— one case per rule</span><br>
 &nbsp;&nbsp;test_labeling.py <span class="c">— incl. "does the reliability table catch a planted bias?"</span><br>
+&nbsp;&nbsp;test_evalharness.py <span class="c">— incl. "does macro-F1 punish the lazy model?"</span><br>
 <br>
 <span class="d">tools/</span><br>
 &nbsp;&nbsp;check_vocab_provenance.py <span class="c">— proves every answer traces to Fashionpedia</span><br>
@@ -646,7 +727,7 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
 <span class="d">data/raw/fashionpedia/</span><br>
 &nbsp;&nbsp;ontology.json <span class="c">— frozen copy of the expert list (51 KB, the 14 MB original isn't committed)</span>
         </div>
-        <pre><code>python -m pytest tests/ -q               <span class="ok">102 passed</span>
+        <pre><code>python -m pytest tests/ -q               <span class="ok">122 passed</span>
 python tools/pack_info.py                <span class="cm"># fields + rule inventory</span>
 python tools/check_vocab_provenance.py   <span class="ok">PASS, both packs</span>
 
@@ -655,7 +736,10 @@ python tools/make_synthetic_feed.py --n 900 --out /tmp/labeled.jsonl
 python scripts/build_dataset.py plan     --labeled /tmp/labeled.jsonl
 <span class="cm">#   ... fill in review_queue.csv ...</span>
 python scripts/build_dataset.py finalize --corrections corrections.csv
-python scripts/build_dataset.py verify   <span class="ok"># checksum still matches?</span></code></pre>
+python scripts/build_dataset.py verify   <span class="ok"># checksum still matches?</span>
+
+<span class="cm"># step 4 — the report card</span>
+python -m evalharness.report --gold data/eval_300 --from-frontier</code></pre>
       </div></div>
     </div>
   </div>
@@ -677,26 +761,26 @@ python scripts/build_dataset.py verify   <span class="ok"># checksum still match
     </div>
 
     <div class="card" style="--wk:var(--commercial);margin-bottom:0">
-      <div class="card-head"><h3>Then Step 4</h3><div class="card-meta">the last piece of week 1</div></div>
+      <div class="card-head"><h3>Then week 2</h3><div class="card-meta">the first number that isn't a ceiling</div></div>
       <div class="card-body">
         <div class="step"><div class="num">1</div><div>
-          <h4>One command, one report</h4>
-          <p>Per-field accuracy, schema-validity rate, rule violations — printed by a single command so you can run it after every experiment without thinking about it.</p>
+          <h4>Train the boring baseline first</h4>
+          <p>Before any reinforcement learning, train a small model the ordinary way and score it. Without that row in the table, "the fancy method got 91%" is a sentence with nothing to compare against.</p>
         </div></div>
         <div class="step"><div class="num">2</div><div>
-          <h4>Macro-F1, not plain accuracy</h4>
-          <p>Clothing data is lopsided — loads of black cotton crew-necks, almost no metallic bishop-sleeve capes. Plain accuracy rewards an AI that just guesses "the common one" every time and looks great doing it.</p>
-          <p>Macro-F1 scores each option separately and then averages, so being useless on rare items actually costs you. It's the difference between a number that flatters you and one that tells you something.</p>
+          <h4>Then let it cheat, and write down how</h4>
+          <p>Run the reinforcement learning <em>without</em> forcing valid output, and watch what it invents to score well without doing the work — empty-but-valid answers, always guessing the common one, playing safe on anything rare.</p>
+          <p>The report card already catches all three. That's what week 2's blog post is actually about.</p>
         </div></div>
         <div class="step"><div class="num">3</div><div>
-          <h4>Write down the frontier baseline</h4>
-          <p>The number that fell out of Step 3 for free. Without it, "GRPO got 91%" is a sentence with nothing to compare against.</p>
+          <h4>The plumbing is already waiting</h4>
+          <p>Length limits measured, per-field reward weights written out, one command that prints the scoreboard. Week 2 starts by filling in a table, not by building one.</p>
         </div></div>
       </div>
     </div>
   </div>
 
-  <p class="foot">Order matters, and it compounds. The list defines what "correct" means. The marker makes it checkable — and then catches a real bug the first time data flows through it. The answer key makes it <em>true</em>, by putting a human between a big model's opinion and the number you report. Everything after this — the training runs, the baseline, the abstention experiment — is measured with these three tools, which is why all three are tested rather than trusted. A quiet mistake at this end doesn't crash anything. It just makes five weeks of numbers mean nothing, and says so nowhere.</p>
+  <p class="foot">Order matters, and it compounds. The list defines what "correct" means. The marker makes it checkable — and then catches a real bug the first time data flows through it. The answer key makes it <em>true</em>, by putting a human between a big model's opinion and the number you report. The scoreboard makes it <em>comparable</em>, and refuses to print anything if the answer key moved underneath it. Everything after this — the training runs, the baseline, the abstention experiment — is measured with these four tools, which is why all four are tested rather than trusted. A quiet mistake at this end doesn't crash anything. It just makes five weeks of numbers mean nothing, and says so nowhere.</p>
 
 </div>
 </body>

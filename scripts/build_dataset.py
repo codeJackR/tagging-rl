@@ -145,6 +145,17 @@ def cmd_finalize(args) -> int:
         print(f"  {len(result['errors'])} errors — fix the CSV and re-run, nothing frozen")
         return 1
 
+    unreviewed = review.snapshot_unreviewed(rows)
+    if unreviewed:
+        print(
+            f"  {unreviewed} rows had no flagged cells and were never opened; "
+            "snapshotted as-is"
+        )
+        print(
+            "  They stay out of the reliability table (nobody verified them) but are\n"
+            "  now included in the ceiling run instead of being silently dropped."
+        )
+
     print("\n" + reliability.format_report(rows))
 
     base = reliability.frontier_baseline(rows)
