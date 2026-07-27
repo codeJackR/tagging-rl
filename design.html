@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tagging-rl — what we built, and why</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F8F6; --ink:#16211E; --card:#fff;
+    --career:#1D4ED8; --vastraa:#9D174D; --commercial:#0F766E; --gate:#D97706;
+    --muted:#6B7370; --line:#DCE0DC; --done:#1A7F4B; --revise:#7C3AED;
+    --body:#454E4B; --soft:#4A544F;
+    --codebg:#F1F3F0; --codeline:#E2E6E2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#141A18; --ink:#E8EDEA; --card:#1B2321;
+      --career:#7CA0F5; --vastraa:#E88AB0; --commercial:#4FBFA8; --gate:#E0A94A;
+      --muted:#939D99; --line:#2C3634; --done:#4FCB8B; --revise:#B18CF5;
+      --body:#BFC7C4; --soft:#AEB6B3;
+      --codebg:#101615; --codeline:#2C3634;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;line-height:1.6;padding:44px 20px 90px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto}
+
+  .eyebrow{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(26px,4.4vw,38px);line-height:1.1;letter-spacing:-.015em;max-width:20ch}
+  .sub{margin-top:13px;color:var(--soft);font-size:15.5px;max-width:66ch}
+
+  .totals{display:flex;flex-wrap:wrap;gap:9px;margin:26px 0 4px}
+  .chip{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;color:var(--body)}
+  .chip b{font-weight:500;color:var(--ink)}
+
+  h2.sec{font-family:'Space Grotesk',sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:52px 0 16px;border-top:1px solid var(--line);padding-top:16px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:20px;overflow:hidden;border-top:4px solid var(--wk,var(--career))}
+  .card-head{padding:18px 22px 15px;border-bottom:1px solid var(--line)}
+  .card-head h3{font-family:'Space Grotesk',sans-serif;font-size:19px;letter-spacing:-.005em}
+  .card-meta{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:var(--muted);margin-top:6px}
+  .card-meta em{font-style:normal;color:var(--wk,var(--career))}
+  .card-body{padding:6px 22px 20px}
+
+  .step{display:grid;grid-template-columns:30px 1fr;gap:13px;padding:16px 0;border-bottom:1px dashed var(--line)}
+  .step:last-child{border-bottom:none}
+  .num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#fff;background:var(--wk,var(--career));width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-top:3px;flex:none}
+  .step h4{font-size:15px;font-weight:600;margin-bottom:6px;letter-spacing:-.003em}
+  .step p{font-size:14px;color:var(--body)}
+  .step p + p{margin-top:9px}
+
+  p.lead{font-size:14.5px;color:var(--body);max-width:70ch}
+  p.lead + p.lead{margin-top:11px}
+
+  .analogy{font-size:14px;color:var(--body);background:color-mix(in srgb, var(--career) 7%, transparent);border-left:3px solid var(--career);border-radius:0 8px 8px 0;padding:11px 15px;margin:12px 0}
+  .analogy b{color:var(--ink)}
+  .note{font-size:13px;color:#7A5B12;background:#FBF3E2;border-radius:7px;padding:9px 13px;margin-top:11px}
+  .trap{font-size:13px;color:#8A2A20;background:#FDF3F2;border-radius:7px;padding:9px 13px;margin-top:11px}
+  .win{font-size:13px;color:var(--done);background:color-mix(in srgb, var(--done) 10%, transparent);border-radius:7px;padding:9px 13px;margin-top:11px}
+  @media (prefers-color-scheme: dark){
+    .note{color:#EBC77A;background:rgba(224,169,74,.10)}
+    .trap{color:#F0938A;background:rgba(240,147,138,.10)}
+  }
+
+  pre{background:var(--codebg);border:1px solid var(--codeline);border-radius:9px;padding:13px 15px;margin:12px 0;overflow-x:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.55;color:var(--ink)}
+  code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.9em;background:var(--codebg);border:1px solid var(--codeline);border-radius:4px;padding:1px 5px}
+  pre code{background:none;border:none;padding:0;font-size:inherit}
+  .cm{color:var(--muted)}
+  .ok{color:var(--done)}
+  .no{color:#B4402F}
+  @media (prefers-color-scheme: dark){ .no{color:#F0938A} }
+
+  .tbl{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  .tbl th{text-align:left;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400;padding:0 12px 8px 0;border-bottom:1px solid var(--line)}
+  .tbl td{padding:11px 12px 11px 0;border-bottom:1px solid var(--line);color:var(--body);vertical-align:top}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl td b{color:var(--ink);font-weight:600}
+  .scroll{overflow-x:auto}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:780px){.two{grid-template-columns:1fr}.card-body{padding:6px 16px 18px}.card-head{padding:16px}body{padding:32px 16px 70px}}
+
+  .files{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.85}
+  .files .d{color:var(--career);font-weight:500}
+  .files .c{color:var(--muted)}
+
+  .foot{margin-top:40px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;max-width:74ch;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">tagging-rl · design notes · W1 steps 1–2</div>
+  <h1>One list, one marker, and a spacecraft that proves they're honest.</h1>
+  <p class="sub">Everything built so far, explained without jargon. Two commits, two weeks of the plan's first week, and the two pieces every later week is going to reuse.</p>
+
+  <div class="totals">
+    <span class="chip">15 fields · <b>156 values</b></span>
+    <span class="chip">34 rules <b>25 written + 9 auto</b></span>
+    <span class="chip"><b>71 tests</b> green</span>
+    <span class="chip">packs <b>2</b> (1 real, 1 fake)</span>
+    <span class="chip">python <b>0 lines</b> inside a pack</span>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">First — what are we even making?</h2>
+
+  <div class="card" style="--wk:var(--vastraa)">
+    <div class="card-head">
+      <h3>The one-sentence version</h3>
+      <div class="card-meta">why this project exists at all</div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">?</div><div>
+        <p class="lead">You want an AI to look at a clothing product — a title and description scraped from a shop — and fill in a form about it. Sleeve length, colour, neckline, what occasion it suits. Thousands of products. Automatically.</p>
+        <p class="lead">To train an AI to do that, you need something that can <b>mark its homework</b>, instantly, thousands of times a second. Not a human. A program.</p>
+        <div class="analogy"><b>That marking program is the entire project.</b> Everything else — the AI, the training, the GPU bill — is downstream of it. If the marker is wrong, you train the AI to be confidently wrong, and you won't find out for weeks.</div>
+        <p class="lead">The clever bit in your plan: the <em>same</em> marker gets used twice. Once as the thing that scores the AI during training, and once as the quality gate in the real product. Build it once, two jobs. That's the "one verifier, two consumers" line.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Step 1 · The list of allowed answers</h2>
+
+  <div class="card" style="--wk:var(--career)">
+    <div class="card-head">
+      <h3>Turning the form into dropdown menus</h3>
+      <div class="card-meta">commit <em>dd8ba2c</em> · packs/vastraa_taste_v1/vocab.yaml</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4>Why a fixed list, not free typing</h4>
+        <p>If the AI can write anything it wants, you can never mark it. Is "quite long" the same as "long"? Is "midnight" the same as "navy"? You'd be arguing with a computer forever.</p>
+        <div class="analogy">So the form has <b>no text boxes — only dropdown menus</b>. Every question has a fixed set of answers. Now marking is just "is this one of the allowed options, yes or no."</div>
+        <pre><code>sleeve_length:  sleeveless | short | elbow | three_quarter | long
+neckline:       crew | scoop | v_neck | square | boat | halter | ...
+fit:            tight | regular | loose | oversized</code></pre>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4>We borrowed the list instead of inventing it</h4>
+        <p>There's a free, expert-built list of clothing attributes called <b>Fashionpedia</b> — made by fashion researchers, published at a proper conference. It has 294 attributes.</p>
+        <p>Why borrow rather than invent? Because later, when the AI says "long sleeve" and your answer key says "3/4 sleeve", you need to know who's wrong. If <em>you</em> invented the categories, maybe your categories were just bad. Borrowing an expert's list takes that excuse off the table.</p>
+        <div class="analogy">It's the difference between <b>"I built a tagger"</b> and <b>"I built a tagger that measures against a published standard."</b> Only one of those survives someone poking at it.</div>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4>Then we cut 294 down to 15</h4>
+        <p>You do <em>not</em> want all 294. Every extra question means 300 more things you have to check by hand later, and one more place the AI can cheat. So each candidate had to survive six filters:</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>Filter</th><th>Meaning</th></tr>
+          <tr><td><b>Fixed options?</b></td><td>Must be a real dropdown, not open-ended.</td></tr>
+          <tr><td><b>In the words?</b></td><td>We're reading product <em>text</em>, not photos. If a shop never types it, it's useless to us.</td></tr>
+          <tr><td><b>Fast to decide?</b></td><td>If <em>you</em> would hesitate 10 seconds, cut it — you're doing 300 of these by hand.</td></tr>
+          <tr><td><b>Common enough?</b></td><td>An option that appears 3 times out of 300 makes the score wobble randomly.</td></tr>
+          <tr><td><b>Has dependencies?</b></td><td>We <em>want</em> some questions that only apply sometimes — that's what the rules check.</td></tr>
+          <tr><td><b>Actually useful?</b></td><td>Does Vastraa's "what does this person wear" feature need it?</td></tr>
+        </table></div>
+        <p>Landed on <b>15</b> — the bare minimum your plan allowed. Adding more later is easy. Un-labelling 300 items is not.</p>
+      </div></div>
+
+      <div class="step"><div class="num">4</div><div>
+        <h4>Three surprises from reading the actual data</h4>
+        <p>Rather than trusting memory, we downloaded the real Fashionpedia file. Three assumptions died:</p>
+        <p><b>1. It has no fabric attributes. At all.</b> No cotton, no silk, no wool. It covers plastic, metal, gem, fur — and that's it. So <code>cotton</code> is honestly labelled "we made this up, here's why" rather than pretending it came from the experts.</p>
+        <p><b>2. Two of its categories are secretly two things each.</b> Its "length" bucket mixes <em>hem</em> length and <em>sleeve</em> length in one pile. Its "silhouette" bucket mixes shape with fit. We split both.</p>
+        <p><b>3. "Sleeveless" looks rare and isn't.</b> It shows up 12 times — but only because sleeveless clothes have no sleeve to annotate. That's absence, not rarity. Deleting it for being rare would have been a real mistake.</p>
+        <div class="win">This is why "go read the data" beat "write what sounds right." A file claiming cotton came from Fashionpedia would have looked completely fine — and been false.</div>
+      </div></div>
+
+      <div class="step"><div class="num">5</div><div>
+        <h4>Every answer says where it came from</h4>
+        <p>Next to each option is a tag: <b>direct</b> (copied from the experts), <b>derived</b> (we merged a few of theirs, here's which), or <b>custom</b> (we invented it, here's why).</p>
+        <pre><code>- name: crew
+  aliases: [crew neck, crewneck, round neck, jewel neck]
+  from:
+    type: derived
+    op: merge
+    fp:
+      - { k: attribute, id: 181, name: "crew (neck)" }
+      - { k: attribute, id: 182, name: "round (neck)" }
+    note: "shops don't distinguish these two"</code></pre>
+        <p>And there's a program that <em>checks</em> those tags — it looks up every ID number in the real Fashionpedia file and fails if the name doesn't match exactly.</p>
+        <div class="analogy">This turns "everything is traceable" from <b>something you say</b> into <b>something a computer confirms</b>. Big difference when someone asks.</div>
+        <div class="win">To make sure the checker wasn't just rubber-stamping everything, we broke the file five ways on purpose — wrong ID, misspelled name, missing justification, duplicate nickname, phantom category. It caught all five.</div>
+      </div></div>
+
+      <div class="step"><div class="num">6</div><div>
+        <h4>Nicknames</h4>
+        <p>Shops write the same thing a dozen ways: <code>3/4</code>, <code>three-quarter</code>, <code>elbow length</code>, <code>3/4 slv</code>. So every option carries a nickname list — <b>754 of them</b> across the pack. That's the difference between working on a demo and working on a real shop feed.</p>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Step 2 · The marker</h2>
+
+  <div class="card" style="--wk:var(--commercial)">
+    <div class="card-head">
+      <h3>The program that grades the AI's homework</h3>
+      <div class="card-meta">commit <em>dd280c6</em> · verifier/</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4>It asks three questions, separately</h4>
+        <p>The AI hands in something. The marker asks:</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th></th><th>Question</th><th>Example failure</th></tr>
+          <tr><td><b>1</b></td><td><b>Is this even a filled-in form?</b> Right boxes, right shapes.</td><td>It wrote a paragraph instead of a form</td></tr>
+          <tr><td><b>2</b></td><td><b>Did it stay in the dropdowns?</b></td><td><code>sleeve_length: "quite long"</code></td></tr>
+          <tr><td><b>3</b></td><td><b>Does it contradict itself?</b></td><td>"sleeveless" <em>and</em> "puff sleeves"</td></tr>
+        </table></div>
+        <pre><code>from verifier import load_pack, verify
+
+pack   = load_pack("packs/vastraa_taste_v1")
+result = verify(model_output, pack)
+
+result.schema_valid      <span class="cm"># question 1</span>
+result.vocab_valid       <span class="cm"># question 2</span>
+result.rule_violations   <span class="cm"># question 3 — which rules broke</span></code></pre>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4>Why three separate scores and not one</h4>
+        <p>This is the most important design decision in the whole step, so here it is slowly.</p>
+        <p>Next week you start paying the AI for good answers. If you only ever tell it <em>"wrong"</em>, it has no idea which part it got wrong.</p>
+        <div class="analogy">It's a teacher handing back a paper with a single ✗ on the front and nothing else. Technically accurate. Completely useless for learning.</div>
+        <p>Split into three, you can watch each skill improve at its own speed. In practice the AI nails "produce valid JSON" quickly, then spends ages learning "stop contradicting yourself."</p>
+        <div class="win"><b>That graph is the interesting result.</b> It's what the blog post is about. Mashing the three into one number erases it permanently — and you'd never know it was gone.</div>
+        <p>Practically this meant building <em>two</em> validators instead of one: a loose one that only checks the shape, and a strict one that checks the values. The obvious shortcut — one validator that does both — is less code and quietly destroys a measurement you can't get back.</p>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4>The rules, in plain YAML</h4>
+        <p>Contradiction-checking is written as data, not code, so you can add rules without touching the program. Three kinds cover everything so far:</p>
+        <pre><code><span class="cm"># if it's a dress, it must have a length and a neckline</span>
+- id: dress_needs_length_and_neckline
+  type: requires
+  if: { garment_category: dress }
+  then_present: [garment_length, neckline]
+
+<span class="cm"># sleeveless things can't have a sleeve style</span>
+- id: sleeveless_has_no_sleeve_style
+  type: excludes
+  if: { sleeve_length: sleeveless }
+  forbid: { sleeve_style: "*" }
+
+<span class="cm"># trousers can't be "mini" length</span>
+- id: pants_length_subset
+  type: conditional_vocab
+  if: { garment_category: pants }
+  restrict: { garment_length: [cropped, knee, midi, maxi] }</code></pre>
+        <p>25 written by hand. Then <b>9 more generated automatically</b> from the vocabulary file — because the vocab already knows that "neckline" doesn't apply to shoes. Copying that knowledge into a second file by hand would just mean two copies that slowly disagree.</p>
+        <div class="win">34 rules for the effort of writing 25.</div>
+      </div></div>
+
+      <div class="step"><div class="num">4</div><div>
+        <h4>The spacecraft pack</h4>
+        <p>Your plan insists the marker must never know it's dealing with clothes — so that pack #2 can be a completely different shop's schema with zero code changes. Easy to <em>claim</em>. Very easy to accidentally break with one stray <code>if garment_category ==</code>.</p>
+        <div class="analogy">So there's a <b>fake schema about spacecraft</b> — mission class, propulsion, hull material. Three invented fields, two rules, two YAML files, <b>zero lines of code</b>. Then every test runs <b>twice</b>: once on clothes, once on spacecraft.</div>
+        <p>If anything clothing-specific sneaks into the marker, the spacecraft run fails and you find out in one second instead of in week four.</p>
+        <div class="win">It worked immediately — it caught the Step 1 checker hard-coding <code>garment_category</code>. The claim is now enforced by a machine instead of trusted.</div>
+        <p>There's even a test asserting a pack folder contains no <code>.py</code> files at all. If a pack ever needs code, it isn't a pack any more.</p>
+      </div></div>
+
+      <div class="step"><div class="num">5</div><div>
+        <h4>"I don't know" vs "doesn't apply"</h4>
+        <p>Two different kinds of blank, and they must never be confused:</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>Value</th><th>Means</th><th>Example</th></tr>
+          <tr><td><code>null</code></td><td><b>Question doesn't apply</b> to this item</td><td>neckline, on a handbag</td></tr>
+          <tr><td><code>"unknown"</code></td><td><b>The AI chose not to answer</b></td><td>description was too vague</td></tr>
+        </table></div>
+        <p>Why it matters: in week 4 you pay <b>+1 for right, 0 for "I don't know", −λ for wrong</b>. Deliberately declining is worth <em>more</em> than guessing badly — that's the entire experiment. If both blanks looked identical, you couldn't count them, and the experiment wouldn't run.</p>
+        <div class="note">There's a knob per rule, <code>allow_abstain</code>. Left open, an AI could dodge every rule by answering "unknown" to everything. Three rules currently refuse it. Worth a look before you freeze the answer key.</div>
+      </div></div>
+
+      <div class="step"><div class="num">6</div><div>
+        <h4>The marker never tidies up before marking</h4>
+        <p>AIs love wrapping answers in markdown fences, adding trailing commas, chatting before the JSON. It's tempting to strip all that automatically.</p>
+        <div class="analogy">But that's <b>fixing the student's spelling before you mark the spelling test</b>. Next week's whole point is watching the AI <em>learn</em> to produce clean output. Quietly repairing it deletes that lesson before it's ever measured.</div>
+        <p>So the marker is strict by default. Nickname-matching exists but is opt-in, and it reports exactly what it changed — because "how often was the AI one nickname away from correct" is itself a useful number.</p>
+      </div></div>
+
+      <div class="step"><div class="num">7</div><div>
+        <h4>The bug the tests caught</h4>
+        <p>A test fed the marker deliberate garbage. The marker <b>crashed</b>.</p>
+        <p>That's worse than an ordinary bug. This thing's whole job is grading garbage — during training the AI absolutely will emit nonsense, that's the point of running it unconstrained. A marker that dies on nonsense takes the training run down with it, and you lose an evening working out why.</p>
+        <div class="trap">Specifically: a list where a single value belonged made it throw instead of scoring. Fixed — and there's now a test firing eight kinds of junk at it, because "never crash" is a property worth defending permanently.</div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Where your sketch and reality disagreed</h2>
+
+  <div class="card" style="--wk:var(--revise)">
+    <div class="card-head">
+      <h3>Four changes, each with a reason</h3>
+      <div class="card-meta">all recorded in the commit message too</div>
+    </div>
+    <div class="card-body">
+      <div class="scroll"><table class="tbl">
+        <tr><th>Sketched</th><th>Built</th><th>Why</th></tr>
+        <tr>
+          <td><code>schema.py</code> inside each pack</td>
+          <td>moved into <code>verifier/</code></td>
+          <td>a pack containing code isn't pack-agnostic — the spacecraft pack would need its own copy of it</td>
+        </tr>
+        <tr>
+          <td>one validator</td>
+          <td>two</td>
+          <td>keeps "valid form?" and "valid answers?" as separate scores — see step 2 above</td>
+        </tr>
+        <tr>
+          <td><code>None</code> = abstained</td>
+          <td><code>"unknown"</code> = abstained,<br><code>null</code> = doesn't apply</td>
+          <td>week 4 pays +1 / 0 / −λ, so "I don't know" has to be countable and distinct</td>
+        </tr>
+        <tr>
+          <td>all rules hand-written</td>
+          <td>25 written + 9 generated</td>
+          <td>same reason you wanted the validator generated: two hand-kept copies drift apart</td>
+        </tr>
+      </table></div>
+      <p class="lead">The result type also gained three fields beyond the four you sketched — <code>errors</code> (why it failed, or a failed run is undebuggable), <code>abstentions</code> (week 4 needs the count), and <code>normalized</code> (near-miss telemetry).</p>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">The map</h2>
+
+  <div class="card" style="--wk:var(--muted)">
+    <div class="card-head">
+      <h3>What each file does</h3>
+      <div class="card-meta">everything committed so far</div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">▸</div><div>
+        <div class="files">
+<span class="d">packs/vastraa_taste_v1/</span><br>
+&nbsp;&nbsp;vocab.yaml <span class="c">— the dropdown menus. 15 fields, 156 answers, 754 nicknames</span><br>
+&nbsp;&nbsp;rules.yaml <span class="c">— the 25 contradiction rules</span><br>
+&nbsp;&nbsp;PROVENANCE.md <span class="c">— why these 15, what got rejected, what's still unchecked</span><br>
+<br>
+<span class="d">packs/demo_pack/</span><br>
+&nbsp;&nbsp;vocab.yaml, rules.yaml <span class="c">— the fake spacecraft schema. no code, on purpose</span><br>
+<br>
+<span class="d">verifier/</span><br>
+&nbsp;&nbsp;__init__.py <span class="c">— the front door: load_pack(), verify()</span><br>
+&nbsp;&nbsp;schema.py <span class="c">— builds the two validators from vocab.yaml</span><br>
+&nbsp;&nbsp;rules.py <span class="c">— runs the contradiction rules</span><br>
+<br>
+<span class="d">tests/</span><br>
+&nbsp;&nbsp;test_pack_agnostic.py <span class="c">— same tests, both packs. this file IS the claim</span><br>
+&nbsp;&nbsp;test_vastraa_rules.py <span class="c">— one case per rule</span><br>
+<br>
+<span class="d">tools/</span><br>
+&nbsp;&nbsp;check_vocab_provenance.py <span class="c">— proves every answer traces to Fashionpedia</span><br>
+&nbsp;&nbsp;pack_info.py <span class="c">— prints what's in a pack</span><br>
+<br>
+<span class="d">data/raw/fashionpedia/</span><br>
+&nbsp;&nbsp;ontology.json <span class="c">— frozen copy of the expert list (51 KB, the 14 MB original isn't committed)</span>
+        </div>
+        <pre><code>python -m pytest tests/ -q               <span class="ok">71 passed</span>
+python tools/pack_info.py                <span class="cm"># fields + rule inventory</span>
+python tools/check_vocab_provenance.py   <span class="ok">PASS, both packs</span></code></pre>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Still open</h2>
+
+  <div class="two">
+    <div class="card" style="--wk:var(--gate);margin-bottom:0">
+      <div class="card-head"><h3>Do before Step 3</h3><div class="card-meta">~30 minutes, both cheap</div></div>
+      <div class="card-body">
+        <div class="step"><div class="num">1</div><div>
+          <h4>Check against real shop data</h4>
+          <p>Grab ~200 real Sovrn rows and see how the answers actually spread out. If one option covers 85%+ of items, that question will make the AI look good without being good. Merge it or cut it.</p>
+        </div></div>
+        <div class="step"><div class="num">2</div><div>
+          <h4>Fill in 20 by hand</h4>
+          <p>Do the form yourself for 20 real products. Anything that makes you hesitate repeatedly, cut <em>now</em>. Finding it during the 300-item session costs ten times more. Prime suspects: <code>occasion</code>, <code>silhouette</code>, <code>fit</code>.</p>
+        </div></div>
+        <div class="step"><div class="num">3</div><div>
+          <h4>Decide the abstain policy</h4>
+          <p>Three rules currently refuse "unknown" as an answer. That's a judgement call about how much dodging you'll tolerate, and it shapes what week 4's experiment produces.</p>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="card" style="--wk:var(--vastraa);margin-bottom:0">
+      <div class="card-head"><h3>Then Step 3</h3><div class="card-meta">the week-eater — timebox it</div></div>
+      <div class="card-body">
+        <div class="step"><div class="num">1</div><div>
+          <h4>300 frozen + 3–5k cheap</h4>
+          <p>A small answer key you correct by hand and never train on. A big rough set you don't fully trust and never test on. Keeping those two apart is the thing that stops every number afterwards from being a lie.</p>
+        </div></div>
+        <div class="step"><div class="num">2</div><div>
+          <h4>The marker is already waiting for it</h4>
+          <p><code>verify_record()</code> takes a plain dictionary, so labelled rows can be checked the moment they exist — before any AI is involved. If your own hand-labels break the rules, the rules are wrong, and better to learn that at row 20 than row 300.</p>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Order matters: the list defines what "correct" means, the marker makes it checkable, and everything after — the training runs, the frontier baseline, the abstention experiment — is measured with these two tools. Which is why both of them are themselves tested rather than trusted: a quiet mistake here doesn't crash anything, it just makes five weeks of numbers meaningless.</p>
+
+</div>
+</body>
+</html>
