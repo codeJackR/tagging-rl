@@ -21,3 +21,10 @@ wandb/
 !.env.example
 *.key
 secrets.json
+
+# Raw scraped feed + batch bookkeeping: large, regenerable via
+# tools/fetch_shopify.py, and third-party product copy. The FROZEN EVAL SET under
+# data/eval_300/ is committed — that is the artifact the plan asks to tag.
+data/raw/feed.jsonl
+data/raw/labeled.jsonl
+data/raw/batch_state.json
