@@ -14,3 +14,10 @@ wandb/
 
 .DS_Store
 .ipynb_checkpoints/
+
+# Secrets — never commit. The OpenAI/Anthropic keys live here.
+.env
+.env.*
+!.env.example
+*.key
+secrets.json

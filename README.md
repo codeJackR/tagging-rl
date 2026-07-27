@@ -248,10 +248,42 @@ empty description, 638 ubiquitous tags pruned. Residual tag noise remains
 (`cf-size-large`, campaign codes) — below the ubiquity threshold and cheap enough
 to leave to the labeler.
 
+### Labeling provider
+
+Defaults to OpenAI **`gpt-5.6-luna`**; `--provider anthropic` runs identical
+prompts through Claude. Backends live in `labeling/providers.py`; the system
+prompt, perturbation set, consensus and provenance are shared, so the two runs are
+comparable and their Step 3 reliability tables can be diffed.
+
+```bash
+cp .env.example .env          # then add your key; .env is gitignored
+python scripts/prelabel.py estimate --feed data/raw/feed.jsonl --k 5
+python scripts/prelabel.py submit   --feed data/raw/feed.jsonl --k 5
+```
+
+**Use the full model id.** `gpt-5.6` routes to Sol, not Luna — a pinned test
+catches the regression.
+
+**Two vendor differences that are invisible until the API rejects you:**
+
+- OpenAI strict mode requires *every* property in `required`; optionality is
+  carried by a nullable type union, never by omission. Pydantic emits optional
+  fields as absent-from-required, so the schema is rewritten per provider.
+- OpenAI takes a batch as an uploaded JSONL file; Anthropic takes requests inline.
+
+**`estimate` sends one real request and reads `usage` back.** Offline token
+estimation for this model does not work — measured against the actual system
+prompt, `chars/4` said 746 tokens and tiktoken's `o200k_base` said 805; the API
+said **1908**. Both heuristics would also have produced a false "caching will not
+engage" warning, since 746 is below the 1024 threshold and 1908 is well above it.
+One calibration request costs a fraction of a cent and is exact. `--offline`
+skips it and labels the result unreliable.
+
+Measured: ~$2 batched for 400 products at k=5, so roughly **$10 for 4,000**.
+
 ### What's still blocked
 
-Only the API key. `data/raw/` holds the Fashionpedia ontology; a real feed is now
-one command away. Everything above runs today against
+Nothing. Feed and key are both in place. Everything above runs today against
 `tools/make_synthetic_feed.py`, which plants a known bias so the reliability table
 can be shown to catch it rather than merely look plausible.
 
