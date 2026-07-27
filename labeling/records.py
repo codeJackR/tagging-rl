@@ -155,17 +155,51 @@ class Row(BaseModel):
 
 
 def from_verifier_record(
-    record: dict[str, Any], unknown_token: str = "unknown"
+    record: dict[str, Any], pack=None, unknown_token: str = "unknown"
 ) -> dict[str, AttributeLabel]:
-    """Inverse of `Row.to_verifier_record` — model output to three-state labels."""
+    """Inverse of `Row.to_verifier_record` — model output to three-state labels.
+
+    Handles the empty list, which a real 20,000-request run produced 178 times
+    (0.9%) on the multi-valued `details` field. It is not an error and not an
+    abstention: the model answered, and its answer was "nothing from this list
+    applies". The vocabulary already has a value meaning exactly that, so `[]` is
+    normalized onto it rather than being invented as a new state.
+
+    Where no such value exists the empty list becomes `unknown` — conservative,
+    because the alternative is asserting `not_applicable` for a field that does
+    apply, which would be a claim the model never made.
+
+    `pack` is optional but wanted: without it, arity and the "none" value cannot be
+    resolved. Never raises on well-formed JSON — a converter that crashes on one
+    row discards every other row parsed in the same pass.
+    """
+    if pack is not None:
+        unknown_token = pack.unknown_token
+
     labels: dict[str, AttributeLabel] = {}
     for name, value in record.items():
+        spec = pack.specs.get(name) if pack is not None else None
+
         if value is None:
             labels[name] = AttributeLabel(status=LabelStatus.NOT_APPLICABLE)
         elif value == unknown_token or (
             isinstance(value, list) and value == [unknown_token]
         ):
             labels[name] = AttributeLabel(status=LabelStatus.UNKNOWN)
+        elif value == [] or value == "":
+            empty_value = None
+            if spec is not None:
+                empty_value = next(
+                    (v for v in spec.values if v in ("none", "no_detail", "None")), None
+                )
+            labels[name] = (
+                AttributeLabel(
+                    value=[empty_value] if spec and spec.kind == "multi" else empty_value,
+                    status=LabelStatus.LABELED,
+                )
+                if empty_value
+                else AttributeLabel(status=LabelStatus.UNKNOWN)
+            )
         else:
             labels[name] = AttributeLabel(value=value, status=LabelStatus.LABELED)
     return labels

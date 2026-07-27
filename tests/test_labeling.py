@@ -119,7 +119,7 @@ def test_multi_field_abstention_respects_arity(pack):
 def test_verifier_record_round_trips(corpus, pack):
     rows, _ = corpus
     row = rows[0]
-    back = from_verifier_record(row.to_verifier_record(pack), pack.unknown_token)
+    back = from_verifier_record(row.to_verifier_record(pack), pack)
     assert {k: v.key() for k, v in back.items()} == {
         k: v.key() for k, v in row.labels.items()
     }
@@ -415,3 +415,28 @@ def test_difficulty_is_left_unset(corpus):
     """sft_pass_rate needs a model to measure against — it arrives in W2, not here."""
     rows, _ = corpus
     assert all(r.difficulty.sft_pass_rate is None for r in rows)
+
+
+def test_empty_list_maps_onto_the_vocabulary_none_value(pack):
+    """A real 20,000-request run returned `details: []` 178 times.
+
+    Not an error and not an abstention — the model answered "nothing applies", and
+    the vocabulary already has a value meaning that. Normalize onto it rather than
+    inventing a fourth state.
+    """
+    labels = from_verifier_record({"details": []}, pack)
+    assert labels["details"].status is LabelStatus.LABELED
+    assert labels["details"].value == ["none"]
+
+
+def test_empty_value_without_a_none_in_vocab_becomes_unknown(pack):
+    """Conservative: asserting not_applicable would be a claim the model never made."""
+    labels = from_verifier_record({"colour_primary": ""}, pack)
+    assert labels["colour_primary"].status is LabelStatus.UNKNOWN
+
+
+def test_converter_never_raises_on_wellformed_json(pack):
+    """A converter that crashes on one row discards every row parsed alongside it."""
+    for junk in ({"details": []}, {"neckline": ""}, {"details": ["unknown"]},
+                 {"garment_category": None}, {}):
+        from_verifier_record(junk, pack)

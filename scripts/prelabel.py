@@ -224,12 +224,16 @@ def cmd_collect(args) -> int:
         if result.error or not result.text:
             failures.append(f"{result.custom_id}: {result.error or 'no text'}")
             continue
+        # Every per-row failure is caught. A run of 20,000 requests died on ONE
+        # unexpected shape once; the cost of that is not one lost row, it is the
+        # other 19,999 and the wait for the batch. Anything unparseable is recorded
+        # and skipped, never guessed at.
         try:
             samples.setdefault(sku, []).append(
-                from_verifier_record(json.loads(result.text), pack.unknown_token)
+                from_verifier_record(json.loads(result.text), pack)
             )
-        except json.JSONDecodeError as exc:
-            failures.append(f"{result.custom_id}: bad JSON ({exc})")
+        except Exception as exc:  # noqa: BLE001 — model output is untrusted input
+            failures.append(f"{result.custom_id}: {type(exc).__name__}: {str(exc)[:120]}")
 
     rows = []
     for sku, inp in feed.items():
