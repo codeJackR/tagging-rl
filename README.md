@@ -12,8 +12,8 @@ Plan: `~/Downloads/rl-catalog-plan-stepwise.html`
 | Week | Step | State |
 |---|---|---|
 | W1 | 1 · Adapt Fashionpedia's ontology | **done** — `packs/vastraa_taste_v1/vocab.yaml` |
-| W1 | 2 · Schema pack format (Pydantic + vocab + rules) | **done** — `verifier/`, 71 tests green |
-| W1 | 3 · Eval set (300, frozen) + train set (3–5k, weak) | next |
+| W1 | 2 · Schema pack format (Pydantic + vocab + rules) | **done** — `verifier/`, 102 tests green |
+| W1 | 3 · Eval set (300, frozen) + train set (3–5k, weak) | **machinery built** — blocked on feed + API key |
 | W1 | 4 · Eval harness v0 | |
 
 ---
@@ -124,6 +124,88 @@ leniency exists but is opt-in (`normalize=True`) and reports what it changed.
 Rule inventory for `vastraa_taste_v1`: **34 total — 25 written + 9 derived.** The derived ones
 come from `applies_to:` in vocab.yaml rather than being copied into rules.yaml, for the same
 reason the Pydantic model is generated: two hand-maintained copies drift.
+
+---
+
+## W1 Step 3 — the dataset pipeline
+
+```
+labeling/
+  records.py      row schema: three-state labels + provenance + verifier bridge
+  consensus.py    k-sample self-consistency -> review queue      (reused in W3)
+  reliability.py  per-attribute frontier accuracy -> reward weights
+  splits.py       stratified eval / random probe / weak train
+  lengths.py      token budgets for the W2 GRPO config
+  review.py       spreadsheet round-trip for the hand-correction pass
+  freeze.py       checksum sidecar + drift detection
+scripts/
+  prelabel.py       Batch API labeler, k-sample, structured outputs on
+  build_dataset.py  plan -> (human) -> finalize -> verify
+tools/
+  make_synthetic_feed.py   fixture with planted bias, so the pipeline is provable now
+```
+
+```bash
+python tools/make_synthetic_feed.py --n 900 --out /tmp/labeled.jsonl
+python scripts/build_dataset.py --out-dir /tmp/s3 plan --labeled /tmp/labeled.jsonl
+#   ... fill in /tmp/s3/review/review_queue.csv ...
+python scripts/build_dataset.py --out-dir /tmp/s3 finalize --corrections .../corrections.csv
+python scripts/build_dataset.py --out-dir /tmp/s3 verify
+```
+
+### The load-bearing piece: `reliability.py`
+
+The eval set and the training labels both start from the same frontier model, so a
+systematic labeler error teaches the wrong answer *and* certifies it as right.
+Hand-correcting the 300 breaks that loop; diffing the corrections against the
+frontier's original output tells you **where** it was broken, per attribute.
+
+Verdicts key off the **Wilson lower bound**, not the point estimate — 285/300 is a
+95% point estimate but only a 92% lower bound, so it lands on `usable`, not `safe`.
+Attributes below ~85% get `reward_weight` 0 and should be excluded from the W2
+reward entirely. Output goes to `reliability.json`, which the reward function reads.
+
+The frontier baseline W1 Step 4 asks for falls out of the same pass, free.
+
+### Three splits, not two
+
+| split | size | selection | measures |
+|---|---|---|---|
+| `eval` | 300 | stratified to ≥8 per value | macro-F1 |
+| `probe` | 100 | random | cost/SKU, escalation %, throughput (W3) |
+| `train` | rest | whatever's left | SFT + GRPO, never scored |
+
+Stratifying fixes macro-F1 variance and deliberately breaks the distribution, so
+any per-SKU number computed on `eval` is wrong for the real catalog. That's what
+`probe` is for.
+
+### Staying inside the 6-hour timebox
+
+300 rows × 15 attributes = 4,500 cells. The consensus pass samples the labeler k
+times and queues only the cells where samples disagree — measured at **~86%
+skipped** on the synthetic corpus. Same machinery W3 Step 3 needs for the
+escalation queue; built once, imported twice.
+
+### Two API constraints worth knowing
+
+- **`temperature` is removed on Claude Opus 5 / Sonnet 5** (400 error). "Sample k=5
+  at temperature" isn't available on the frontier models — `prelabel.py` gets its
+  diversity from prompt perturbation instead. Same constraint hits W3 Step 3.
+- **Perturbation lives in the user turn**, never the system block, so the shared
+  vocabulary prefix stays byte-identical and cacheable at ~0.1×. Perturbing the
+  system prompt would quietly cost near-full price on every one of the N×k requests.
+
+### What's still blocked
+
+`data/raw/` holds the Fashionpedia ontology and nothing else. Step 3 needs a real
+Sovrn feed (~4k rows) and an API key. Everything above runs today against
+`tools/make_synthetic_feed.py`, which plants a known bias so the reliability table
+can be shown to catch it rather than merely look plausible.
+
+`difficulty.sft_pass_rate` stays `null` by design — GRPO's gradient comes from
+within-group disagreement, so rows that every rollout gets right or wrong are dead
+weight, but that can only be measured against the W2 SFT baseline, never guessed
+from the data.
 
 ---
 

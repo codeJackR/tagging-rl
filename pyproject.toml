@@ -5,10 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=0.120.0",
     "pandas>=3.0.5",
     "pydantic>=2.13.4",
     "pyyaml>=6.0.3",
     "wandb",
+]
+
+[project.optional-dependencies]
+tokenizer = [
+    "transformers>=5.14.1",
 ]
 
 [dependency-groups]

@@ -299,6 +299,139 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
   </div>
 
   <!-- ===================================================================== -->
+  <h2 class="sec">Step 3 · The answer key <span style="color:var(--gate)">— machinery built, waiting on data</span></h2>
+
+  <div class="card" style="--wk:var(--done)">
+    <div class="card-head">
+      <h3>What now exists</h3>
+      <div class="card-meta">runs today against a synthetic fixture · <em>102 tests green</em></div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">✓</div><div>
+        <p class="lead">The whole pipeline is built and provable — splits, the consensus review queue, the spreadsheet round-trip, the reliability table, token budgets, and the freeze checksum. It runs end to end on a <b>synthetic feed with a deliberately planted bias</b>, which is how we know the reliability table actually catches a bad attribute rather than just printing a plausible-looking table.</p>
+        <p class="lead">On that fixture it flagged the two corrupted attributes (<code>material</code> 0.83, <code>occasion</code> 0.93) and cleared the other thirteen — with no false positives — and the consensus pass cut the review queue by <b>86%</b>, from 4,500 cells to ~630.</p>
+        <div class="win">Building Step 2 first paid off twice here: the verifier caught a structurally invalid record the moment real data flowed through it, which turned out to be a genuine design bug — a multi-valued field abstaining needs <code>["unknown"]</code>, not <code>"unknown"</code>, and nothing had exercised that path before.</div>
+        <p class="lead">Still missing: the actual Sovrn rows and an API key. Nothing below changes when they arrive — the fixture is swapped for the real feed and the same commands run.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card" style="--wk:var(--gate)">
+    <div class="card-head">
+      <h3>Two piles of labelled clothes, and why they must never touch</h3>
+      <div class="card-meta">the week-eater · <em>6 hours, hard stop</em></div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4>What we're making</h4>
+        <p>Up to now we've built the form and the marker. Neither knows a single real product. Step 3 gets actual clothes into the system — about 4,000 of them — and fills in the form for each one.</p>
+        <p>They get split into <b>two piles</b>, and this split is the whole point of the step:</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>Pile</th><th>Size</th><th>How good</th><th>Used for</th></tr>
+          <tr><td><b>The answer key</b></td><td>300</td><td>checked by hand, one by one</td><td><b>testing</b> — never training</td></tr>
+          <tr><td><b>The practice pile</b></td><td>3,000–5,000</td><td>roughly right, spot-checked only</td><td><b>training</b> — never testing</td></tr>
+        </table></div>
+        <div class="analogy">It's homework versus the exam. <b>You cannot practise on the exam paper.</b> If you do, scoring 95% tells you nothing — you memorised those exact questions. Keeping the two piles apart is what makes every number afterwards mean something.</div>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4>Why one pile can be sloppy and the other can't</h4>
+        <p><b>Training</b> wants <em>lots, mostly right</em>. A few wrong labels in 4,000 wash out — the AI learns the general pattern anyway.</p>
+        <p><b>Testing</b> wants <em>few, definitely right</em>. Every number you report for the next five weeks is measured against these 300. A bent ruler doesn't crash anything — it just quietly makes all your results wrong.</p>
+        <p>So: hand-check 300, and only 300. Hand-checking 4,000 would eat the month.</p>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4>How the labels get made</h4>
+        <p>You don't fill in 4,000 forms yourself. You ask a big, smart AI to do it — that's called <b>pre-labelling</b>. It reads each product description and fills in the dropdowns.</p>
+        <p>Here we <em>do</em> force it to produce valid JSON (unlike week 2's training, where the whole point was watching a small model learn that on its own). This is production-style labelling — we just want clean data, fast. The JSON Schema comes straight out of the Step 2 verifier, so the labels can't be shaped wrong by construction.</p>
+      </div></div>
+
+      <div class="step"><div class="num">4</div><div>
+        <h4>The trap this step exists to avoid</h4>
+        <p>Read this one twice, because it's the reason the whole step is designed the way it is.</p>
+        <p>Suppose a big AI writes all 4,000 labels. You train a small AI on them. Then you test the small AI against… labels written by the same big AI.</p>
+        <div class="trap">You are no longer measuring <b>"is the small AI correct?"</b> You are measuring <b>"does the small AI copy the big AI?"</b> It could score 95% and be wrong about clothes 95% of the time — you'd have no way to tell.</div>
+        <p>Hand-correcting the 300 is what breaks that circle. It's the only step in the entire plan where a human decides what's true. Everything downstream inherits its trustworthiness from those 300 rows.</p>
+      </div></div>
+
+      <div class="step"><div class="num">5</div><div>
+        <h4>A free number falls out of it</h4>
+        <p>While you're correcting those 300, count how many the big AI already had right.</p>
+        <div class="win">That percentage <b>is the frontier baseline</b> — the score your small model has to beat to be worth anything. Step 4 asks you to record it. You get it for free just by doing Step 3 carefully.</div>
+      </div></div>
+
+      <div class="step"><div class="num">6</div><div>
+        <h4>Don't just nod along</h4>
+        <p>When you check a row, the AI's answer is sitting right there. Human brains agree with a plausible answer that's already written down — it takes real effort not to.</p>
+        <p>So for the fields where it matters, decide your own answer <em>before</em> looking. And whatever happens, record which rows you changed — that's both your accuracy number and your evidence that you actually checked rather than skimmed.</p>
+      </div></div>
+
+      <div class="step"><div class="num">7</div><div>
+        <h4>Measure how sloppy the sloppy pile is</h4>
+        <p>Spot-check about 100 random rows from the big pile. Say the AI got 85% right.</p>
+        <p>That 85% is a <b>ceiling</b>. A model trained on 85%-correct data can't reliably do better than 85% — it's learning from partly-wrong answers.</p>
+        <div class="win">So in week 2 when GRPO stalls at 84% and you're about to spend an evening hunting a broken reward function: you'll already know it's the data ceiling, not a bug. Writing this number down now is a whole evening you don't lose later.</div>
+      </div></div>
+
+      <div class="step"><div class="num">8</div><div>
+        <h4>Every row remembers where it came from</h4>
+        <p>Each row carries a note: <code>AI guessed this</code> or <code>a human fixed this</code>. Same discipline as the vocabulary in Step 1 — you can always answer "who said this, and how much should I trust it?"</p>
+        <p>Then the 300 get <b>frozen</b> with a git tag. Frozen means frozen: if you tweak the answer key after seeing a bad result, every comparison you've made becomes meaningless, and you won't notice.</p>
+      </div></div>
+
+      <div class="step"><div class="num">9</div><div>
+        <h4>The marker earns its keep early</h4>
+        <p>Nice side effect of having built Step 2 first: you can run the verifier over <em>your own hand-written labels</em>.</p>
+        <div class="analogy">If your own careful, human-checked answers break the rules, then <b>the rules are wrong</b> — not the answers. Far better to find that out at row 20 than at row 300.</div>
+      </div></div>
+
+      <div class="step"><div class="num">!</div><div>
+        <h4>Six hours. Hard stop.</h4>
+        <p>Your own plan flags this as the step most likely to eat the entire week, and it's right. Checking clothing labels is oddly absorbing and there is always one more field you could tighten. Set a timer.</p>
+        <p>If you're not done in six hours, you picked too many fields — cut one and carry on rather than extending the clock.</p>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">What Step 3 needs before it can start</h2>
+
+  <div class="card" style="--wk:var(--vastraa)">
+    <div class="card-head">
+      <h3>Two things we don't have</h3>
+      <div class="card-meta">both are yours to get · everything else is ready</div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">1</div><div>
+        <h4>The actual product data</h4>
+        <p><code>data/raw/</code> currently holds one file: the Fashionpedia ontology. <b>Zero real products.</b> We need roughly 4,000 rows from the Sovrn affiliate feed — title, description, brand, category, image URL.</p>
+        <p>(The image URL gets stored but not used. Everything through week 3 reads text only; pictures are the optional week-6 track.)</p>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4>An API key for the labelling model</h4>
+        <p>No <code>ANTHROPIC_API_KEY</code> is set and the <code>ant</code> CLI isn't installed, so nothing can call a model right now.</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>Rough cost for ~4,000 products</th><th></th></tr>
+          <tr><td>Claude Opus 5, straight through</td><td><b>~$15–25</b></td></tr>
+          <tr><td>…via the Batch API (results within hours, not seconds)</td><td><b>~$8–13</b> — 50% off</td></tr>
+          <tr><td>…plus prompt caching on the shared instructions</td><td>a few dollars less again</td></tr>
+        </table></div>
+        <p>An estimate, not a quote — the real number depends on how long the product descriptions run. Either way it's a rounding error next to the GPU budget, and this is the one step where label quality propagates into every result you report. Not the place to economise.</p>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4>And the two checks still outstanding from Step 1</h4>
+        <p>Both belong immediately before this step, not after it: <b>the distribution check</b> (does one dropdown option cover 85%+ of real products? then it's a useless question) and <b>the 20-row hand-tag</b> (does any field make you hesitate? cut it now).</p>
+        <p>Thirty minutes. Skipping them means finding the problem 300 rows deep, when fixing it costs ten times more.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
   <h2 class="sec">Where your sketch and reality disagreed</h2>
 
   <div class="card" style="--wk:var(--revise)">
@@ -381,33 +514,32 @@ python tools/check_vocab_provenance.py   <span class="ok">PASS, both packs</span
 
   <div class="two">
     <div class="card" style="--wk:var(--gate);margin-bottom:0">
-      <div class="card-head"><h3>Do before Step 3</h3><div class="card-meta">~30 minutes, both cheap</div></div>
+      <div class="card-head"><h3>One decision only you can make</h3><div class="card-meta">before the answer key freezes</div></div>
       <div class="card-body">
-        <div class="step"><div class="num">1</div><div>
-          <h4>Check against real shop data</h4>
-          <p>Grab ~200 real Sovrn rows and see how the answers actually spread out. If one option covers 85%+ of items, that question will make the AI look good without being good. Merge it or cut it.</p>
-        </div></div>
-        <div class="step"><div class="num">2</div><div>
-          <h4>Fill in 20 by hand</h4>
-          <p>Do the form yourself for 20 real products. Anything that makes you hesitate repeatedly, cut <em>now</em>. Finding it during the 300-item session costs ten times more. Prime suspects: <code>occasion</code>, <code>silhouette</code>, <code>fit</code>.</p>
-        </div></div>
-        <div class="step"><div class="num">3</div><div>
-          <h4>Decide the abstain policy</h4>
-          <p>Three rules currently refuse "unknown" as an answer. That's a judgement call about how much dodging you'll tolerate, and it shapes what week 4's experiment produces.</p>
+        <div class="step"><div class="num">?</div><div>
+          <h4>How much dodging will you tolerate?</h4>
+          <p>Three rules currently refuse <code>"unknown"</code> as an acceptable answer; the rest accept it. That's the dial for how much the AI is allowed to say "I don't know" and still be counted as having done its job.</p>
+          <p>It isn't a technical question — it's a judgement about your product. And it directly shapes what week 4's +1 / 0 / −λ experiment produces, so it's worth a minute of thought before the 300 rows are frozen against it.</p>
+          <p>It's <code>allow_abstain: false</code> in <code>rules.yaml</code>, three places.</p>
         </div></div>
       </div>
     </div>
 
-    <div class="card" style="--wk:var(--vastraa);margin-bottom:0">
-      <div class="card-head"><h3>Then Step 3</h3><div class="card-meta">the week-eater — timebox it</div></div>
+    <div class="card" style="--wk:var(--commercial);margin-bottom:0">
+      <div class="card-head"><h3>Then Step 4</h3><div class="card-meta">the last piece of week 1</div></div>
       <div class="card-body">
         <div class="step"><div class="num">1</div><div>
-          <h4>300 frozen + 3–5k cheap</h4>
-          <p>A small answer key you correct by hand and never train on. A big rough set you don't fully trust and never test on. Keeping those two apart is the thing that stops every number afterwards from being a lie.</p>
+          <h4>One command, one report</h4>
+          <p>Per-field accuracy, schema-validity rate, rule violations — printed by a single command so you can run it after every experiment without thinking about it.</p>
         </div></div>
         <div class="step"><div class="num">2</div><div>
-          <h4>The marker is already waiting for it</h4>
-          <p><code>verify_record()</code> takes a plain dictionary, so labelled rows can be checked the moment they exist — before any AI is involved. If your own hand-labels break the rules, the rules are wrong, and better to learn that at row 20 than row 300.</p>
+          <h4>Macro-F1, not plain accuracy</h4>
+          <p>Clothing data is lopsided — loads of black cotton crew-necks, almost no metallic bishop-sleeve capes. Plain accuracy rewards an AI that just guesses "the common one" every time and looks great doing it.</p>
+          <p>Macro-F1 scores each option separately and then averages, so being useless on rare items actually costs you. It's the difference between a number that flatters you and one that tells you something.</p>
+        </div></div>
+        <div class="step"><div class="num">3</div><div>
+          <h4>Write down the frontier baseline</h4>
+          <p>The number that fell out of Step 3 for free. Without it, "GRPO got 91%" is a sentence with nothing to compare against.</p>
         </div></div>
       </div>
     </div>
