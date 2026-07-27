@@ -14,7 +14,8 @@ Checks
   6. no alias collisions within a field (an alias resolving to two values would
      make the normaliser non-deterministic)
   7. no alias that shadows a *different* value's canonical name in the same field
-  8. `applies_to.categories` only names real garment_category values
+  8. `applies_to.categories` only names real values of the pack's category field
+     (declared as `conventions.category_field`, not assumed to be a garment)
 
 Then prints a coverage report: which of the 294 attributes this pack consumes,
 and the provenance split.
@@ -35,7 +36,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 ONTOLOGY = ROOT / "data" / "raw" / "fashionpedia" / "ontology.json"
-DEFAULT_PACKS = [ROOT / "packs" / "vastraa_taste_v1"]
+DEFAULT_PACKS = [ROOT / "packs" / "vastraa_taste_v1", ROOT / "packs" / "demo_pack"]
 
 VALID_TYPES = {"direct", "derived", "custom"}
 
@@ -101,7 +102,15 @@ def check_pack(pack_dir: Path, cats: dict, atts: dict) -> tuple[list[str], dict]
 
     # -- 3..7: per-field value checks -------------------------------------------
     prov_counts: Counter[str] = Counter()
-    garment_values: set[str] = set()
+    category_values: set[str] = set()
+    # Which field drives `applies_to` is pack data, not a constant. Hardcoding
+    # "garment_category" here would make this tool silently useless on any pack
+    # that isn't about clothes.
+    category_field = (vocab.get("conventions") or {}).get("category_field")
+    if category_field and category_field not in fields:
+        errors.append(
+            f"conventions.category_field: {category_field!r} is not a field in this pack"
+        )
 
     for fname, fdef in fields.items():
         values = fdef.get("values") or []
@@ -161,17 +170,24 @@ def check_pack(pack_dir: Path, cats: dict, atts: dict) -> tuple[list[str], dict]
                     f"canonical value name {alias!r}"
                 )
 
-        if fname == "garment_category":
-            garment_values = seen_names
+        if fname == category_field:
+            category_values = seen_names
 
-    # -- 8: applies_to references real garment categories -----------------------
+    # -- 8: applies_to references real values of the pack's category field ------
     for fname, fdef in fields.items():
         applies = fdef.get("applies_to")
-        if isinstance(applies, dict):
-            for cat in applies.get("categories") or []:
-                if cat not in garment_values:
+        if isinstance(applies, dict) and applies.get("categories"):
+            if not category_field:
+                errors.append(
+                    f"fields.{fname}.applies_to: pack declares no "
+                    f"`conventions.category_field`, so applicability cannot be checked"
+                )
+                continue
+            for cat in applies["categories"]:
+                if cat not in category_values:
                     errors.append(
-                        f"fields.{fname}.applies_to: {cat!r} is not a garment_category value"
+                        f"fields.{fname}.applies_to: {cat!r} is not a "
+                        f"{category_field} value"
                     )
 
     stats = {

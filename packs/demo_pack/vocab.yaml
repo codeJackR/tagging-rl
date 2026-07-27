@@ -1,0 +1,75 @@
+# =============================================================================
+# demo_pack — synthetic fixture, NOT a real schema pack
+# =============================================================================
+#
+# Exists to make the pack-agnosticism claim executable. Three invented fields
+# about spacecraft, chosen precisely because nothing in the domain overlaps with
+# apparel: if any fashion assumption leaked into verifier/, loading this pack
+# breaks. tests/test_pack_agnostic.py runs the identical suite against this pack
+# and vastraa_taste_v1.
+#
+# Every value is `custom` — there is no ontology behind an invented domain, and
+# tools/check_vocab_provenance.py demands a written justification rather than a
+# fabricated reference.
+# =============================================================================
+
+pack: demo_pack
+version: 0.1.0
+step: "W1 / Step 2 — pack-agnosticism fixture"
+
+conventions:
+  unknown_token: "unknown"
+  category_field: mission_class
+  case: snake_case
+  multi_label_fields: [instruments]
+
+fields:
+
+  mission_class:
+    kind: single
+    required: true
+    applies_to: always
+    values:
+      - name: probe
+        aliases: [probe, flyby]
+        from: { type: custom, why: "synthetic fixture value — no ontology exists for this domain" }
+      - name: orbiter
+        aliases: [orbiter, satellite]
+        from: { type: custom, why: "synthetic fixture value — no ontology exists for this domain" }
+      - name: lander
+        aliases: [lander, rover, surface craft]
+        from: { type: custom, why: "synthetic fixture value — no ontology exists for this domain" }
+
+  propulsion:
+    kind: single
+    required: false
+    applies_to: always
+    values:
+      - name: ion
+        aliases: [ion, ion drive, electric propulsion]
+        from: { type: custom, why: "synthetic fixture value" }
+      - name: chemical
+        aliases: [chemical, hypergolic, liquid fuel]
+        from: { type: custom, why: "synthetic fixture value" }
+      - name: solar_sail
+        aliases: [solar sail, lightsail, photon sail]
+        from: { type: custom, why: "synthetic fixture value" }
+
+  hull_material:
+    kind: single
+    required: false
+    # Deliberately NOT applicable to every category — this is what exercises the
+    # derived `auto:applies_to:hull_material` rule in a pack that has never heard
+    # of a garment.
+    applies_to:
+      categories: [orbiter, lander]
+    values:
+      - name: titanium
+        aliases: [titanium, ti alloy]
+        from: { type: custom, why: "synthetic fixture value" }
+      - name: aluminium
+        aliases: [aluminium, aluminum, al alloy]
+        from: { type: custom, why: "synthetic fixture value" }
+      - name: composite
+        aliases: [composite, carbon fibre, carbon fiber, cfrp]
+        from: { type: custom, why: "synthetic fixture value" }

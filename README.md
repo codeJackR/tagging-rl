@@ -12,8 +12,8 @@ Plan: `~/Downloads/rl-catalog-plan-stepwise.html`
 | Week | Step | State |
 |---|---|---|
 | W1 | 1 · Adapt Fashionpedia's ontology | **done** — `packs/vastraa_taste_v1/vocab.yaml` |
-| W1 | 2 · Schema pack format (Pydantic + vocab + rules) | next |
-| W1 | 3 · Eval set (300, frozen) + train set (3–5k, weak) | |
+| W1 | 2 · Schema pack format (Pydantic + vocab + rules) | **done** — `verifier/`, 71 tests green |
+| W1 | 3 · Eval set (300, frozen) + train set (3–5k, weak) | next |
 | W1 | 4 · Eval harness v0 | |
 
 ---
@@ -66,6 +66,64 @@ Two checks this step could not do, both cheap and both worth doing first:
    exceeds ~85% will flatter the model — merge or cut it.
 2. Hand-fill the schema for 20 real products. Cut any field that makes you hesitate repeatedly
    *now*, not during Step 3's 6-hour timebox.
+
+---
+
+## W1 Step 2 — the verifier
+
+```
+verifier/
+  __init__.py    load_pack() · verify() · VerifierResult   <- the one import path
+  schema.py      builds Pydantic models FROM vocab.yaml
+  rules.py       three declarative rule types + derived applicability
+packs/<name>/
+  vocab.yaml     controlled vocabulary
+  rules.yaml     cross-field rules
+tests/
+  test_pack_agnostic.py   identical suite, both packs
+  test_vastraa_rules.py   one case per rule
+```
+
+```python
+from verifier import load_pack, verify
+
+pack = load_pack("packs/vastraa_taste_v1")
+result = verify(model_output, pack)
+# result.schema_valid · vocab_valid · rule_violations · parsed
+#      + errors · abstentions · normalized
+```
+
+```bash
+python -m pytest tests/ -q          # 71 passed
+python tools/pack_info.py           # fields, rule inventory, per pack
+python tools/check_vocab_provenance.py
+```
+
+**Packs are data, not code.** `build_model` lives in `verifier/schema.py`, not in each
+pack — a pack that ships Python is not pack-agnostic, and `test_pack_dir_contains_no_python`
+enforces that. `packs/demo_pack/` is three invented spacecraft fields and two rules, in two
+YAML files and zero lines of Python. Every test in `test_pack_agnostic.py` runs against both
+packs unchanged: that parametrised suite *is* the pack-agnosticism claim.
+
+**Two models, not one.** `schema_valid` (is it JSON with the right keys and shapes) and
+`vocab_valid` (are the values in the controlled vocabulary) are computed by separate models
+so they move independently. W2 rewards format validity and vocab compliance separately; one
+enum-typed model would collapse them into a single number and hide which one the model is
+learning.
+
+**`null` ≠ `"unknown"`.** `null` means the field does not apply to this item; `"unknown"` means
+the model declined to answer. W4's reward is +1 correct / 0 abstain / −λ wrong, so abstention
+has to be countable — `VerifierResult.abstentions` is that count, and W3's escalation queue
+keys off the same list.
+
+**No silent repair.** `verify()` does not strip markdown fences, fix trailing commas, or hunt
+for the first `{`. In W2 the model trains unconstrained so you can watch it learn to emit clean
+JSON; repairing output here would delete that reward signal before it was measured. Alias
+leniency exists but is opt-in (`normalize=True`) and reports what it changed.
+
+Rule inventory for `vastraa_taste_v1`: **34 total — 25 written + 9 derived.** The derived ones
+come from `applies_to:` in vocab.yaml rather than being copied into rules.yaml, for the same
+reason the Pydantic model is generated: two hand-maintained copies drift.
 
 ---
 

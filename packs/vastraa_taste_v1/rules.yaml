@@ -1,0 +1,184 @@
+# =============================================================================
+# vastraa_taste_v1 — declarative cross-field rules
+# W1 · Step 2
+# =============================================================================
+#
+# Three rule types:
+#   requires           if A=X, fields B,C must carry a value
+#   excludes           if A=X, B may not be Y   ("*" = any value at all)
+#   conditional_vocab  if A=X, B is restricted to a subset of its vocabulary
+#
+# A fourth kind is DERIVED, not written here: `auto:applies_to:<field>` comes
+# straight from vocab.yaml's `applies_to:` blocks. Nine of them exist for this
+# pack (silhouette, fit, garment_length, sleeve_length, sleeve_style, neckline,
+# collar_type, waistline, closure). They are not duplicated into this file on
+# purpose — a hand-copied applicability list drifts from the vocabulary the
+# moment either is edited. Run `python tools/pack_info.py` for the live list.
+#
+# Abstention: `unknown` never triggers an `excludes` or `conditional_vocab`
+# violation — declining to answer is not a wrong answer. It DOES satisfy a
+# `requires` rule unless that rule sets `allow_abstain: false`. Rules where
+# abstaining would be too cheap an escape set it explicitly.
+#
+# Every id here is what shows up in VerifierResult.rule_violations, so they are
+# named for what went wrong, not numbered.
+# =============================================================================
+
+# --- structural completeness -------------------------------------------------
+
+- id: dress_needs_length_and_neckline
+  type: requires
+  if: { garment_category: dress }
+  then_present: [garment_length, neckline]
+  allow_abstain: false   # the two fields that make a dress record useful at all
+
+- id: outerwear_needs_closure
+  type: requires
+  if: { garment_category: [jacket, coat, cardigan] }
+  then_present: [closure]
+
+- id: peplum_needs_waistline
+  type: requires
+  if: { silhouette: peplum }
+  then_present: [waistline]
+  allow_abstain: false   # a peplum IS a waistline feature; abstaining is incoherent
+
+# --- sleeve coherence --------------------------------------------------------
+
+- id: sleeveless_has_no_sleeve_style
+  type: excludes
+  if: { sleeve_length: sleeveless }
+  forbid: { sleeve_style: "*" }
+
+- id: cap_sleeve_is_short
+  type: conditional_vocab
+  if: { sleeve_style: cap }
+  restrict: { sleeve_length: [short] }
+
+# --- length coherence by garment --------------------------------------------
+
+- id: pants_length_subset
+  type: conditional_vocab
+  if: { garment_category: pants }
+  restrict: { garment_length: [cropped, knee, midi, maxi] }
+
+- id: shorts_length_subset
+  type: conditional_vocab
+  if: { garment_category: shorts }
+  restrict: { garment_length: [mini, above_knee, knee] }
+
+# --- silhouette / fit coherence ---------------------------------------------
+
+- id: bodycon_is_tight
+  type: conditional_vocab
+  if: { silhouette: bodycon }
+  restrict: { fit: [tight] }
+  # Flagged in Step 1: `bodycon` overlaps `fit: tight` by construction. This is
+  # the consistency constraint that stops the model satisfying two fields with
+  # one guess in opposite directions.
+
+- id: leg_silhouettes_are_for_bottoms
+  type: excludes
+  if: { garment_category: [top, shirt_blouse, sweater, cardigan, jacket, coat, vest] }
+  forbid: { silhouette: [wide_leg, bootcut] }
+
+- id: empire_waist_garments
+  type: conditional_vocab
+  if: { waistline: empire }
+  restrict: { garment_category: [dress, jumpsuit, top, shirt_blouse] }
+
+# --- neckline / collar coherence --------------------------------------------
+
+- id: turtleneck_has_no_collar
+  type: conditional_vocab
+  if: { neckline: turtle }
+  restrict: { collar_type: [none] }
+
+- id: off_shoulder_has_no_structured_collar
+  type: excludes
+  if: { neckline: off_shoulder }
+  forbid: { collar_type: [shirt, band, polo, notched_lapel, peak_lapel, shawl_lapel] }
+
+- id: lapels_are_tailored_only
+  type: excludes
+  if: { garment_category: [top, sweater, dress, skirt, pants, shorts] }
+  forbid: { collar_type: [notched_lapel, peak_lapel, shawl_lapel] }
+
+# --- closure coherence -------------------------------------------------------
+
+- id: fly_is_for_bottoms
+  type: excludes
+  if: { garment_category: [dress, top, shirt_blouse, sweater, cardigan, coat, jacket] }
+  forbid: { closure: [fly] }
+
+- id: breasted_closures_are_tailored
+  type: excludes
+  if: { garment_category: [pants, shorts, skirt, top, sweater] }
+  forbid: { closure: [single_breasted, double_breasted] }
+
+# --- pattern / colour coherence ---------------------------------------------
+
+- id: solid_is_not_multicolour
+  type: excludes
+  if: { pattern: solid }
+  forbid: { colour_primary: [multicolour] }
+
+- id: fair_isle_is_knitwear
+  type: conditional_vocab
+  if: { pattern: fair_isle }
+  restrict: { material: [wool, cashmere, knit, cotton, synthetic] }
+
+- id: denim_excludes_delicate_patterns
+  type: excludes
+  if: { material: denim }
+  forbid: { pattern: [paisley, houndstooth, herringbone, fair_isle] }
+
+# --- construction detail coherence ------------------------------------------
+
+- id: quilting_is_outerwear
+  type: conditional_vocab
+  if: { details: quilted }
+  restrict: { garment_category: [jacket, coat, vest, bag] }
+
+- id: slits_need_a_hem
+  type: conditional_vocab
+  if: { details: slit }
+  restrict: { garment_category: [dress, skirt, pants, coat] }
+
+- id: distressing_is_for_hard_materials
+  type: conditional_vocab
+  if: { details: distressed }
+  restrict: { material: [denim, cotton, leather, suede, knit, synthetic] }
+
+# --- occasion coherence ------------------------------------------------------
+
+- id: athletic_material_subset
+  type: conditional_vocab
+  if: { occasion: athletic }
+  restrict: { material: [synthetic, cotton, knit] }
+
+- id: beach_excludes_cold_materials
+  type: excludes
+  if: { occasion: beach }
+  forbid: { material: [wool, cashmere, fur] }
+
+- id: formal_excludes_denim
+  type: excludes
+  if: { occasion: formal }
+  forbid: { material: [denim] }
+
+# --- anti-hack ---------------------------------------------------------------
+
+- id: other_category_claims_nothing
+  type: excludes
+  if: { garment_category: other }
+  forbid:
+    silhouette: "*"
+    neckline: "*"
+    sleeve_length: "*"
+    garment_length: "*"
+  # `other` exists because real feeds contain non-apparel rows, but it is also
+  # the cheapest escape hatch in the pack. This rule makes it a genuine dead end:
+  # route a row to `other` and you forfeit every structural field. Without it,
+  # `other` is a free win — the model dodges the hard fields AND keeps the easy
+  # ones. Watch the `other` rate in W2 regardless; see PROVENANCE.md.

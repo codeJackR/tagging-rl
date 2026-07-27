@@ -1,0 +1,15 @@
+# demo_pack — two rules, covering two of the three rule types.
+# The third type (conditional_vocab) and the derived applies_to rule are both
+# exercised by this pack too: conditional_vocab via tests, applies_to via the
+# `hull_material.applies_to` block in vocab.yaml.
+
+- id: lander_needs_propulsion
+  type: requires
+  if: { mission_class: lander }
+  then_present: [propulsion]
+  allow_abstain: false
+
+- id: solar_sail_cannot_land
+  type: excludes
+  if: { propulsion: solar_sail }
+  forbid: { mission_class: [lander] }

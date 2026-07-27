@@ -57,6 +57,10 @@ ontology:
 conventions:
   unknown_token: "unknown"      # model may emit this instead of guessing.
                                 # In W4 this becomes the learned abstain action.
+                                # NOT the same as null: null = field not applicable
+                                # to this garment; "unknown" = the model declined.
+                                # W4's +1/0/-lambda reward needs those separable.
+  category_field: garment_category   # drives the derived applies_to rules
   case: snake_case
   alias_matching: casefold + strip + collapse whitespace/hyphens
   multi_label_fields: [details]  # scored with set-F1, NOT exact match
