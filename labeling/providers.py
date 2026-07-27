@@ -106,6 +106,7 @@ class Provider(Protocol):
     def build_body(self, system: str, user: str, schema: dict, max_tokens: int) -> dict: ...
     def submit(self, items: list[tuple[str, dict]]) -> str: ...
     def wait(self, batch_id: str, poll: int) -> str: ...
+    def status(self, batch_id: str) -> dict: ...
     def results(self, batch_id: str) -> Iterator[BatchResult]: ...
 
 
@@ -157,6 +158,22 @@ class AnthropicProvider:
                 return "ended"
             print(f"  {batch.processing_status}: {batch.request_counts}", flush=True)
             time.sleep(poll)
+
+    def status(self, batch_id: str) -> dict:
+        import time as _t
+
+        b = self._client.messages.batches.retrieve(batch_id)
+        c = b.request_counts
+        done = c.succeeded + c.errored + c.canceled + c.expired
+        created = getattr(b, "created_at", None)
+        return {
+            "status": b.processing_status,
+            "completed": done,
+            "failed": c.errored,
+            "total": done + c.processing,
+            "ready": b.processing_status == "ended",
+            "elapsed_s": (_t.time() - created.timestamp()) if created else 0,
+        }
 
     def results(self, batch_id: str) -> Iterator[BatchResult]:
         for result in self._client.messages.batches.results(batch_id):
@@ -237,6 +254,20 @@ class OpenAIProvider:
                 return batch.status
             print(f"  {batch.status}: {batch.request_counts}", flush=True)
             time.sleep(poll)
+
+    def status(self, batch_id: str) -> dict:
+        import time as _t
+
+        b = self._client.batches.retrieve(batch_id)
+        c = b.request_counts
+        return {
+            "status": b.status,
+            "completed": c.completed,
+            "failed": c.failed,
+            "total": c.total,
+            "ready": b.status == "completed",
+            "elapsed_s": (_t.time() - b.created_at) if b.created_at else 0,
+        }
 
     def results(self, batch_id: str) -> Iterator[BatchResult]:
         batch = self._client.batches.retrieve(batch_id)

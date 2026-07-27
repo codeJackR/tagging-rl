@@ -30,6 +30,15 @@ frontier's original answers. Everything after has to beat it.
 
 ---
 
+## Running commands
+
+Use `uv run python ...`. Plain `python` picks up whatever venv is active, which on
+this machine is the parent directory's — the commands then fail with
+`ModuleNotFoundError`. `uv run` resolves against this project's environment
+regardless.
+
+---
+
 ## W1 Step 1 — what exists
 
 ```
@@ -46,7 +55,7 @@ tools/
 enforced, not asserted:
 
 ```bash
-python tools/check_vocab_provenance.py
+uv run python tools/check_vocab_provenance.py
 ```
 
 It resolves every `fp:` reference against the frozen ontology, fails on id *or name* mismatch,
@@ -106,9 +115,9 @@ result = verify(model_output, pack)
 ```
 
 ```bash
-python -m pytest tests/ -q          # 71 passed
-python tools/pack_info.py           # fields, rule inventory, per pack
-python tools/check_vocab_provenance.py
+uv run python -m pytest tests/ -q          # 71 passed
+uv run python tools/pack_info.py           # fields, rule inventory, per pack
+uv run python tools/check_vocab_provenance.py
 ```
 
 **Packs are data, not code.** `build_model` lives in `verifier/schema.py`, not in each
@@ -158,11 +167,11 @@ tools/
 ```
 
 ```bash
-python tools/make_synthetic_feed.py --n 900 --out /tmp/labeled.jsonl
-python scripts/build_dataset.py --out-dir /tmp/s3 plan --labeled /tmp/labeled.jsonl
+uv run python tools/make_synthetic_feed.py --n 900 --out /tmp/labeled.jsonl
+uv run python scripts/build_dataset.py --out-dir /tmp/s3 plan --labeled /tmp/labeled.jsonl
 #   ... fill in /tmp/s3/review/review_queue.csv ...
-python scripts/build_dataset.py --out-dir /tmp/s3 finalize --corrections .../corrections.csv
-python scripts/build_dataset.py --out-dir /tmp/s3 verify
+uv run python scripts/build_dataset.py --out-dir /tmp/s3 finalize --corrections .../corrections.csv
+uv run python scripts/build_dataset.py --out-dir /tmp/s3 verify
 ```
 
 ### The load-bearing piece: `reliability.py`
@@ -218,9 +227,9 @@ So the feed comes from public Shopify `/products.json` endpoints, which the plan
 already names as source #2:
 
 ```bash
-python tools/fetch_shopify.py probe --stores-file tools/shopify_candidates.txt \
+uv run python tools/fetch_shopify.py probe --stores-file tools/shopify_candidates.txt \
     --write-working tools/shopify_stores.txt
-python tools/fetch_shopify.py fetch --stores-file tools/shopify_stores.txt \
+uv run python tools/fetch_shopify.py fetch --stores-file tools/shopify_stores.txt \
     --target 4000 --out data/raw/feed.jsonl
 ```
 
@@ -257,8 +266,8 @@ comparable and their Step 3 reliability tables can be diffed.
 
 ```bash
 cp .env.example .env          # then add your key; .env is gitignored
-python scripts/prelabel.py estimate --feed data/raw/feed.jsonl --k 5
-python scripts/prelabel.py submit   --feed data/raw/feed.jsonl --k 5
+uv run python scripts/prelabel.py estimate --feed data/raw/feed.jsonl --k 5
+uv run python scripts/prelabel.py submit   --feed data/raw/feed.jsonl --k 5
 ```
 
 **Use the full model id.** `gpt-5.6` routes to Sol, not Luna — a pinned test
@@ -297,11 +306,11 @@ from the data.
 ## W1 Step 4 — the eval harness
 
 ```bash
-python -m evalharness.report --gold data/eval_300 --from-frontier \
+uv run python -m evalharness.report --gold data/eval_300 --from-frontier \
     --markdown-row "frontier (ceiling)"
 
-python -m evalharness.report --gold data/eval_300 --pred runs/sft.jsonl
-python -m evalharness.report --gold data/eval_300 --pred runs/sft.jsonl --json
+uv run python -m evalharness.report --gold data/eval_300 --pred runs/sft.jsonl
+uv run python -m evalharness.report --gold data/eval_300 --pred runs/sft.jsonl --json
 ```
 
 Prints schema validity, per-attribute exact match and F1, macro-F1, and the

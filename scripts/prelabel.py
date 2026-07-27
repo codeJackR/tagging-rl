@@ -174,6 +174,41 @@ def cmd_submit(args) -> int:
     return 0
 
 
+def cmd_status(args) -> int:
+    """Non-blocking progress check. `collect` polls until done; this returns now."""
+    import datetime as dt
+
+    require_key(args.provider)
+    provider = get_provider(args.provider, args.model)
+    state = Path(args.state)
+    batch_id = args.batch_id
+    if not batch_id and state.exists():
+        batch_id = json.loads(state.read_text())["batch_id"]
+    if not batch_id:
+        sys.exit(f"no --batch-id and no state file at {state}")
+
+    info = provider.status(batch_id)
+    print(f"batch    {batch_id}")
+    print(f"status   {info['status']}")
+    done, total, failed = info["completed"], info["total"], info["failed"]
+    if total:
+        pct = done / total
+        bar = "#" * int(pct * 30)
+        print(f"progress {done}/{total} ({pct:.1%}) {failed} failed")
+        print(f"         [{bar:<30}]")
+        elapsed = info.get("elapsed_s") or 0
+        if done and elapsed and done < total:
+            eta = elapsed / done * (total - done)
+            print(f"         ~{dt.timedelta(seconds=int(eta))} remaining at current rate")
+    if info["ready"]:
+        print("\nREADY. Collect with:")
+        print(
+            f"  uv run python scripts/prelabel.py collect --batch-id {batch_id} "
+            f"--feed {args.feed or 'data/raw/feed.jsonl'} --provider {provider.name}"
+        )
+    return 0
+
+
 def cmd_collect(args) -> int:
     require_key(args.provider)
     pack = load_pack(args.pack)
@@ -340,6 +375,13 @@ def main() -> int:
     s.add_argument("--k", type=int, default=5)
     s.add_argument("--state", default=str(ROOT / "data" / "raw" / "batch_state.json"))
     s.set_defaults(fn=cmd_submit)
+
+    st = sub.add_parser("status", parents=[common],
+                        help="progress without blocking (collect polls until done)")
+    st.add_argument("--batch-id", default=None, help="defaults to the saved state file")
+    st.add_argument("--feed", default=None)
+    st.add_argument("--state", default=str(ROOT / "data" / "raw" / "batch_state.json"))
+    st.set_defaults(fn=cmd_status)
 
     c = sub.add_parser("collect", parents=[common])
     c.add_argument("--batch-id", required=True)
