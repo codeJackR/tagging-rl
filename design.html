@@ -92,15 +92,16 @@
 <body>
 <div class="wrap">
 
-  <div class="eyebrow">tagging-rl · design notes · W1 steps 1–2</div>
-  <h1>One list, one marker, and a spacecraft that proves they're honest.</h1>
-  <p class="sub">Everything built so far, explained without jargon. Two commits, two weeks of the plan's first week, and the two pieces every later week is going to reuse.</p>
+  <div class="eyebrow">tagging-rl · design notes · W1 steps 1–3</div>
+  <h1>One list, one marker, and an answer key nobody can quietly edit.</h1>
+  <p class="sub">Everything built so far, explained without jargon. Three of week one's four steps, the pieces every later week reuses — and the handful of things that only became visible once real data ran through them.</p>
 
   <div class="totals">
     <span class="chip">15 fields · <b>156 values</b></span>
     <span class="chip">34 rules <b>25 written + 9 auto</b></span>
-    <span class="chip"><b>71 tests</b> green</span>
+    <span class="chip"><b>102 tests</b> green</span>
     <span class="chip">packs <b>2</b> (1 real, 1 fake)</span>
+    <span class="chip">review queue <b>−86%</b></span>
     <span class="chip">python <b>0 lines</b> inside a pack</span>
   </div>
 
@@ -397,6 +398,102 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
   </div>
 
   <!-- ===================================================================== -->
+  <h2 class="sec">The seven pieces, and what each one is for</h2>
+
+  <div class="card" style="--wk:var(--commercial)">
+    <div class="card-head">
+      <h3>Inside <code>labeling/</code></h3>
+      <div class="card-meta">each one exists to stop a specific thing going wrong</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4><code>records.py</code> — the row format</h4>
+        <p>One product, its labels, and a full paper trail. The important bit is that every field carries a <b>status</b>, not just a value:</p>
+        <pre><code>"neckline":      { "value": "crew", "status": "labeled" }
+"sleeve_length": { "value": null,   "status": "not_applicable" }
+"fabric":        { "value": null,   "status": "unknown" }</code></pre>
+        <div class="analogy">Three different kinds of blank. <b>"The dress has no sleeves"</b> and <b>"the shop didn't mention the fabric"</b> are not the same fact. Squash them together and a correct "not applicable" gets marked wrong — and it does so exactly on the rare items macro-F1 cares most about.</div>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4><code>consensus.py</code> — the time-saver</h4>
+        <p>Ask the big AI the same question five times, phrased slightly differently. Where all five agree, don't bother checking. Where they disagree, that's your queue.</p>
+        <p>On the test data this cut <b>4,500 cells down to about 630</b> — an 86% reduction. That's the difference between the timebox working and the timebox being fiction.</p>
+        <div class="win">And it's the same code week 3 needs for its escalation queue — "which products need a human to look at them?" is the identical question. Built once, imported twice.</div>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4><code>reliability.py</code> — the one that matters</h4>
+        <p>After you've corrected the 300, this compares your answers against what the AI originally said, <b>field by field</b>, and tells you which fields the AI can be trusted on.</p>
+        <p>Fields it's bad at get a reward weight of zero — meaning week 2 won't train on them at all. That's the circle-breaker: without this, you'd spend GPU hours teaching a small model to copy a big model's specific blind spots, and your scoreboard would applaud.</p>
+        <div class="trap">It needs the AI's <em>original</em> answer, which your sketch had nowhere to store. Once you correct a cell in place, the evidence it was ever wrong is gone. Added <code>frontier_labels</code> — an untouchable snapshot taken before the first edit.</div>
+      </div></div>
+
+      <div class="step"><div class="num">4</div><div>
+        <h4><code>splits.py</code> — three piles, not two</h4>
+        <p>Picks the 300 so that every dropdown option shows up at least ~8 times, then takes a separate random 100, then everything else is training.</p>
+        <p>Why three: stratifying makes the score measurable but makes the 300 <em>deliberately unlike</em> a real catalog. So any "what does this cost per product?" number computed on it would be wrong. The random 100 exists purely to carry those week-3 numbers honestly.</p>
+      </div></div>
+
+      <div class="step"><div class="num">5</div><div>
+        <h4><code>lengths.py</code> — the boring one that saves a day</h4>
+        <p>Counts how long the inputs and outputs actually are, and sets week 2's length limits from the real distribution rather than a round number that felt safe.</p>
+        <div class="analogy">This is the fix for a failure you already hit: a budget set too low chopped off most completions, so the model literally could not finish a sentence. It <b>looked</b> like a broken reward function. It was a ruler that was too short.</div>
+        <p>It refuses to hand back a budget from a rough estimate without shouting about it, because an estimate that gets mistaken for a measurement is how you make the same mistake twice.</p>
+      </div></div>
+
+      <div class="step"><div class="num">6</div><div>
+        <h4><code>review.py</code> — the spreadsheet</h4>
+        <p>Exports one line per cell that needs you — not per product. Blank means "the AI was right"; you only type where it was wrong. It also writes a companion file of allowed values so the spreadsheet can show real dropdowns, because free-typing into a controlled-vocabulary column is the fastest way to poison the one dataset that has to be clean.</p>
+        <p>Reading it back in snapshots the original answers first, then applies your edits. Never the other way round.</p>
+      </div></div>
+
+      <div class="step"><div class="num">7</div><div>
+        <h4><code>freeze.py</code> — making "frozen" mean something</h4>
+        <p>Committing a file makes a <em>deliberate</em> edit visible in review. It does nothing about the edit nobody reviews — a re-run that quietly overwrites the file, a notebook that rewrites one cell.</p>
+        <p>So the freeze also writes a fingerprint. Anything that changes even one character is caught. Tested by tampering with a single cell: caught, with a non-zero exit code.</p>
+        <div class="analogy">A git tag records what you <b>meant</b> to do. The checksum catches what happened anyway.</div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Three things we found by building it</h2>
+
+  <div class="card" style="--wk:var(--revise)">
+    <div class="card-head">
+      <h3>None of these were visible on paper</h3>
+      <div class="card-meta">all three are in the commit message</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4>"Sample at temperature" isn't available any more</h4>
+        <p>The plan says to get the five samples by turning up the randomness dial. That dial has been <b>removed</b> from the current top models — asking for it is now an error.</p>
+        <p>So the variation comes from asking the question five slightly different ways instead. Arguably better: an answer that changes depending on how you phrased the question is exactly the kind of answer a human should be looking at.</p>
+        <div class="note">Same constraint hits week 3, which planned to use the same trick. Better to find it now than mid-sprint.</div>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4>Where you put the variation decides the bill</h4>
+        <p>The instructions block (the whole vocabulary) is identical for all ~20,000 requests, so it gets cached and charged at about a tenth of the price after the first one.</p>
+        <p>But caching matches from the <em>start</em> of the text. Vary the instructions to get diversity and you break the cache on every single request — paying near-full price for all of them, silently.</p>
+        <div class="win">So the variation goes in the product-specific part, after the cached block. Same diversity, roughly a tenth of the input cost.</div>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4>A real bug in the week-1 step-2 work</h4>
+        <p>The moment actual data flowed through, the marker rejected records. For a field that can hold several values, "I don't know" has to be written as a one-item list, not a bare word — a plain string where a list belongs is structurally wrong.</p>
+        <p>Nothing had ever exercised that path. It only appeared once something produced real "I don't know" answers on a multi-value field.</p>
+        <div class="win">Both bugs this round were caught by tools built in earlier steps meeting realistic data — not by anyone reading the code. That's the argument for building the marker before the dataset instead of alongside it.</div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
   <h2 class="sec">What Step 3 needs before it can start</h2>
 
   <div class="card" style="--wk:var(--vastraa)">
@@ -424,9 +521,21 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
       </div></div>
 
       <div class="step"><div class="num">3</div><div>
-        <h4>And the two checks still outstanding from Step 1</h4>
-        <p>Both belong immediately before this step, not after it: <b>the distribution check</b> (does one dropdown option cover 85%+ of real products? then it's a useless question) and <b>the 20-row hand-tag</b> (does any field make you hesitate? cut it now).</p>
-        <p>Thirty minutes. Skipping them means finding the problem 300 rows deep, when fixing it costs ten times more.</p>
+        <h4>The Step 1 distribution check — now automatic</h4>
+        <p>This one used to be a manual chore. The <code>plan</code> command now prints it for you: every field's spread, with a marker next to any option covering more than 85% of products, plus how often each field ends up "unknown" (a field that's almost always unknown isn't extractable from this feed and shouldn't have survived Step 1).</p>
+        <p>Still yours to do: <b>hand-fill 20 products yourself</b> before the big run. A field that makes you hesitate repeatedly should be cut before it costs 300 corrections.</p>
+      </div></div>
+
+      <div class="step"><div class="num">4</div><div>
+        <h4>One decision: how many samples on the training pile</h4>
+        <p>Five samples per product means five times the labelling bill. That's clearly worth it on the 300 you're going to hand-check. It's less obviously worth it on the 4,000 you aren't.</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>Choice</th><th>What you get</th></tr>
+          <tr><td><b>k=5 everywhere</b></td><td>best confidence signal, ~5× cost</td></tr>
+          <tr><td><b>k=5 on the 300, k=3 on the rest</b></td><td>still a usable confidence column, ~40% cheaper</td></tr>
+          <tr><td><b>k=5 on the 300, k=1 on the rest</b></td><td>cheapest, but no way to downweight noisy training rows</td></tr>
+        </table></div>
+        <p>It's a command-line flag, not a rewrite — but it's worth picking deliberately rather than by default.</p>
       </div></div>
     </div>
   </div>
@@ -462,6 +571,26 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
           <td>25 written + 9 generated</td>
           <td>same reason you wanted the validator generated: two hand-kept copies drift apart</td>
         </tr>
+        <tr>
+          <td>row schema records<br><code>human_corrected: true</code></td>
+          <td>plus <code>frontier_labels</code>,<br>an untouchable snapshot</td>
+          <td>knowing a cell <em>was</em> fixed isn't enough — the reliability table needs to know what it was fixed <em>from</em>, and correcting in place destroys that</td>
+        </tr>
+        <tr>
+          <td>two splits (eval / train)</td>
+          <td>three (eval / probe / train)</td>
+          <td>a stratified set measures the score correctly and the catalog wrongly; the random 100 carries the week-3 cost and escalation numbers</td>
+        </tr>
+        <tr>
+          <td>"sample k=5 at temperature"</td>
+          <td>k samples via prompt variation</td>
+          <td>the temperature dial no longer exists on the current top models</td>
+        </tr>
+        <tr>
+          <td>judge a field by its accuracy</td>
+          <td>judge it by the pessimistic end of its error bar</td>
+          <td>285 right out of 300 <em>is</em> 95% — and is also consistent with 92%. Calling that "safe" puts back the false confidence the table exists to remove</td>
+        </tr>
       </table></div>
       <p class="lead">The result type also gained three fields beyond the four you sketched — <code>errors</code> (why it failed, or a failed run is undebuggable), <code>abstentions</code> (week 4 needs the count), and <code>normalized</code> (near-miss telemetry).</p>
     </div>
@@ -491,20 +620,42 @@ result.rule_violations   <span class="cm"># question 3 — which rules broke</sp
 &nbsp;&nbsp;schema.py <span class="c">— builds the two validators from vocab.yaml</span><br>
 &nbsp;&nbsp;rules.py <span class="c">— runs the contradiction rules</span><br>
 <br>
+<span class="d">labeling/</span> <span class="c">— step 3</span><br>
+&nbsp;&nbsp;records.py <span class="c">— the row format: three-state labels + paper trail</span><br>
+&nbsp;&nbsp;consensus.py <span class="c">— ask 5 times, queue the disagreements (week 3 reuses this)</span><br>
+&nbsp;&nbsp;reliability.py <span class="c">— which fields the AI can be trusted on ← the important one</span><br>
+&nbsp;&nbsp;splits.py <span class="c">— the 300, the 100, and the rest</span><br>
+&nbsp;&nbsp;lengths.py <span class="c">— how long things actually are, so week 2's limits are right</span><br>
+&nbsp;&nbsp;review.py <span class="c">— spreadsheet out, corrections back in</span><br>
+&nbsp;&nbsp;freeze.py <span class="c">— fingerprint, so "frozen" is checkable</span><br>
+<br>
+<span class="d">scripts/</span><br>
+&nbsp;&nbsp;prelabel.py <span class="c">— asks the big AI, in one cheap batch job</span><br>
+&nbsp;&nbsp;build_dataset.py <span class="c">— plan → (you) → finalize → verify</span><br>
+<br>
 <span class="d">tests/</span><br>
 &nbsp;&nbsp;test_pack_agnostic.py <span class="c">— same tests, both packs. this file IS the claim</span><br>
 &nbsp;&nbsp;test_vastraa_rules.py <span class="c">— one case per rule</span><br>
+&nbsp;&nbsp;test_labeling.py <span class="c">— incl. "does the reliability table catch a planted bias?"</span><br>
 <br>
 <span class="d">tools/</span><br>
 &nbsp;&nbsp;check_vocab_provenance.py <span class="c">— proves every answer traces to Fashionpedia</span><br>
 &nbsp;&nbsp;pack_info.py <span class="c">— prints what's in a pack</span><br>
+&nbsp;&nbsp;make_synthetic_feed.py <span class="c">— fake products with a known-bad field, to test the tester</span><br>
 <br>
 <span class="d">data/raw/fashionpedia/</span><br>
 &nbsp;&nbsp;ontology.json <span class="c">— frozen copy of the expert list (51 KB, the 14 MB original isn't committed)</span>
         </div>
-        <pre><code>python -m pytest tests/ -q               <span class="ok">71 passed</span>
+        <pre><code>python -m pytest tests/ -q               <span class="ok">102 passed</span>
 python tools/pack_info.py                <span class="cm"># fields + rule inventory</span>
-python tools/check_vocab_provenance.py   <span class="ok">PASS, both packs</span></code></pre>
+python tools/check_vocab_provenance.py   <span class="ok">PASS, both packs</span>
+
+<span class="cm"># the step 3 loop, runs today on synthetic data</span>
+python tools/make_synthetic_feed.py --n 900 --out /tmp/labeled.jsonl
+python scripts/build_dataset.py plan     --labeled /tmp/labeled.jsonl
+<span class="cm">#   ... fill in review_queue.csv ...</span>
+python scripts/build_dataset.py finalize --corrections corrections.csv
+python scripts/build_dataset.py verify   <span class="ok"># checksum still matches?</span></code></pre>
       </div></div>
     </div>
   </div>
@@ -545,7 +696,7 @@ python tools/check_vocab_provenance.py   <span class="ok">PASS, both packs</span
     </div>
   </div>
 
-  <p class="foot">Order matters: the list defines what "correct" means, the marker makes it checkable, and everything after — the training runs, the frontier baseline, the abstention experiment — is measured with these two tools. Which is why both of them are themselves tested rather than trusted: a quiet mistake here doesn't crash anything, it just makes five weeks of numbers meaningless.</p>
+  <p class="foot">Order matters, and it compounds. The list defines what "correct" means. The marker makes it checkable — and then catches a real bug the first time data flows through it. The answer key makes it <em>true</em>, by putting a human between a big model's opinion and the number you report. Everything after this — the training runs, the baseline, the abstention experiment — is measured with these three tools, which is why all three are tested rather than trusted. A quiet mistake at this end doesn't crash anything. It just makes five weeks of numbers mean nothing, and says so nowhere.</p>
 
 </div>
 </body>
