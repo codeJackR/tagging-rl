@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+.python-version.local
+
+# Fashionpedia full annotation files (14 MB+). The 51 KB ontology extract in
+# data/raw/fashionpedia/ontology.json IS committed — see README.
+instances_attributes_*.json
+data/raw/fashionpedia/*.zip
+data/raw/fashionpedia/images/
+
+# W&B
+wandb/
+
+.DS_Store
+.ipynb_checkpoints/

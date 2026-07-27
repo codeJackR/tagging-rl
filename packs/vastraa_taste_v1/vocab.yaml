@@ -1,0 +1,959 @@
+# =============================================================================
+# Schema pack: vastraa_taste_v1  ·  controlled vocabulary
+# W1 · Step 1 — "Adapt Fashionpedia's ontology; don't invent one"
+# =============================================================================
+#
+# WHAT THIS IS
+#   The closed set of attributes + allowed values this pack may emit.
+#   Every value carries a `from:` block recording where it came from:
+#     direct   — a Fashionpedia category/attribute, taken verbatim
+#     derived  — built from Fashionpedia ids by merge / split / rename
+#     custom   — no Fashionpedia equivalent; requires a written justification
+#
+#   `tools/check_vocab_provenance.py` verifies every direct/derived id against
+#   data/raw/fashionpedia/ontology.json and fails on any mismatch. Traceability
+#   is a test here, not a claim.
+#
+# INPUT ASSUMPTION
+#   Fields were selected for extractability from PRODUCT TEXT (title, bullets,
+#   description, structured feed fields) — not from images. Vision is the
+#   optional W6+ track. Anything a merchant would never type was rejected.
+#
+# SIZE
+#   15 fields. That is the floor of the plan's 15-25 band, on purpose:
+#   each field costs 300 more hand-corrections in W1 Step 3 and one more
+#   column the model can learn to game in W2.
+#
+# =============================================================================
+
+pack: vastraa_taste_v1
+version: 0.1.0
+step: "W1 / Step 1"
+
+ontology:
+  name: Fashionpedia
+  paper: https://arxiv.org/abs/2004.12276
+  site: https://fashionpedia.github.io/home/
+  api_repo: https://github.com/KMnP/fashionpedia-api
+  snapshot: data/raw/fashionpedia/ontology.json
+  snapshot_source: instances_attributes_val2020.json
+  license: BSD-3-Clause (fashionpedia-api) — see fashionpedia-api/license.txt
+  totals: { categories: 46, attributes: 294, attribute_supercategories: 11 }
+
+# Fashionpedia coverage — 139 of 294 attributes consumed, 16 of 46 categories.
+# Run tools/check_vocab_provenance.py for the live breakdown. Summary:
+#   fully consumed       : length (15/15), animal (6/6), leather (4/4)
+#   mostly consumed      : textile pattern 17/18, opening type 9/10,
+#                          waistline 6/7, textile finishing 17/21,
+#                          silhouette 21/25, neckline type 21/25
+#   barely touched       : nickname 22/153  — the garment-type and pocket-type
+#                          subsets are skipped (see PROVENANCE.md, "rejected");
+#                          only the collar/lapel/sleeve subsets are used.
+#                        : non-textile material type 1/10 — only `fur` (289);
+#                          plastic/metal/gem/wood are not written in apparel copy.
+#   NOT IN THE ONTOLOGY  : textile/fabric material, colour, occasion
+#                          -> these three are `custom` fields below.
+
+conventions:
+  unknown_token: "unknown"      # model may emit this instead of guessing.
+                                # In W4 this becomes the learned abstain action.
+  case: snake_case
+  alias_matching: casefold + strip + collapse whitespace/hyphens
+  multi_label_fields: [details]  # scored with set-F1, NOT exact match
+
+# =============================================================================
+# FIELDS
+# =============================================================================
+
+fields:
+
+  # ---------------------------------------------------------------------------
+  # 1. garment_category — the conditioning variable for every applicability rule
+  # ---------------------------------------------------------------------------
+  garment_category:
+    kind: single
+    required: true
+    applies_to: always
+    note: >
+      Fashionpedia's level-2 categories. Restricted to the 13 apparel
+      categories plus shoe and bag; garment parts (27-33), closures (34-35)
+      and decorations (36-45) are structural, not products, and are excluded.
+    values:
+      - name: shirt_blouse
+        aliases: [shirt, blouse, button-down, button down, button-up, oxford shirt]
+        from: { type: direct, fp: [{ k: category, id: 0, name: "shirt, blouse" }] }
+      - name: top
+        aliases: [top, t-shirt, tee, tshirt, sweatshirt, tank top, camisole, cami, crop top, hoodie, bodysuit]
+        from: { type: direct, fp: [{ k: category, id: 1, name: "top, t-shirt, sweatshirt" }] }
+      - name: sweater
+        aliases: [sweater, jumper, pullover, knit, knitwear, turtleneck]
+        from: { type: direct, fp: [{ k: category, id: 2, name: "sweater" }] }
+      - name: cardigan
+        aliases: [cardigan, cardi]
+        from: { type: direct, fp: [{ k: category, id: 3, name: "cardigan" }] }
+      - name: jacket
+        aliases: [jacket, blazer, bomber, biker jacket, denim jacket, windbreaker, anorak]
+        from: { type: direct, fp: [{ k: category, id: 4, name: "jacket" }] }
+      - name: vest
+        aliases: [vest, waistcoat, gilet]
+        from: { type: direct, fp: [{ k: category, id: 5, name: "vest" }] }
+      - name: pants
+        aliases: [pants, trousers, jeans, leggings, joggers, chinos, slacks, denim]
+        from: { type: direct, fp: [{ k: category, id: 6, name: "pants" }] }
+      - name: shorts
+        aliases: [shorts, bermudas, cut-offs, cutoffs]
+        from: { type: direct, fp: [{ k: category, id: 7, name: "shorts" }] }
+      - name: skirt
+        aliases: [skirt, skort]
+        from: { type: direct, fp: [{ k: category, id: 8, name: "skirt" }] }
+      - name: coat
+        aliases: [coat, overcoat, trench, parka, puffer, peacoat, pea coat]
+        from: { type: direct, fp: [{ k: category, id: 9, name: "coat" }] }
+      - name: dress
+        aliases: [dress, gown, frock, maxi dress, sundress]
+        from: { type: direct, fp: [{ k: category, id: 10, name: "dress" }] }
+      - name: jumpsuit
+        aliases: [jumpsuit, romper, playsuit, overall, dungarees, boilersuit]
+        from: { type: direct, fp: [{ k: category, id: 11, name: "jumpsuit" }] }
+      - name: cape
+        aliases: [cape, poncho, shawl, wrap]
+        from: { type: direct, fp: [{ k: category, id: 12, name: "cape" }] }
+      - name: shoe
+        aliases: [shoe, shoes, sneakers, trainers, boots, heels, sandals, loafers, flats]
+        from: { type: direct, fp: [{ k: category, id: 23, name: "shoe" }] }
+      - name: bag
+        aliases: [bag, handbag, tote, clutch, backpack, wallet, purse, crossbody]
+        from: { type: direct, fp: [{ k: category, id: 24, name: "bag, wallet" }] }
+      - name: other
+        aliases: []
+        from:
+          type: custom
+          why: >
+            Real affiliate feeds contain rows outside the 15 categories above
+            (accessories, homeware, junk). Without an escape value the model is
+            forced to mislabel them.
+          watch: >
+            HACK INDICATOR. Track the rate of `other` per run. A rising rate is
+            the model dumping hard rows here to dodge the harder fields. Treat a
+            jump as a reward-hacking finding for blog #1, not as a win.
+
+  # ---------------------------------------------------------------------------
+  # 2. silhouette — Fashionpedia's `silhouette` MINUS the fit values
+  # ---------------------------------------------------------------------------
+  silhouette:
+    kind: single
+    required: false
+    applies_to:
+      categories: [dress, skirt, pants, shorts, coat, jacket, top, shirt_blouse, jumpsuit, sweater, cardigan, vest, cape]
+    origin:
+      type: split
+      note: >
+        Fashionpedia's `silhouette` supercategory (ids 114-138) conflates three
+        concepts: shape, fit (135-138) and symmetry (114-115). Split here —
+        shape stays in this field, fit moves to `fit`, symmetry is dropped
+        (not present in retail copy).
+    values:
+      - name: a_line
+        aliases: [a-line, a line, aline]
+        from: { type: direct, fp: [{ k: attribute, id: 129, name: "a-line" }] }
+      - name: straight
+        aliases: [straight, straight-leg, straight leg, column]
+        from: { type: direct, fp: [{ k: attribute, id: 128, name: "straight" }] }
+      - name: pencil
+        aliases: [pencil, tapered, cigarette]
+        from: { type: direct, fp: [{ k: attribute, id: 127, name: "pencil" }] }
+      - name: fit_and_flare
+        aliases: [fit and flare, fit-and-flare, skater]
+        from: { type: direct, fp: [{ k: attribute, id: 119, name: "fit and flare" }] }
+      - name: flare
+        aliases: [flared, flare, bell bottom, bell-bottom, bellbottom]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 118, name: "flare" }
+            - { k: attribute, id: 124, name: "bell bottom" }
+          note: "bell bottom (val_freq 2) is a flare variant merchants rarely distinguish."
+      - name: wide_leg
+        aliases: [wide leg, wide-leg, palazzo, culotte, culottes]
+        from: { type: direct, fp: [{ k: attribute, id: 132, name: "wide leg" }] }
+      - name: bootcut
+        aliases: [bootcut, boot cut, boot-cut]
+        from: { type: direct, fp: [{ k: attribute, id: 125, name: "bootcut" }] }
+      - name: mermaid
+        aliases: [mermaid, trumpet, fishtail]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 121, name: "mermaid" }
+            - { k: attribute, id: 120, name: "trumpet" }
+          note: "Mermaid vs trumpet differ only in flare height; retail copy uses them interchangeably."
+      - name: shift
+        aliases: [shift, tent, trapeze, swing, boxy]
+        from: { type: direct, fp: [{ k: attribute, id: 130, name: "tent" }] }
+      - name: balloon
+        aliases: [balloon, bubble, cocoon]
+        from: { type: direct, fp: [{ k: attribute, id: 122, name: "balloon" }] }
+      - name: peg
+        aliases: [peg, carrot, barrel]
+        from: { type: direct, fp: [{ k: attribute, id: 126, name: "peg" }] }
+      - name: circle
+        aliases: [circle, full circle, skater skirt]
+        from: { type: direct, fp: [{ k: attribute, id: 117, name: "circle" }] }
+      - name: high_low
+        aliases: [high low, high-low, hi-lo, dipped hem, asymmetric hem]
+        from: { type: direct, fp: [{ k: attribute, id: 133, name: "high low" }] }
+      - name: peplum
+        aliases: [peplum]
+        from: { type: direct, fp: [{ k: attribute, id: 116, name: "peplum" }] }
+      - name: bodycon
+        aliases: [bodycon, body-con, body con]
+        from:
+          type: derived
+          op: rename
+          fp: [{ k: attribute, id: 106, name: "bodycon (dress)" }]
+          note: >
+            Fashionpedia files bodycon under `nickname` (a dress type). Retail
+            copy uses it as the shape word, so it is lifted into silhouette.
+            Overlaps `fit: tight` — see rules file (W1 Step 2) for the
+            consistency constraint.
+
+  # ---------------------------------------------------------------------------
+  # 3. fit — split out of Fashionpedia `silhouette`
+  # ---------------------------------------------------------------------------
+  fit:
+    kind: single
+    required: false
+    applies_to:
+      categories: [dress, skirt, pants, shorts, coat, jacket, top, shirt_blouse, jumpsuit, sweater, cardigan, vest]
+    origin:
+      type: split
+      note: "Fashionpedia ids 135-138 live under `silhouette` but describe fit, not shape."
+    values:
+      - name: tight
+        aliases: [slim, slim-fit, fitted, skinny, body-hugging, snug, tight]
+        from: { type: direct, fp: [{ k: attribute, id: 135, name: "tight (fit)" }] }
+      - name: regular
+        aliases: [regular, classic fit, standard fit, true to size]
+        from: { type: direct, fp: [{ k: attribute, id: 136, name: "regular (fit)" }] }
+      - name: loose
+        aliases: [loose, relaxed, relaxed-fit, easy fit, baggy, roomy]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 137, name: "loose (fit)" }
+            - { k: attribute, id: 131, name: "baggy" }
+          note: "`baggy` (filed under silhouette) is a fit descriptor, not a shape."
+      - name: oversized
+        aliases: [oversized, oversize, boyfriend, slouchy]
+        from: { type: direct, fp: [{ k: attribute, id: 138, name: "oversized" }] }
+
+  # ---------------------------------------------------------------------------
+  # 4. garment_length — the garment-scoped half of Fashionpedia `length`
+  # ---------------------------------------------------------------------------
+  garment_length:
+    kind: single
+    required: false
+    applies_to:
+      categories: [dress, skirt, pants, shorts, coat, jacket, top, shirt_blouse, jumpsuit, sweater, cardigan, vest, cape]
+    origin:
+      type: split
+      note: >
+        Fashionpedia `length` (146-160) covers BOTH garment hem length (146-155)
+        and sleeve length (156-160), disambiguated only by which garment part
+        the annotation attaches to. Product text has no such structure, so the
+        supercategory is split into `garment_length` and `sleeve_length`.
+    ordered: true   # values below are a monotonic scale; enables ordinal partial credit in W2
+    values:
+      - name: cropped
+        aliases: [cropped, crop, above the hip, above-the-hip]
+        from: { type: direct, fp: [{ k: attribute, id: 146, name: "above-the-hip (length)" }] }
+      - name: hip
+        aliases: [hip length, hip-length, regular length]
+        from: { type: direct, fp: [{ k: attribute, id: 147, name: "hip (length)" }] }
+      - name: mini
+        aliases: [mini, micro, short length, thigh length, thigh-length]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 148, name: "micro (length)" }
+            - { k: attribute, id: 149, name: "mini (length)" }
+          note: "Merchants do not reliably distinguish micro from mini; merging removes a coin-flip label."
+      - name: above_knee
+        aliases: [above the knee, above-the-knee, above knee]
+        from: { type: direct, fp: [{ k: attribute, id: 150, name: "above-the-knee (length)" }] }
+      - name: knee
+        aliases: [knee length, knee-length, at the knee]
+        from: { type: direct, fp: [{ k: attribute, id: 151, name: "knee (length)" }] }
+      - name: midi
+        aliases: [midi, mid-length, below the knee, below-the-knee, tea length, calf length]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 152, name: "below the knee (length)" }
+            - { k: attribute, id: 153, name: "midi" }
+          note: "`midi` is the retail term for the below-the-knee band; the two are one bucket in copy."
+      - name: maxi
+        aliases: [maxi, floor length, floor-length, full length, ankle length, long]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 154, name: "maxi (length)" }
+            - { k: attribute, id: 155, name: "floor (length)" }
+          note: >
+            Kept as one bucket. If gowns turn out to matter to Vastraa's taste
+            layer, re-split — the ids are recorded, so the split is reversible.
+
+  # ---------------------------------------------------------------------------
+  # 5. sleeve_length — the sleeve-scoped half of Fashionpedia `length`
+  # ---------------------------------------------------------------------------
+  sleeve_length:
+    kind: single
+    required: false
+    applies_to:
+      categories: [dress, coat, jacket, top, shirt_blouse, jumpsuit, sweater, cardigan]
+    origin:
+      type: split
+      note: "See garment_length.origin — ids 156-160 are the sleeve-scoped subset."
+    ordered: true
+    values:
+      - name: sleeveless
+        aliases: [sleeveless, no sleeves, strapless, tank, spaghetti strap, racerback]
+        from: { type: direct, fp: [{ k: attribute, id: 156, name: "sleeveless" }] }
+        note: >
+          val_freq is only 12 because sleeveless garments carry no `sleeve`
+          annotation at all in Fashionpedia — absence, not rarity. Expect this
+          value to be COMMON in a retail feed. Do not prune it on frequency.
+      - name: short
+        aliases: [short sleeve, short-sleeve, short sleeves, cap sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 157, name: "short (length)" }] }
+      - name: elbow
+        aliases: [elbow length, elbow-length, half sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 158, name: "elbow-length" }] }
+      - name: three_quarter
+        aliases: [3/4, 3/4 sleeve, three quarter, three-quarter, 3/4 slv, bracelet sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 159, name: "three quarter (length)" }] }
+      - name: long
+        aliases: [long sleeve, long-sleeve, full sleeve, wrist length, wrist-length]
+        from: { type: direct, fp: [{ k: attribute, id: 160, name: "wrist-length" }] }
+
+  # ---------------------------------------------------------------------------
+  # 6. sleeve_style — Fashionpedia `nickname`, sleeve subset (204-216)
+  # ---------------------------------------------------------------------------
+  sleeve_style:
+    kind: single
+    required: false
+    applies_to:
+      categories: [dress, coat, jacket, top, shirt_blouse, jumpsuit, sweater, cardigan]
+    depends_on: "sleeve_length != sleeveless"   # enforced in the rules file, W1 Step 2
+    values:
+      - name: set_in
+        aliases: [set-in, set in sleeve, standard sleeve, classic sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 204, name: "set-in sleeve" }] }
+        note: "val_freq 846 — the default. Expect majority-class collapse here in W2."
+      - name: cap
+        aliases: [cap sleeve, cap-sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 207, name: "cap (sleeve)" }] }
+      - name: puff
+        aliases: [puff sleeve, puffed sleeve, puff-sleeve, balloon sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 209, name: "puff (sleeve)" }] }
+      - name: bell
+        aliases: [bell sleeve, trumpet sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 210, name: "bell (sleeve)" }] }
+      - name: raglan
+        aliases: [raglan, raglan sleeve, baseball sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 206, name: "raglan (sleeve)" }] }
+      - name: dolman
+        aliases: [dolman, batwing, dolman sleeve, batwing sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 213, name: "dolman (sleeve), batwing (sleeve)" }] }
+      - name: dropped_shoulder
+        aliases: [dropped shoulder, drop shoulder, dropped-shoulder]
+        from: { type: direct, fp: [{ k: attribute, id: 205, name: "dropped-shoulder sleeve" }] }
+      - name: flutter
+        aliases: [flutter sleeve, tulip sleeve, ruffle sleeve, flounce sleeve]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 208, name: "tulip (sleeve)" }
+            - { k: attribute, id: 211, name: "circular flounce (sleeve)" }
+          note: "Both are sold as `flutter` in retail copy."
+      - name: bishop
+        aliases: [bishop sleeve, poet sleeve, blouson sleeve]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 214, name: "bishop (sleeve)" }
+            - { k: attribute, id: 212, name: "poet (sleeve)" }
+          note: "Gathered-cuff volume sleeves; the distinction is not made in copy."
+      - name: kimono
+        aliases: [kimono sleeve]
+        from: { type: direct, fp: [{ k: attribute, id: 216, name: "kimono (sleeve)" }] }
+
+  # ---------------------------------------------------------------------------
+  # 7. neckline — Fashionpedia `neckline type`, heavily merged
+  # ---------------------------------------------------------------------------
+  neckline:
+    kind: single
+    required: false
+    applies_to:
+      categories: [dress, top, shirt_blouse, sweater, cardigan, jumpsuit, vest]
+    origin:
+      type: merge_heavy
+      note: >
+        The most-collapsed field in the pack. Fashionpedia distinguishes 25
+        necklines by contour; retail copy uses roughly a dozen words and uses
+        them loosely. Merging here buys label reliability at the cost of
+        resolution — the single biggest deliberate information loss in this
+        vocabulary, and the clearest example for blog #1.
+    values:
+      - name: crew
+        aliases: [crew, crew neck, crewneck, round neck, round-neck, jewel neck]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 181, name: "crew (neck)" }
+            - { k: attribute, id: 182, name: "round (neck)" }
+          note: "Crew vs round is a contour distinction absent from product copy."
+      - name: scoop
+        aliases: [scoop, scoop neck, u-neck, u neck, oval neck]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 190, name: "scoop (neck)" }
+            - { k: attribute, id: 186, name: "u-neck" }
+            - { k: attribute, id: 185, name: "oval (neck)" }
+          note: "Three depth-of-curve variants sold under one word."
+      - name: v_neck
+        aliases: [v-neck, v neck, vneck, deep v]
+        from: { type: direct, fp: [{ k: attribute, id: 183, name: "v-neck" }] }
+      - name: square
+        aliases: [square neck, square neckline]
+        from: { type: direct, fp: [{ k: attribute, id: 191, name: "square (neckline)" }] }
+      - name: sweetheart
+        aliases: [sweetheart, sweetheart neckline]
+        from: { type: direct, fp: [{ k: attribute, id: 187, name: "sweetheart (neckline)" }] }
+      - name: boat
+        aliases: [boat neck, bateau, straight across, straight neckline]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 189, name: "boat (neck)" }
+            - { k: attribute, id: 200, name: "straight across (neck)" }
+          note: "Same horizontal line; Fashionpedia separates by curvature."
+      - name: halter
+        aliases: [halter, halter neck, halterneck]
+        from: { type: direct, fp: [{ k: attribute, id: 194, name: "halter (neck)" }] }
+      - name: turtle
+        aliases: [turtleneck, turtle neck, roll neck, polo neck]
+        from: { type: direct, fp: [{ k: attribute, id: 198, name: "turtle (neck)" }] }
+      - name: mock
+        aliases: [mock neck, mock turtleneck, high neck, funnel neck]
+        from: { type: direct, fp: [{ k: attribute, id: 197, name: "high (neck)" }] }
+      - name: cowl
+        aliases: [cowl, cowl neck, draped neck]
+        from: { type: direct, fp: [{ k: attribute, id: 199, name: "cowl (neck)" }] }
+      - name: off_shoulder
+        aliases: [off shoulder, off-the-shoulder, off the shoulder, bardot]
+        from: { type: direct, fp: [{ k: attribute, id: 202, name: "off-the-shoulder" }] }
+      - name: one_shoulder
+        aliases: [one shoulder, one-shoulder, asymmetric neckline, asymmetrical neckline]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 203, name: "one shoulder" }
+            - { k: attribute, id: 180, name: "asymmetric (neckline)" }
+          note: "One-shoulder is the dominant asymmetric neckline in retail."
+      - name: plunging
+        aliases: [plunging, plunge, deep neckline]
+        from: { type: direct, fp: [{ k: attribute, id: 192, name: "plunging (neckline)" }] }
+      - name: wrap
+        aliases: [wrap neckline, surplice, crossover, faux wrap, v-wrap]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 184, name: "surplice (neck)" }
+            - { k: attribute, id: 195, name: "crossover (neck)" }
+          note: "`surplice` is a tailoring term; merchants write `wrap`."
+      - name: collarless
+        aliases: [collarless, no collar]
+        from: { type: direct, fp: [{ k: attribute, id: 179, name: "collarless" }] }
+
+  # ---------------------------------------------------------------------------
+  # 8. collar_type — Fashionpedia collar + lapel nicknames + the `hood` category
+  # ---------------------------------------------------------------------------
+  collar_type:
+    kind: single
+    required: false
+    applies_to:
+      categories: [shirt_blouse, jacket, coat, vest, cardigan, top, dress]
+    origin:
+      type: merge_across_groups
+      note: >
+        Fashionpedia treats collar (161-173), lapel (174-178) and hood
+        (category 27) as three separate garment parts. Retail copy puts all
+        three under one "collar" line, so they are unified here. Orthogonal to
+        `neckline` — a shirt has both.
+    values:
+      - name: none
+        aliases: [no collar, collarless]
+        from: { type: direct, fp: [{ k: attribute, id: 179, name: "collarless" }] }
+      - name: shirt
+        aliases: [shirt collar, point collar, spread collar, classic collar, button-down collar]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 163, name: "shirt (collar)" }
+            - { k: attribute, id: 162, name: "regular (collar)" }
+          note: "Fashionpedia's `regular` collar is the shirt collar under another name."
+      - name: band
+        aliases: [band collar, banded collar, mandarin, mandarin collar, grandad collar, nehru collar]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 166, name: "banded (collar)" }
+            - { k: attribute, id: 167, name: "mandarin (collar)" }
+          note: "Same stand-up band; the two words are used interchangeably."
+      - name: polo
+        aliases: [polo collar, ribbed collar]
+        from: { type: direct, fp: [{ k: attribute, id: 164, name: "polo (collar)" }] }
+      - name: peter_pan
+        aliases: [peter pan, peter pan collar, flat collar]
+        from: { type: direct, fp: [{ k: attribute, id: 168, name: "peter pan (collar)" }] }
+      - name: notched_lapel
+        aliases: [notched lapel, notch lapel, notched collar]
+        from: { type: direct, fp: [{ k: attribute, id: 174, name: "notched (lapel)" }] }
+      - name: peak_lapel
+        aliases: [peak lapel, peaked lapel]
+        from: { type: direct, fp: [{ k: attribute, id: 175, name: "peak (lapel)" }] }
+      - name: shawl_lapel
+        aliases: [shawl lapel, shawl collar, roll collar]
+        from: { type: direct, fp: [{ k: attribute, id: 176, name: "shawl (lapel)" }] }
+      - name: hooded
+        aliases: [hooded, hood, with hood, hoodie]
+        from:
+          type: derived
+          op: lift_category
+          fp: [{ k: category, id: 27, name: "hood" }]
+          note: >
+            Fashionpedia models the hood as a segmentable garment part, not an
+            attribute. In text it functions as a collar value ("hooded").
+
+  # ---------------------------------------------------------------------------
+  # 9. waistline — Fashionpedia `waistline` (139-145)
+  # ---------------------------------------------------------------------------
+  waistline:
+    kind: single
+    required: false
+    applies_to:
+      categories: [dress, skirt, pants, shorts, jumpsuit, coat, jacket]
+    values:
+      - name: high
+        aliases: [high waist, high-waisted, high rise, high-rise, hi-rise]
+        from: { type: direct, fp: [{ k: attribute, id: 141, name: "high waist" }] }
+      - name: normal
+        aliases: [mid rise, mid-rise, natural waist, regular rise]
+        from: { type: direct, fp: [{ k: attribute, id: 142, name: "normal waist" }] }
+      - name: low
+        aliases: [low rise, low-rise, low waist, hip hugger, hipster]
+        from: { type: direct, fp: [{ k: attribute, id: 143, name: "low waist" }] }
+      - name: empire
+        aliases: [empire, empire waist, empire line, under-bust]
+        from: { type: direct, fp: [{ k: attribute, id: 139, name: "empire waistline" }] }
+      - name: dropped
+        aliases: [dropped waist, drop waist, dropped waistline]
+        from: { type: direct, fp: [{ k: attribute, id: 140, name: "dropped waistline" }] }
+      - name: none
+        aliases: [no waistline, straight through, shapeless]
+        from: { type: direct, fp: [{ k: attribute, id: 145, name: "no waistline" }] }
+
+  # ---------------------------------------------------------------------------
+  # 10. closure — Fashionpedia `opening type` + one custom value
+  # ---------------------------------------------------------------------------
+  closure:
+    kind: single
+    required: false
+    applies_to:
+      categories: [shirt_blouse, jacket, coat, cardigan, vest, pants, shorts, skirt, dress, jumpsuit, bag]
+    values:
+      - name: zip
+        aliases: [zip, zipper, zip-up, zip up, zippered, full zip, half zip]
+        from: { type: direct, fp: [{ k: attribute, id: 229, name: "zip-up" }] }
+      - name: single_breasted
+        aliases: [single breasted, single-breasted, button front, button-front, buttoned]
+        from: { type: direct, fp: [{ k: attribute, id: 225, name: "single breasted" }] }
+      - name: double_breasted
+        aliases: [double breasted, double-breasted]
+        from: { type: direct, fp: [{ k: attribute, id: 226, name: "double breasted" }] }
+      - name: fly
+        aliases: [fly, button fly, zip fly, fly front]
+        from: { type: direct, fp: [{ k: attribute, id: 230, name: "fly (opening)" }] }
+      - name: wrap
+        aliases: [wrap, wrapped, tie waist, tie-front, self-tie]
+        from: { type: direct, fp: [{ k: attribute, id: 228, name: "wrapping" }] }
+      - name: lace_up
+        aliases: [lace up, lace-up, laced, corset]
+        from: { type: direct, fp: [{ k: attribute, id: 227, name: "lace up" }] }
+      - name: buckle
+        aliases: [buckle, buckled, toggle, toggled]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 232, name: "buckled (opening)" }
+            - { k: attribute, id: 233, name: "toggled (opening)" }
+          note: "Both val_freq < 5; merged to keep the class non-degenerate."
+      - name: pullover
+        aliases: [pullover, pull-on, no closure, slip on, slip-on, elastic waist]
+        from: { type: direct, fp: [{ k: attribute, id: 234, name: "no opening" }] }
+      - name: drawstring
+        aliases: [drawstring, draw-string, tie waist elastic, toggle cord]
+        from:
+          type: custom
+          why: >
+            Fashionpedia has no drawstring value — its ontology was built from
+            editorial fashion photography, where drawstrings are rare. In an
+            affiliate feed (joggers, shorts, swimwear, utility) it is one of the
+            most frequently written closure words. Omitting it would force these
+            rows into `pullover` and hide a real distinction.
+
+  # ---------------------------------------------------------------------------
+  # 11. pattern — Fashionpedia `textile pattern` + `animal` + leather patterns
+  # ---------------------------------------------------------------------------
+  pattern:
+    kind: single
+    required: false
+    applies_to: always
+    values:
+      - name: solid
+        aliases: [solid, plain, no pattern, block colour, block color]
+        from: { type: direct, fp: [{ k: attribute, id: 317, name: "plain (pattern)" }] }
+        note: "val_freq 1548 — the dominant class. This is what a lazy model will predict."
+      - name: stripe
+        aliases: [stripe, striped, stripes, pinstripe, breton]
+        from: { type: direct, fp: [{ k: attribute, id: 328, name: "stripe" }] }
+      - name: floral
+        aliases: [floral, flowers, flower print, botanical, ditsy]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 325, name: "floral" }
+            - { k: attribute, id: 340, name: "plant" }
+          note: "`plant` (val_freq 8) is not separated from floral in retail copy."
+      - name: check
+        aliases: [check, checked, plaid, tartan, gingham, windowpane, buffalo check]
+        from: { type: direct, fp: [{ k: attribute, id: 322, name: "check" }] }
+      - name: dot
+        aliases: [dot, polka dot, polka-dot, spotted, spot print]
+        from: { type: direct, fp: [{ k: attribute, id: 323, name: "dot" }] }
+      - name: animal
+        aliases: [animal print, leopard, cheetah, zebra, snakeskin, snake print, crocodile, croc, python]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 333, name: "leopard" }
+            - { k: attribute, id: 334, name: "snakeskin (pattern)" }
+            - { k: attribute, id: 335, name: "cheetah" }
+            - { k: attribute, id: 336, name: "peacock" }
+            - { k: attribute, id: 337, name: "zebra" }
+            - { k: attribute, id: 338, name: "giraffe" }
+            - { k: attribute, id: 292, name: "crocodile" }
+            - { k: attribute, id: 293, name: "snakeskin" }
+          note: >
+            Fashionpedia's six `animal` values are all val_freq <= 7 — individually
+            too rare to survive a 300-row eval set. Merged into one class, plus
+            the two animal-textured `leather` values which are the same concept
+            expressed as a material.
+      - name: geometric
+        aliases: [geometric, chevron, argyle, aztec, abstract geometric]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 326, name: "geometric" }
+            - { k: attribute, id: 331, name: "chevron" }
+            - { k: attribute, id: 332, name: "argyle" }
+          note: "chevron (7) and argyle (2) are too rare to stand alone."
+      - name: abstract
+        aliases: [abstract, marble, tie dye, tie-dye, watercolour, watercolor, ombre]
+        from: { type: direct, fp: [{ k: attribute, id: 318, name: "abstract" }] }
+      - name: paisley
+        aliases: [paisley]
+        from: { type: direct, fp: [{ k: attribute, id: 327, name: "paisley" }] }
+      - name: houndstooth
+        aliases: [houndstooth, dogtooth, hounds tooth]
+        from: { type: direct, fp: [{ k: attribute, id: 329, name: "houndstooth (pattern)" }] }
+      - name: herringbone
+        aliases: [herringbone, tweed]
+        from: { type: direct, fp: [{ k: attribute, id: 330, name: "herringbone (pattern)" }] }
+      - name: camouflage
+        aliases: [camo, camouflage, military print]
+        from: { type: direct, fp: [{ k: attribute, id: 321, name: "camouflage" }] }
+      - name: graphic
+        aliases: [graphic, graphic print, slogan, logo print, text print, cartoon, character print]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 319, name: "cartoon" }
+            - { k: attribute, id: 320, name: "letters, numbers" }
+          note: "Both are `graphic print` in retail; the split is not observable in copy."
+      - name: fair_isle
+        aliases: [fair isle, nordic, snowflake print, intarsia]
+        from: { type: direct, fp: [{ k: attribute, id: 324, name: "fair isle" }] }
+
+  # ---------------------------------------------------------------------------
+  # 12. details — Fashionpedia `textile finishing, manufacturing techniques`
+  #     MULTI-LABEL. Scored with set-F1, not exact match.
+  # ---------------------------------------------------------------------------
+  details:
+    kind: multi
+    required: false
+    max_values: 4
+    applies_to: always
+    note: >
+      The only multi-label field in the pack. A garment can be both pleated and
+      lined. W1 Step 4 must score this with set-F1; running exact match here
+      would make the whole report incomparable across fields.
+    values:
+      - name: none
+        aliases: [no special detail, plain construction]
+        from: { type: direct, fp: [{ k: attribute, id: 316, name: "no special manufacturing technique" }] }
+      - name: pleated
+        aliases: [pleat, pleated, pleats, accordion pleat, knife pleat]
+        from: { type: direct, fp: [{ k: attribute, id: 304, name: "pleat" }] }
+      - name: gathered
+        aliases: [gathered, gathering, shirred, shirring, smocked, smocking]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 305, name: "gathering" }
+            - { k: attribute, id: 306, name: "smocking" }
+          note: "Smocking is a gathering technique; copy rarely separates them."
+      - name: ruched
+        aliases: [ruched, ruching, gathered side seam]
+        from: { type: direct, fp: [{ k: attribute, id: 302, name: "ruched" }] }
+      - name: distressed
+        aliases: [distressed, ripped, destroyed, frayed, raw hem, worn]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 297, name: "distressed" }
+            - { k: attribute, id: 300, name: "frayed" }
+          note: "Sold as one finish in denim copy."
+      - name: washed
+        aliases: [washed, acid wash, stone wash, garment dyed, faded]
+        from: { type: direct, fp: [{ k: attribute, id: 298, name: "washed" }] }
+      - name: quilted
+        aliases: [quilted, quilting, padded, puffer]
+        from: { type: direct, fp: [{ k: attribute, id: 303, name: "quilted" }] }
+      - name: tiered
+        aliases: [tiered, tiers, layered skirt]
+        from: { type: direct, fp: [{ k: attribute, id: 307, name: "tiered" }] }
+      - name: cutout
+        aliases: [cutout, cut-out, cut out, open back]
+        from: { type: direct, fp: [{ k: attribute, id: 308, name: "cutout" }] }
+      - name: slit
+        aliases: [slit, side slit, thigh slit, split hem]
+        from: { type: direct, fp: [{ k: attribute, id: 309, name: "slit" }] }
+      - name: sequined
+        aliases: [sequin, sequined, sequinned, beaded, bead, embellished, sparkle]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 315, name: "sequin(a)" }
+            - { k: attribute, id: 313, name: "bead(a)" }
+          note: "Both are `embellished` in copy; individually val_freq 11 and 18."
+      - name: embroidered
+        aliases: [embroidered, embroidery, applique, appliqué, patch detail]
+        from: { type: direct, fp: [{ k: attribute, id: 312, name: "applique(a)" }] }
+      - name: lined
+        aliases: [lined, lining, fully lined, partially lined]
+        from: { type: direct, fp: [{ k: attribute, id: 311, name: "lining" }] }
+      - name: studded
+        aliases: [studded, studs, rivet, riveted, hardware]
+        from: { type: direct, fp: [{ k: attribute, id: 314, name: "rivet(a)" }] }
+
+  # ---------------------------------------------------------------------------
+  # 13. material — MOSTLY CUSTOM. Fashionpedia has no textile-material group.
+  # ---------------------------------------------------------------------------
+  material:
+    kind: single
+    required: false
+    applies_to: always
+    origin:
+      type: custom_field
+      why: >
+        Fashionpedia's 294 attributes contain NO textile/fabric material values.
+        Its material coverage is `non-textile material type` (plastic, metal,
+        gem, fur, wood) and `leather` (suede, crocodile, snakeskin) only. Fabric
+        is nonetheless one of the most reliably present fields in an affiliate
+        feed — it is usually a structured composition field, not free prose —
+        and it is central to Vastraa's taste layer. Built as a custom field with
+        the two Fashionpedia values that do exist folded in.
+    values:
+      - name: cotton
+        aliases: [cotton, organic cotton, cotton blend, poplin, jersey]
+        from: { type: custom, why: "No Fashionpedia equivalent; dominant fibre in retail composition fields." }
+      - name: denim
+        aliases: [denim, jean, chambray]
+        from: { type: custom, why: "No Fashionpedia equivalent; a distinct product family in affiliate feeds." }
+      - name: linen
+        aliases: [linen, flax, linen blend]
+        from: { type: custom, why: "No Fashionpedia equivalent; strong seasonal/taste signal." }
+      - name: silk
+        aliases: [silk, satin, charmeuse, mulberry silk]
+        from: { type: custom, why: "No Fashionpedia equivalent; strong formality signal." }
+      - name: wool
+        aliases: [wool, merino, tweed wool, virgin wool, lambswool]
+        from: { type: custom, why: "No Fashionpedia equivalent." }
+      - name: cashmere
+        aliases: [cashmere, cashmere blend]
+        from: { type: custom, why: "No Fashionpedia equivalent; a price-tier and taste signal worth separating from wool." }
+      - name: leather
+        aliases: [leather, genuine leather, faux leather, vegan leather, pu leather]
+        from: { type: custom, why: "Fashionpedia's `leather` supercategory holds only textures (suede/crocodile/snakeskin), not leather itself." }
+      - name: suede
+        aliases: [suede, faux suede, microsuede]
+        from: { type: direct, fp: [{ k: attribute, id: 290, name: "suede" }] }
+      - name: fur
+        aliases: [fur, faux fur, shearling, sherpa, teddy]
+        from:
+          type: derived
+          op: merge
+          fp:
+            - { k: attribute, id: 289, name: "fur" }
+            - { k: attribute, id: 291, name: "shearling" }
+          note: "The two Fashionpedia fur-family values, merged; copy does not separate real from faux consistently."
+      - name: knit
+        aliases: [knit, knitted, rib knit, cable knit, ribbed]
+        from: { type: custom, why: "No Fashionpedia equivalent; a construction-as-material term merchants use constantly." }
+      - name: synthetic
+        aliases: [polyester, nylon, acrylic, elastane, spandex, viscose, rayon, modal, lyocell, tencel, poly blend]
+        from:
+          type: custom
+          why: >
+            No Fashionpedia equivalent. Deliberately ONE bucket: composition
+            fields list these in blends and splitting them would produce a field
+            no human can label consistently from text.
+
+  # ---------------------------------------------------------------------------
+  # 14. colour_primary — FULLY CUSTOM. Fashionpedia has no colour attributes.
+  # ---------------------------------------------------------------------------
+  colour_primary:
+    kind: single
+    required: false
+    applies_to: always
+    origin:
+      type: custom_field
+      why: >
+        Fashionpedia annotates shape, texture and construction — not colour.
+        Colour is nonetheless present in nearly every product title and is the
+        single most reliably extractable field in a catalogue. Included because
+        it is high-signal for the taste layer and because a field with near-100%
+        achievable accuracy is a useful control: if the model is failing HERE,
+        the problem is the pipeline, not the task.
+    values:
+      - name: black
+        aliases: [black, jet, onyx, noir]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: white
+        aliases: [white, ivory, off-white, ecru, optic white]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: grey
+        aliases: [grey, gray, charcoal, heather grey, silver grey, slate]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: beige
+        aliases: [beige, cream, tan, camel, sand, nude, taupe, khaki, stone]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: brown
+        aliases: [brown, chocolate, coffee, cognac, espresso, mocha]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: navy
+        aliases: [navy, midnight, dark blue, indigo]
+        from: { type: custom, why: "colour field — no ontology source; separated from blue because it behaves as a neutral in styling" }
+      - name: blue
+        aliases: [blue, cobalt, sky blue, teal, denim blue, powder blue]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: green
+        aliases: [green, olive, emerald, sage, mint, forest, khaki green]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: yellow
+        aliases: [yellow, mustard, gold, lemon, ochre]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: orange
+        aliases: [orange, rust, terracotta, apricot, coral]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: red
+        aliases: [red, burgundy, wine, maroon, crimson, cherry]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: pink
+        aliases: [pink, blush, rose, fuchsia, magenta, dusty pink]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: purple
+        aliases: [purple, lilac, lavender, violet, plum, aubergine]
+        from: { type: custom, why: "colour field — no ontology source" }
+      - name: multicolour
+        aliases: [multicolour, multicolor, multi, rainbow, colourblock, colorblock, print]
+        from: { type: custom, why: "colour field — no ontology source; required whenever pattern != solid" }
+      - name: metallic
+        aliases: [metallic, gold metallic, silver, bronze, iridescent, holographic]
+        from: { type: custom, why: "colour field — no ontology source" }
+
+  # ---------------------------------------------------------------------------
+  # 15. occasion — FULLY CUSTOM. The taste-layer field.
+  # ---------------------------------------------------------------------------
+  occasion:
+    kind: single
+    required: false
+    applies_to: always
+    origin:
+      type: custom_field
+      why: >
+        Fashionpedia is a visual-attribute ontology and has no notion of use
+        context. Occasion is the field Vastraa's memory layer actually reasons
+        over ("what does this person wear to work"), so a pack without it does
+        not serve its consumer. It is also the WEAKEST field in the pack on
+        inter-annotator agreement — deliberately cut to six coarse buckets with
+        defensible boundaries rather than the ten-way scale merchants use.
+      risk: >
+        Highest abstention rate expected here. If the frozen eval set shows you
+        disagreeing with yourself on re-labelled rows, cut this field to
+        {casual, formal, athletic} before W1 Step 3 rather than after.
+    values:
+      - name: casual
+        aliases: [casual, everyday, weekend, day, relaxed]
+        from: { type: custom, why: "taste-layer field — no ontology source" }
+      - name: work
+        aliases: [work, office, business, workwear, professional, smart]
+        from: { type: custom, why: "taste-layer field — no ontology source" }
+      - name: formal
+        aliases: [formal, evening, occasion, party, cocktail, black tie, wedding guest, bridal]
+        from: { type: custom, why: "taste-layer field — no ontology source" }
+      - name: athletic
+        aliases: [athletic, sport, activewear, gym, training, performance, running]
+        from: { type: custom, why: "taste-layer field — no ontology source" }
+      - name: lounge
+        aliases: [lounge, loungewear, sleep, sleepwear, pyjama, pajama, homewear]
+        from: { type: custom, why: "taste-layer field — no ontology source" }
+      - name: beach
+        aliases: [beach, swim, swimwear, resort, holiday, vacation, poolside]
+        from: { type: custom, why: "taste-layer field — no ontology source" }

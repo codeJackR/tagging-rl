@@ -1,0 +1,12 @@
+[project]
+name = "tagging-rl"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=3.0.5",
+    "pydantic>=2.13.4",
+    "pyyaml>=6.0.3",
+    "wandb",
+]
