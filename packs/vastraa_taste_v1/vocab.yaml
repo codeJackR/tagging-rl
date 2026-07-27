@@ -500,8 +500,13 @@ fields:
   collar_type:
     kind: single
     required: false
+    # `sweater` added for the same reason as closure's shoe/top/sweater: 187
+    # violations, every one of them a sweater, asserting hooded / polo / none —
+    # all obviously real. Two independent fields excluded categories that plainly
+    # have the attribute, which suggests the Step 1 applies_to lists were written
+    # from the garment I pictured rather than the garment range a feed contains.
     applies_to:
-      categories: [shirt_blouse, jacket, coat, vest, cardigan, top, dress]
+      categories: [shirt_blouse, jacket, coat, vest, cardigan, top, sweater, dress]
     origin:
       type: merge_across_groups
       note: >
@@ -590,8 +595,13 @@ fields:
   closure:
     kind: single
     required: false
+    # shoe/top/sweater added after the first real labeling run: `closure` was
+    # asserted 503 times on categories this list excluded (top x218, sweater x214,
+    # shoe x71). The model was right and the vocabulary was wrong — shoes lace up
+    # and zip, tops and sweaters have zips and buttons. Judgement in Step 1, data
+    # in Step 3; the data wins.
     applies_to:
-      categories: [shirt_blouse, jacket, coat, cardigan, vest, pants, shorts, skirt, dress, jumpsuit, bag]
+      categories: [shirt_blouse, top, sweater, jacket, coat, cardigan, vest, pants, shorts, skirt, dress, jumpsuit, shoe, bag]
     values:
       - name: zip
         aliases: [zip, zipper, zip-up, zip up, zippered, full zip, half zip]

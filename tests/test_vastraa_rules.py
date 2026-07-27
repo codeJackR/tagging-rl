@@ -62,10 +62,27 @@ def test_dress_without_neckline_violates(pack):
     )
 
 
-def test_dress_cannot_abstain_out_of_required_fields(pack):
-    """allow_abstain: false — otherwise `unknown` is a free pass on every rule."""
-    assert "dress_needs_length_and_neckline" in violations(
+def test_dress_may_abstain_on_a_neckline_the_text_never_mentions(pack):
+    """Deliberately relaxed after the first real labeling run.
+
+    This rule had allow_abstain: false. It then fired 249 times on real listings,
+    232 of them because the copy simply never mentions a neckline — punishing the
+    model for being honest about what the text does not say, which is the opposite
+    of what the three-state design exists for.
+    """
+    assert "dress_needs_length_and_neckline" not in violations(
         pack, garment_category="dress", garment_length="midi", neckline="unknown"
+    )
+
+
+def test_allow_abstain_false_still_works_where_it_is_right(pack):
+    """The mechanism is sound; only its use on the dress rule was wrong.
+
+    A peplum IS a waistline feature, so abstaining on waistline while claiming a
+    peplum silhouette is incoherent regardless of what the listing says.
+    """
+    assert "peplum_needs_waistline" in violations(
+        pack, garment_category="dress", silhouette="peplum", waistline="unknown"
     )
 
 

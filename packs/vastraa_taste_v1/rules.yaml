@@ -30,7 +30,11 @@
   type: requires
   if: { garment_category: dress }
   then_present: [garment_length, neckline]
-  allow_abstain: false   # the two fields that make a dress record useful at all
+  # allow_abstain was false — defensible in the abstract, wrong against real feed
+  # text. It fired 249 times on the first labeling run, 232 of them because the
+  # listing simply never mentions a neckline. The rule was punishing the model for
+  # being honest about what the text does not say, which is the opposite of what
+  # the whole three-state design is for. Left at the default (abstention allowed).
 
 - id: outerwear_needs_closure
   type: requires
