@@ -200,6 +200,37 @@ Stratifying fixes macro-F1 variance and deliberately breaks the distribution, so
 any per-SKU number computed on `eval` is wrong for the real catalog. That's what
 `probe` is for.
 
+### Reviewing: cross-family adjudication, then a keyboard tagger
+
+```bash
+uv run python scripts/adjudicate.py run --provider gemini   # second opinion
+uv run python scripts/tag.py                                # tag interactively
+uv run python scripts/adjudicate.py audit-report --corrections data/review/review_queue.csv
+```
+
+A second opinion from a *different family* (Gemini) is what shrinks the queue
+honestly. Re-running the same model finds where it was unsure; an independent one
+finds where it was wrong — a confidently biased model agrees with itself perfectly.
+
+Measured on 300 rows: 4,500 cells -> 611 disagreements + 50 blind audit. Composition
+matters more than the count:
+
+| n | kind |
+|---|---|
+| 342 | primary abstained, adjudicator committed |
+| 92 | the reverse |
+| **76** | **both committed to different values** — genuine conflict |
+| 101 | `not_applicable` disagreements — schema reading, not fact |
+
+`tag.py` orders by exactly that: conflicts first, then audit, then abstentions. One
+keypress per cell, saved after every keystroke, resumable. Stopping early is a
+strategy rather than an abandonment — the first ~76 cells carry most of the signal.
+
+The 50 blind audit cells are agreed cells shuffled in. `audit-report` computes how
+often a human overruled them, which converts "skipping the other 3,889 is probably
+fine" into a number with a confidence interval. Quote it beside macro-F1: a model
+cannot be shown to beat a baseline by less than the label noise.
+
 ### Staying inside the 6-hour timebox
 
 300 rows × 15 attributes = 4,500 cells. The consensus pass samples the labeler k

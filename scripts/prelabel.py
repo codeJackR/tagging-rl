@@ -47,6 +47,7 @@ from labeling.consensus import consensus_labels  # noqa: E402
 from labeling.providers import (  # noqa: E402
     DEFAULT_MODELS,
     PRICING,
+    PROVIDERS,
     get_provider,
 )
 from labeling.records import (  # noqa: E402
@@ -61,7 +62,8 @@ from verifier import load_pack  # noqa: E402
 
 PROMPT_VERSION = "prelabel-v1"
 MAX_TOKENS = 2048
-KEY_ENV = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
+KEY_ENV = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY",
+           "gemini": "GEMINI_API_KEY"}
 
 def require_key(provider: str) -> None:
     var = KEY_ENV[provider]
@@ -363,7 +365,7 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--pack", default=str(ROOT / "packs" / "vastraa_taste_v1"))
-    common.add_argument("--provider", default="openai", choices=["openai", "anthropic"])
+    common.add_argument("--provider", default="openai", choices=sorted(PROVIDERS))
     common.add_argument("--model", default=None, help="override the provider default")
     sub = ap.add_subparsers(dest="cmd", required=True)
 

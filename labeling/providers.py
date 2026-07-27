@@ -107,6 +107,7 @@ class Provider(Protocol):
     def submit(self, items: list[tuple[str, dict]]) -> str: ...
     def wait(self, batch_id: str, poll: int) -> str: ...
     def status(self, batch_id: str) -> dict: ...
+    def complete(self, body: dict) -> tuple[str | None, str | None]: ...
     def results(self, batch_id: str) -> Iterator[BatchResult]: ...
 
 
@@ -158,6 +159,17 @@ class AnthropicProvider:
                 return "ended"
             print(f"  {batch.processing_status}: {batch.request_counts}", flush=True)
             time.sleep(poll)
+
+    def complete(self, body: dict) -> tuple[str | None, str | None]:
+        """One synchronous request. Returns (text, error) — never raises."""
+        try:
+            msg = self._client.messages.create(**body)
+        except Exception as exc:  # noqa: BLE001 — a network blip must not kill the run
+            return None, f"{type(exc).__name__}: {str(exc)[:100]}"
+        if msg.stop_reason == "refusal":
+            return None, "refusal"
+        text = next((b.text for b in msg.content if b.type == "text"), None)
+        return text, None if text else "no text block"
 
     def status(self, batch_id: str) -> dict:
         import time as _t
@@ -255,6 +267,17 @@ class OpenAIProvider:
             print(f"  {batch.status}: {batch.request_counts}", flush=True)
             time.sleep(poll)
 
+    def complete(self, body: dict) -> tuple[str | None, str | None]:
+        """One synchronous request. Returns (text, error) — never raises."""
+        try:
+            r = self._client.chat.completions.create(**body)
+        except Exception as exc:  # noqa: BLE001
+            return None, f"{type(exc).__name__}: {str(exc)[:100]}"
+        m = r.choices[0].message
+        if m.refusal:
+            return None, f"refusal: {str(m.refusal)[:80]}"
+        return m.content, None if m.content else "empty content"
+
     def status(self, batch_id: str) -> dict:
         import time as _t
 
@@ -318,3 +341,128 @@ def get_provider(name: str, model: str | None = None) -> Provider:
     if name not in PROVIDERS:
         raise SystemExit(f"unknown provider {name!r} — one of {sorted(PROVIDERS)}")
     return PROVIDERS[name](model)
+
+
+# --- Gemini ------------------------------------------------------------------
+
+
+def inline_defs(schema: dict) -> dict:
+    """Resolve every `$ref` against `$defs` and drop the definitions block.
+
+    Gemini's responseSchema is an OpenAPI subset with no `$ref` support, while
+    Pydantic emits one `$def` per enum. A third provider, a third schema dialect —
+    which is the argument for the provider layer rather than one hardcoded vendor.
+    """
+    defs = schema.get("$defs", {})
+
+    def walk(node):
+        if isinstance(node, dict):
+            ref = node.get("$ref")
+            if ref and ref.startswith("#/$defs/"):
+                target = defs.get(ref.split("/")[-1], {})
+                merged = {**walk(target), **{k: v for k, v in node.items() if k != "$ref"}}
+                return merged
+            return {k: walk(v) for k, v in node.items() if k != "$defs"}
+        if isinstance(node, list):
+            return [walk(v) for v in node]
+        return node
+
+    return walk(schema)
+
+
+def nullable_from_anyof(node):
+    """`anyOf: [X, {type: null}]` -> X with `nullable: true`.
+
+    Gemini expresses optionality with a nullable flag, not a union type. Left as a
+    union it rejects the schema outright.
+    """
+    if isinstance(node, dict):
+        options = node.get("anyOf")
+        if isinstance(options, list):
+            non_null = [o for o in options if o.get("type") != "null"]
+            had_null = len(non_null) < len(options)
+            if len(non_null) == 1:
+                merged = {**nullable_from_anyof(non_null[0]),
+                          **{k: v for k, v in node.items() if k != "anyOf"}}
+                if had_null:
+                    merged["nullable"] = True
+                return merged
+        return {k: nullable_from_anyof(v) for k, v in node.items()}
+    if isinstance(node, list):
+        return [nullable_from_anyof(v) for v in node]
+    return node
+
+
+class GeminiProvider:
+    name = "gemini"
+    default_model = "gemini-3.6-flash"
+
+    def __init__(self, model: str | None = None):
+        import os
+
+        from google import genai
+
+        self.model = model or self.default_model
+        self._genai = genai
+        self._client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+    def adapt_schema(self, schema: dict) -> dict:
+        s = nullable_from_anyof(inline_defs(strip_unsupported(schema)))
+        s.pop("additionalProperties", None)  # not part of Gemini's subset
+        return _drop_additional_properties(s)
+
+    # Gemini 3.x thinks before answering and thinking tokens are charged against
+    # max_output_tokens. Measured on this pack: ~850-1050 thinking tokens for ~150
+    # tokens of JSON. At 2048 that left too little headroom and 20% of rows came
+    # back as truncated JSON — which surfaces as a JSONDecodeError and looks like a
+    # parsing bug rather than a budget one. thinking_budget=0 is rejected by this
+    # model, so headroom is the only lever.
+    THINKING_HEADROOM = 8192
+
+    def build_body(self, system: str, user: str, schema: dict, max_tokens: int) -> dict:
+        return {
+            "model": self.model,
+            "contents": user,
+            "config": {
+                "system_instruction": system,
+                "response_mime_type": "application/json",
+                "response_schema": schema,
+                "max_output_tokens": max(max_tokens, self.THINKING_HEADROOM),
+            },
+        }
+
+    def complete(self, body: dict) -> tuple[str | None, str | None]:
+        try:
+            r = self._client.models.generate_content(**body)
+        except Exception as exc:  # noqa: BLE001
+            return None, f"{type(exc).__name__}: {str(exc)[:100]}"
+        # Name truncation for what it is. Returning the partial JSON makes a budget
+        # problem present as a parse error, which is how 61 rows were misdiagnosed.
+        cands = getattr(r, "candidates", None) or []
+        if cands and str(getattr(cands[0], "finish_reason", "")).endswith("MAX_TOKENS"):
+            thoughts = getattr(getattr(r, "usage_metadata", None), "thoughts_token_count", "?")
+            return None, f"truncated at max_output_tokens (thinking used {thoughts})"
+        text = getattr(r, "text", None)
+        return text, None if text else "empty response"
+
+    def _unsupported(self, *_a, **_k):
+        raise NotImplementedError(
+            "GeminiProvider is synchronous-only here — it exists for cross-family "
+            "adjudication (a few hundred requests), not for the 20,000-request "
+            "pre-labeling batch."
+        )
+
+    submit = wait = status = results = _unsupported
+
+
+def _drop_additional_properties(node):
+    if isinstance(node, dict):
+        return {k: _drop_additional_properties(v)
+                for k, v in node.items() if k != "additionalProperties"}
+    if isinstance(node, list):
+        return [_drop_additional_properties(v) for v in node]
+    return node
+
+
+PROVIDERS["gemini"] = GeminiProvider
+DEFAULT_MODELS["gemini"] = GeminiProvider.default_model
