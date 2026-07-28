@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>W2 — SFT baseline, then break your own reward</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F8F6; --ink:#16211E; --card:#fff;
+    --career:#1D4ED8; --vastraa:#9D174D; --commercial:#0F766E; --gate:#D97706;
+    --muted:#6B7370; --line:#DCE0DC; --done:#1A7F4B; --revise:#7C3AED;
+    --body:#454E4B; --soft:#4A544F; --codebg:#F1F3F0; --codeline:#E2E6E2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#141A18; --ink:#E8EDEA; --card:#1B2321;
+      --career:#7CA0F5; --vastraa:#E88AB0; --commercial:#4FBFA8; --gate:#E0A94A;
+      --muted:#939D99; --line:#2C3634; --done:#4FCB8B; --revise:#B18CF5;
+      --body:#BFC7C4; --soft:#AEB6B3; --codebg:#101615; --codeline:#2C3634;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;line-height:1.6;padding:44px 20px 90px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto}
+  .eyebrow{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(26px,4.4vw,38px);line-height:1.1;letter-spacing:-.015em;max-width:24ch}
+  .sub{margin-top:13px;color:var(--soft);font-size:15.5px;max-width:66ch}
+  .totals{display:flex;flex-wrap:wrap;gap:9px;margin:26px 0 4px}
+  .chip{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;color:var(--body)}
+  .chip b{font-weight:500;color:var(--ink)}
+  h2.sec{font-family:'Space Grotesk',sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:52px 0 16px;border-top:1px solid var(--line);padding-top:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:20px;overflow:hidden;border-top:4px solid var(--wk,var(--career))}
+  .card-head{padding:18px 22px 15px;border-bottom:1px solid var(--line)}
+  .card-head h3{font-family:'Space Grotesk',sans-serif;font-size:19px;letter-spacing:-.005em}
+  .card-meta{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:var(--muted);margin-top:6px}
+  .card-meta em{font-style:normal;color:var(--wk,var(--career))}
+  .card-body{padding:6px 22px 20px}
+  .step{display:grid;grid-template-columns:30px 1fr;gap:13px;padding:16px 0;border-bottom:1px dashed var(--line)}
+  .step:last-child{border-bottom:none}
+  .num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#fff;background:var(--wk,var(--career));width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-top:3px;flex:none}
+  .step h4{font-size:15px;font-weight:600;margin-bottom:6px;letter-spacing:-.003em}
+  .step p{font-size:14px;color:var(--body)}
+  .step p + p{margin-top:9px}
+  p.lead{font-size:14.5px;color:var(--body);max-width:70ch}
+  .dw{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:var(--done);background:color-mix(in srgb,var(--done) 10%,transparent);border-radius:6px;padding:6px 11px;display:inline-block;margin-top:10px}
+  .dw b{font-weight:500}
+  .analogy{font-size:14px;color:var(--body);background:color-mix(in srgb,var(--career) 7%,transparent);border-left:3px solid var(--career);border-radius:0 8px 8px 0;padding:11px 15px;margin:12px 0}
+  .analogy b{color:var(--ink)}
+  .note{font-size:13px;color:#7A5B12;background:#FBF3E2;border-radius:7px;padding:9px 13px;margin-top:11px}
+  .trap{font-size:13px;color:#8A2A20;background:#FDF3F2;border-radius:7px;padding:9px 13px;margin-top:11px}
+  .win{font-size:13px;color:var(--done);background:color-mix(in srgb,var(--done) 10%,transparent);border-radius:7px;padding:9px 13px;margin-top:11px}
+  @media (prefers-color-scheme: dark){
+    .note{color:#EBC77A;background:rgba(224,169,74,.10)}
+    .trap{color:#F0938A;background:rgba(240,147,138,.10)}
+  }
+  pre{background:var(--codebg);border:1px solid var(--codeline);border-radius:9px;padding:13px 15px;margin:12px 0;overflow-x:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.55;color:var(--ink)}
+  code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.9em;background:var(--codebg);border:1px solid var(--codeline);border-radius:4px;padding:1px 5px}
+  pre code{background:none;border:none;padding:0;font-size:inherit}
+  .cm{color:var(--muted)} .ok{color:var(--done)} .no{color:#B4402F}
+  @media (prefers-color-scheme: dark){ .no{color:#F0938A} }
+  .tbl{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  .tbl th{text-align:left;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400;padding:0 12px 8px 0;border-bottom:1px solid var(--line)}
+  .tbl td{padding:11px 12px 11px 0;border-bottom:1px solid var(--line);color:var(--body);vertical-align:top}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl td b{color:var(--ink);font-weight:600}
+  .scroll{overflow-x:auto}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:780px){.two{grid-template-columns:1fr}.card-body{padding:6px 16px 18px}.card-head{padding:16px}body{padding:32px 16px 70px}}
+  .files{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.85}
+  .files .d{color:var(--career);font-weight:500}
+  .files .c{color:var(--muted)}
+  .foot{margin-top:40px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;max-width:74ch;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">tagging-rl · week 2 · SFT baseline → first GRPO run</div>
+  <h1>Produce a number RL has to beat. Then break your own reward on purpose.</h1>
+  <p class="sub">Three evenings and a weekend. The deliverable isn't a high score — it's a baseline nobody can argue with, and a written account of every way the model found to cheat you.</p>
+
+  <div class="totals">
+    <span class="chip">GPU <b>~$100–200</b></span>
+    <span class="chip">train <b>3,600 rows</b></span>
+    <span class="chip">eval <b>300 frozen</b></span>
+    <span class="chip">model <b>Qwen2.5 0.5–1.5B</b></span>
+    <span class="chip">decoding <b>unconstrained</b></span>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Before anything runs — what week 1 handed over</h2>
+
+  <div class="card" style="--wk:var(--done)">
+    <div class="card-head">
+      <h3>Four things are ready, two carry warnings</h3>
+      <div class="card-meta">read these before writing a line of training code</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">✓</div><div>
+        <h4>The data and the scoreboard</h4>
+        <div class="scroll"><table class="tbl">
+          <tr><th>artifact</th><th></th></tr>
+          <tr><td><code>data/train_weak.jsonl</code></td><td><b>3,600 rows</b> — SFT and GRPO. Never scored against.</td></tr>
+          <tr><td><code>data/eval_300/</code></td><td><b>300 rows</b>, frozen, checksummed, tagged <code>eval-v1</code></td></tr>
+          <tr><td><code>data/probe_100.jsonl</code></td><td>100 random rows — W3's cost and escalation numbers</td></tr>
+          <tr><td><code>evalharness.report</code></td><td>one command → macro-F1, validity, rule violations</td></tr>
+        </table></div>
+        <p>The harness verifies the eval set's checksum before printing anything and exits non-zero on drift. You cannot accidentally report against a modified answer key.</p>
+      </div></div>
+
+      <div class="step"><div class="num">!</div><div>
+        <h4>Warning one — the reward-weights file says <code>usable: false</code></h4>
+        <p>Only 78 of 4,500 eval cells were reviewed by a human, so no attribute cleared the evidence bar and <b>every <code>reward_weight</code> came out 0.0</b>.</p>
+        <div class="trap">A reward function that reads that file literally scores <b>nothing at all</b> — and it fails silently, because zero reward is indistinguishable from a model that never gets anything right. Check the flag first, fall back to uniform weights.</div>
+        <pre><code>rel = json.load(open("data/reliability.json"))
+weights = rel["reward_weights"] if rel["usable"] else {}   <span class="cm"># uniform fallback</span></code></pre>
+      </div></div>
+
+      <div class="step"><div class="num">!</div><div>
+        <h4>Warning two — quote deltas, never absolutes</h4>
+        <p>Gold equals the frontier's own answer on 98.3% of cells, which is why the ceiling run reads <b>0.9915</b>. That number is close to tautological.</p>
+        <div class="analogy">SFT vs GRPO against identical gold is a <b>real comparison</b> — the delta is meaningful. "We reached 99% of frontier quality" is <b>not a claim this eval set can support</b>.</div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">The four steps</h2>
+
+  <div class="card" style="--wk:var(--career)">
+    <div class="card-head">
+      <h3>1 · LoRA-SFT the baseline first — non-negotiable</h3>
+      <div class="card-meta">the number everything else is measured against</div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">→</div><div>
+        <p>Qwen2.5 0.5–1.5B, LoRA, on the 3,600 weakly-labeled rows. Ordinary supervised fine-tuning — no reinforcement learning yet.</p>
+        <div class="analogy">Without this row in the table, <b>"GRPO got 91%" is a sentence with nothing to compare against</b>. An interviewer's first question is "compared to what?", and the only good answer is a baseline you trained yourself on the same data.</div>
+        <p>Log to W&amp;B from run #1, not from the run you're proud of. The failed runs are the ones you'll want to point at later.</p>
+        <div class="dw">done when → <b>SFT macro-F1 on the frozen eval set is in the README table</b></div>
+      </div></div>
+
+      <div class="step"><div class="num">↳</div><div>
+        <h4>While it trains, fill the difficulty column</h4>
+        <p>Every row carries <code>difficulty.sft_pass_rate</code>, currently <code>null</code> on all 3,600. Sample k=8 completions per row from the SFT checkpoint and record the fraction correct.</p>
+        <div class="win">GRPO's gradient comes from disagreement <em>within</em> a group of rollouts. A row every rollout gets right — or every rollout gets wrong — contributes <b>nothing but compute</b>. Keeping <code>0 &lt; pass_rate &lt; 1</code> is the single cheapest speedup available, and it can only be measured once a baseline model exists.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card" style="--wk:var(--commercial)">
+    <div class="card-head">
+      <h3>2 · Write the reward as a plain function over the verifier</h3>
+      <div class="card-meta">one import path, two callers — the architecture claim</div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">→</div><div>
+        <p>TRL takes reward functions directly — several at once, with weights, and it skips <code>None</code> returns for samples a reward doesn't apply to. Start with three:</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>reward</th><th>reads</th><th>expect</th></tr>
+          <tr><td><b>format validity</b></td><td><code>result.schema_valid</code></td><td>rises fast, then <b>saturates</b></td></tr>
+          <tr><td><b>vocab + rule compliance</b></td><td><code>vocab_valid</code>, <code>rule_violations</code></td><td>rises, then saturates</td></tr>
+          <tr><td><b>golden agreement</b></td><td>per-attribute vs gold</td><td>the one that keeps giving</td></tr>
+        </table></div>
+        <pre><code><span class="cm"># the same module the tests import — that IS the claim</span>
+from verifier import load_pack, verify
+
+def reward_format(completions, **kw):
+    return [1.0 if verify(c, PACK).schema_valid else 0.0 for c in completions]</code></pre>
+        <div class="dw">done when → <b>the same verifier module is imported by reward and tests</b></div>
+      </div></div>
+
+      <div class="step"><div class="num">↳</div><div>
+        <h4>Plan the reward ladder now, not at step 80</h4>
+        <div class="trap">A validity reward hits its ceiling and <b>stops contributing gradient entirely</b> — in the earlier smoke test that happened around step 80. If nothing graded sits underneath it, training goes flat and looks broken when it's merely finished learning the easy part.</div>
+        <p>Put per-attribute partial credit underneath from the start, ideally rarity-weighted. Validity is the floor, not the objective.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card" style="--wk:var(--gate)">
+    <div class="card-head">
+      <h3>3 · Run it unconstrained and collect the hacks</h3>
+      <div class="card-meta"><em>this is the content of blog #1</em></div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">→</div><div>
+        <h4>No structured decoding here — that's the whole point</h4>
+        <p>Constrained decoding would make schema-valid JSON free, which deletes the exact reward signal you're trying to study. Let the model emit garbage and watch it learn not to.</p>
+        <div class="analogy">The labelling run in week 1 had structured outputs <b>on</b>, because there you just wanted clean data. Here you want to <b>watch the model fail</b>. Same schema, opposite setting, and the difference is the point.</div>
+      </div></div>
+
+      <div class="step"><div class="num">↳</div><div>
+        <h4>Week 1 already tells you which hacks to expect</h4>
+        <div class="scroll"><table class="tbl">
+          <tr><th>predicted hack</th><th>evidence from the corpus</th></tr>
+          <tr><td><b>majority-class collapse</b></td><td><code>pattern: solid</code> and <code>sleeve_style: set_in</code> dominate — answering them always scores well on accuracy</td></tr>
+          <tr><td><b>the escape hatch</b></td><td><code>garment_category: other</code> exists for junk rows. Track its rate — a rise means the model is dodging hard fields</td></tr>
+          <tr><td><b>safe-tag conservatism</b></td><td>eight fields are under 30% labelled; answering <code>unknown</code> everywhere is nearly free</td></tr>
+          <tr><td><b>empty-but-valid</b></td><td>the labeler already emitted <code>details: []</code> 178 times unprompted</td></tr>
+        </table></div>
+        <p>Screenshot each with a before/after eval. Macro-F1 is what exposes them — plain accuracy would hide every one.</p>
+        <div class="dw">done when → <b>≥3 distinct hacks documented with before/after evals</b></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="card" style="--wk:var(--revise)">
+    <div class="card-head">
+      <h3>4 · Shape, re-run, compare</h3>
+      <div class="card-meta">stop at a clean story, not a maximal number</div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">→</div><div>
+        <p>Three shaping moves, in order of expected payoff:</p>
+        <p><b>Per-attribute partial credit</b> — binary all-or-nothing gives dead gradients on 15-field records.<br>
+           <b>Class-balanced weighting</b> — otherwise rare values are never worth learning.<br>
+           <b>Validity as a gate, not a reward</b> — invalid output scores zero rather than earning partial credit for being well-formed nonsense.</p>
+        <p>Each iteration is one tracked run with a delta against SFT. Resist tuning until the number is maximal; stop when the story is clean.</p>
+        <div class="dw">done when → <b>GRPO beats SFT on macro-F1, or you can explain why it doesn't</b></div>
+        <div class="note">"Or you can explain why it doesn't" is a real pass condition. A well-understood negative result is a better artifact than an unexplained positive one, and far harder to fake.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Traps, with numbers attached</h2>
+
+  <div class="card" style="--wk:var(--vastraa)">
+    <div class="card-head">
+      <h3>Each of these cost someone a day already</h3>
+      <div class="card-meta">from the smoke-test run and from week 1's real data</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4>Length budget that looks like a broken reward</h4>
+        <p>A completion budget set too low clips the output mid-JSON, so the format reward becomes <b>structurally unreachable</b> — the model literally cannot emit a closing brace. It presents as a broken reward function.</p>
+        <p>Measured on the training corpus: <b>prompt p95 ≈ 248, target p99 ≈ 94</b>. But that's the chars/4 heuristic — <b>re-measure with the Qwen tokenizer before setting the config</b>, because a heuristic mistaken for a measurement is how this happens twice.</p>
+        <pre><code>uv run python scripts/build_dataset.py plan \
+  --labeled data/raw/labeled.jsonl --tokenizer Qwen/Qwen2.5-0.5B-Instruct</code></pre>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4>Zero gradient from rows that are too easy or too hard</h4>
+        <p>In the smoke test, half the steps showed <code>grad_norm ≈ 2e-05</code> — all eight completions scored identically, so there was nothing to learn from. An obvious crew-neck cotton tee will be solved by every rollout.</p>
+        <div class="win">This is why <code>sft_pass_rate</code> exists. Fill it after step 1, then filter to <code>0 &lt; pass_rate &lt; 1</code>. It cannot be guessed from the data — only measured against a model.</div>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4>GRPO eats far less data than you'd expect</h4>
+        <p>With <code>per_device_train_batch_size=8</code>, <code>num_generations=8</code>, <code>grad_accum=1</code>, TRL consumes <b>one unique prompt per optimizer step</b>. A 300-step run touches ~300 prompts.</p>
+        <p>The 3,600 rows exist for the SFT baseline and to leave filtering headroom after difficulty scoring — <b>not because GRPO will consume them</b>. Quality and difficulty spread beat raw count.</p>
+      </div></div>
+
+      <div class="step"><div class="num">4</div><div>
+        <h4>Eight fields cannot be measured, and the README should say so</h4>
+        <div class="scroll"><table class="tbl">
+          <tr><th>field</th><th>labelled</th><th>field</th><th>labelled</th></tr>
+          <tr><td><code>sleeve_style</code></td><td><b>2%</b></td><td><code>neckline</code></td><td>20%</td></tr>
+          <tr><td><code>waistline</code></td><td><b>2%</b></td><td><code>closure</code></td><td>24%</td></tr>
+          <tr><td><code>silhouette</code></td><td><b>7%</b></td><td><code>pattern</code></td><td>25%</td></tr>
+          <tr><td><code>garment_length</code></td><td><b>11%</b></td><td><code>fit</code></td><td>29%</td></tr>
+        </table></div>
+        <p>Gold <code>unknown</code> is unscorable — there's no ground truth to compare against. At 2% labelled, <code>sleeve_style</code> contributes about six usable cells to the whole eval set, and its F1 term is noise.</p>
+        <div class="note">A reader will otherwise assume all 15 fields were measured equally. One line in the README is the difference between an honest result and an overstated one.</div>
+      </div></div>
+
+      <div class="step"><div class="num">5</div><div>
+        <h4>Don't diagnose a broken reward at step 50</h4>
+        <p>Unsloth's own guide notes that GRPO runs often need <b>300–1000+ steps</b> before anything visibly moves. Flat early curves are the normal case, not evidence of a bug.</p>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">The table you're filling in</h2>
+
+  <div class="card" style="--wk:var(--muted)">
+    <div class="card-head">
+      <h3>Two rows by the end of the week</h3>
+      <div class="card-meta">README.md · the whole point of W2</div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">▸</div><div>
+        <div class="scroll"><table class="tbl">
+          <tr><th>model</th><th>macro-F1</th><th>validity</th><th>rule viol.</th><th>cost/SKU</th></tr>
+          <tr><td>frontier (ceiling) †</td><td><b>0.9915</b></td><td>—</td><td>6</td><td>~$0.005</td></tr>
+          <tr><td><b>SFT baseline</b></td><td>← step 1</td><td></td><td></td><td></td></tr>
+          <tr><td><b>GRPO</b></td><td>← step 4</td><td></td><td></td><td></td></tr>
+        </table></div>
+        <p class="lead">† inflated by construction — gold equals the frontier's answer on 98.3% of cells. The <b>delta between SFT and GRPO</b> is the meaningful figure on this page.</p>
+        <pre><code>uv run python -m evalharness.report --gold data/eval_300 \
+    --pred runs/sft.jsonl --markdown-row "SFT baseline"</code></pre>
+        <p class="lead">Feed it <b>raw model output</b>, not pre-parsed records — schema validity can only be measured from text the model actually emitted. A pre-parsed file has already thrown its format errors away and the harness will report <code>n/a</code> rather than a flattering 100%.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <p class="foot">The order is the argument. The baseline comes first because it's the only thing that makes the second number mean anything; the reward is written over the verifier because a reward and a test that disagree are two different specifications of correctness; decoding stays unconstrained because a model that can't fail can't be observed learning not to. Week 2's deliverable isn't a score — it's a comparison nobody can wave away, and a written account of every shortcut the model found before you closed it.</p>
+
+</div>
+</body>
+</html>
