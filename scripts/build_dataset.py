@@ -14,6 +14,7 @@ person. Everything else is mechanical and reproducible from a seed.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from pathlib import Path
@@ -156,18 +157,46 @@ def cmd_finalize(args) -> int:
             "  now included in the ceiling run instead of being silently dropped."
         )
 
-    print("\n" + reliability.format_report(rows))
+    reviewed = {
+        (r["sku_id"], r["attribute"])
+        for r in csv.DictReader(open(args.corrections, newline="", encoding="utf-8"))
+        if (r.get("note") or "").strip() != "machine-adjudicated"
+    }
+    print(f"\n  scoring reliability over {len(reviewed)} human-reviewed cells only")
+    print("  (cells nobody opened are identical to the snapshot by construction —")
+    print("   counting them would score the frontier agreeing with itself)\n")
+    print(reliability.format_report(rows, reviewed))
 
-    base = reliability.frontier_baseline(rows)
-    weights = reliability.reward_weights(rows)
+    base = reliability.frontier_baseline(rows, reviewed)
+    weights = reliability.reward_weights(rows, reviewed)
+    table = reliability.reliability_table(rows, reviewed)
+
+    # A table where nothing cleared the evidence bar yields every weight at 0.0.
+    # Read literally by W2 that scores nothing at all — a silent, total failure. So
+    # the file states whether it is usable, and W2 must check the flag and fall
+    # back to uniform weights rather than trusting the numbers blindly.
+    measured = [n for n, r in table.items() if r.verdict != "insufficient_data"]
+    usable = bool(measured)
+    if not usable:
+        print("\n  reward_weights are ALL ZERO — no attribute cleared the evidence bar.")
+        print("  Taken literally that is a reward function that scores nothing, so the")
+        print("  file is marked usable=false. W2 must check that flag and fall back to")
+        print("  uniform weights; it is not a finding that every attribute is bad.")
+
     (out / "reliability.json").write_text(
         json.dumps(
             {
+                "usable": usable,
+                "usable_note": (
+                    "reward_weights are only meaningful when usable=true. Otherwise too "
+                    "few cells were human-reviewed to judge any attribute; fall back to "
+                    "uniform weights."
+                ),
+                "measured_attributes": measured,
+                "reviewed_cells": len(reviewed),
                 "frontier_baseline": base,
                 "reward_weights": weights,
-                "table": {
-                    k: vars(v) for k, v in reliability.reliability_table(rows).items()
-                },
+                "table": {k: vars(v) for k, v in table.items()},
             },
             indent=2,
             default=str,

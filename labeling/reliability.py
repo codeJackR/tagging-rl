@@ -96,12 +96,22 @@ def _verdict(ci_low: float, n: int) -> str:
     return "exclude"
 
 
-def reliability_table(rows: list[Row]) -> dict[str, AttributeReliability]:
+def reliability_table(
+    rows: list[Row], reviewed: set[tuple[str, str]] | None = None
+) -> dict[str, AttributeReliability]:
     """Compare each corrected row's frontier snapshot against its final labels.
 
     Only rows with `human_corrected=True` AND a `frontier_labels` snapshot are
     counted — an uncorrected row proves nothing about the frontier, and a
     corrected row without a snapshot has already lost the evidence.
+
+    `reviewed` restricts scoring to (sku_id, attribute) cells a human actually
+    examined, and passing it is close to mandatory. Row-level correction marks the
+    whole row, but a review pass typically touches one or two of its fifteen
+    cells; the other thirteen are identical to the snapshot *by construction* and
+    scoring them counts the frontier agreeing with itself as evidence that it was
+    right. On the first real run that inflated every attribute to 0.94-1.00 off
+    1,665 comparisons of which only 126 had ever been looked at.
     """
     agree: Counter[str] = Counter()
     total: Counter[str] = Counter()
@@ -115,6 +125,8 @@ def reliability_table(rows: list[Row]) -> dict[str, AttributeReliability]:
         for name, truth in row.labels.items():
             before = snapshot.get(name)
             if before is None:
+                continue
+            if reviewed is not None and (row.sku_id, name) not in reviewed:
                 continue
             total[name] += 1
             if before.key() == truth.key():
@@ -151,7 +163,9 @@ def _render(lab) -> str:
     return f"<{lab.status.value}>"
 
 
-def frontier_baseline(rows: list[Row]) -> dict:
+def frontier_baseline(
+    rows: list[Row], reviewed: set[tuple[str, str]] | None = None
+) -> dict:
     """The number W1 Step 4 asks for, computed as a by-product of the corrections.
 
     macro = mean of per-attribute accuracies (every attribute counts equally)
@@ -161,7 +175,7 @@ def frontier_baseline(rows: list[Row]) -> dict:
     harness reports, and the one a lazy model cannot inflate by being good at
     `colour_primary` and useless everywhere else.
     """
-    table = reliability_table(rows)
+    table = reliability_table(rows, reviewed)
     if not table:
         return {"macro_accuracy": None, "micro_accuracy": None, "n_rows": 0}
     accs = [r.accuracy for r in table.values()]
@@ -179,14 +193,18 @@ def frontier_baseline(rows: list[Row]) -> dict:
     }
 
 
-def reward_weights(rows: list[Row]) -> dict[str, float]:
+def reward_weights(
+    rows: list[Row], reviewed: set[tuple[str, str]] | None = None
+) -> dict[str, float]:
     """Attribute -> suggested W2 reward weight. Feed this to the reward function."""
-    return {name: r.reward_weight for name, r in reliability_table(rows).items()}
+    return {name: r.reward_weight for name, r in reliability_table(rows, reviewed).items()}
 
 
-def format_report(rows: list[Row]) -> str:
-    table = reliability_table(rows)
-    base = frontier_baseline(rows)
+def format_report(
+    rows: list[Row], reviewed: set[tuple[str, str]] | None = None
+) -> str:
+    table = reliability_table(rows, reviewed)
+    base = frontier_baseline(rows, reviewed)
     lines: list[str] = []
 
     if not table:

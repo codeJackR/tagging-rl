@@ -20,13 +20,52 @@ Plan: `~/Downloads/rl-catalog-plan-stepwise.html`
 
 | model | macro-F1 | validity | rule viol. | cost/SKU |
 |---|---|---|---|---|
-| frontier (ceiling) | — | — | — | — |
+| frontier (ceiling) | 0.9915 † | — | 6 | ~$0.005 |
 | SFT baseline (W2) | | | | |
 | GRPO (W2) | | | | |
 
-Fill the first row by running the harness against the frozen eval set with
-`--from-frontier`; no API call is needed, because Step 3 already stored the
-frontier's original answers. Everything after has to beat it.
+**† The ceiling is inflated by construction — do not read it as frontier accuracy.**
+Of 4,500 eval cells, **78 were independently reviewed by a human (1.7%)**. On the
+rest, gold *equals* the frontier's own answer, so a prediction derived from that
+same frontier agrees with itself and scores ~1.0. The number is near-tautological.
+
+What the eval set **is** good for: comparing models to each other. SFT and GRPO are
+scored against identical gold, so the delta between them is meaningful even though
+the absolute level is not.
+
+What it is **not** good for: any claim about absolute correctness, or "we reached
+99% of frontier quality".
+
+### What the 78 reviewed cells did tell us
+
+They were the cells where two independent model families (`gpt-5.6-luna` and
+`gemini-3.6-flash`) disagreed — the contested 14%, deliberately the hardest.
+
+| | |
+|---|---|
+| human sided with luna (first pass) | **54 / 76 — 71%** |
+| human sided with gemini (adjudicator) | 18 / 76 — 24% |
+| human picked a third answer | 4 / 76 — 5% |
+
+So on contested cells the frontier is right about 71% of the time. That is a lower
+bound on its overall accuracy, not an estimate of it — contested cells are selected
+for difficulty.
+
+### The gap we chose not to close
+
+Overall accuracy is `P(agree)·P(correct | agree) + P(disagree)·0.71`, and
+`P(correct | agree)` was never measured: the 50-cell blind audit that would have
+measured it was auto-accepted after 2 cells. Those 2 split 1 confirmed / 1
+overruled — no usable estimate.
+
+That leaves frontier accuracy somewhere between **0.72 and ~0.96** depending on
+what agreement is worth. Closing it costs ~4 minutes of review; until then, treat
+every absolute number here as a range.
+
+`data/reliability.json` carries **`usable: false`** for the same reason — with only
+78 reviewed cells no attribute cleared the evidence bar, so every `reward_weight`
+came out 0.0. **W2's reward must check that flag and fall back to uniform weights**;
+read literally it would score nothing at all.
 
 ---
 

@@ -1,0 +1,8 @@
+{
+  "sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052",
+  "n_rows": 300,
+  "frozen_at": "2026-07-28T20:06:56+00:00",
+  "corrected_rows": 111,
+  "with_frontier_snapshot": 300,
+  "note": "frontier macro 0.72"
+}

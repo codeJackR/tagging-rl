@@ -1,0 +1,239 @@
+{
+  "usable": false,
+  "usable_note": "reward_weights are only meaningful when usable=true. Otherwise too few cells were human-reviewed to judge any attribute; fall back to uniform weights.",
+  "measured_attributes": [],
+  "reviewed_cells": 78,
+  "frontier_baseline": {
+    "macro_accuracy": 0.72,
+    "micro_accuracy": 0.7051,
+    "n_rows": 111,
+    "n_cells": 78,
+    "n_attributes": 11
+  },
+  "reward_weights": {
+    "closure": 0.0,
+    "colour_primary": 0.0,
+    "details": 0.0,
+    "fit": 0.0,
+    "garment_category": 0.0,
+    "material": 0.0,
+    "neckline": 0.0,
+    "occasion": 0.0,
+    "pattern": 0.0,
+    "silhouette": 0.0,
+    "sleeve_style": 0.0
+  },
+  "table": {
+    "closure": {
+      "attribute": "closure",
+      "n_compared": 3,
+      "n_agree": 2,
+      "accuracy": 0.6667,
+      "ci_low": 0.2077,
+      "ci_high": 0.9385,
+      "verdict": "insufficient_data",
+      "status_confusion": {
+        "unknown->not_applicable": 1
+      },
+      "top_errors": [
+        [
+          "<unknown> -> <not_applicable>",
+          1
+        ]
+      ]
+    },
+    "colour_primary": {
+      "attribute": "colour_primary",
+      "n_compared": 14,
+      "n_agree": 11,
+      "accuracy": 0.7857,
+      "ci_low": 0.5241,
+      "ci_high": 0.9243,
+      "verdict": "insufficient_data",
+      "status_confusion": {
+        "labeled->unknown": 2,
+        "labeled->labeled": 1
+      },
+      "top_errors": [
+        [
+          "multicolour -> <unknown>",
+          1
+        ],
+        [
+          "white -> beige",
+          1
+        ],
+        [
+          "beige -> <unknown>",
+          1
+        ]
+      ]
+    },
+    "details": {
+      "attribute": "details",
+      "n_compared": 19,
+      "n_agree": 12,
+      "accuracy": 0.6316,
+      "ci_low": 0.4104,
+      "ci_high": 0.8085,
+      "verdict": "insufficient_data",
+      "status_confusion": {
+        "labeled->labeled": 5,
+        "labeled->unknown": 2
+      },
+      "top_errors": [
+        [
+          "['none'] -> ['lined']",
+          2
+        ],
+        [
+          "['tiered', 'gathered'] -> ['tiered']",
+          1
+        ],
+        [
+          "['none'] -> <unknown>",
+          1
+        ]
+      ]
+    },
+    "fit": {
+      "attribute": "fit",
+      "n_compared": 2,
+      "n_agree": 2,
+      "accuracy": 1.0,
+      "ci_low": 0.3424,
+      "ci_high": 1.0,
+      "verdict": "insufficient_data",
+      "status_confusion": {},
+      "top_errors": []
+    },
+    "garment_category": {
+      "attribute": "garment_category",
+      "n_compared": 17,
+      "n_agree": 13,
+      "accuracy": 0.7647,
+      "ci_low": 0.5274,
+      "ci_high": 0.9044,
+      "verdict": "insufficient_data",
+      "status_confusion": {
+        "labeled->labeled": 4
+      },
+      "top_errors": [
+        [
+          "bag -> other",
+          2
+        ],
+        [
+          "top -> sweater",
+          1
+        ],
+        [
+          "sweater -> top",
+          1
+        ]
+      ]
+    },
+    "material": {
+      "attribute": "material",
+      "n_compared": 6,
+      "n_agree": 4,
+      "accuracy": 0.6667,
+      "ci_low": 0.3,
+      "ci_high": 0.9032,
+      "verdict": "insufficient_data",
+      "status_confusion": {
+        "labeled->labeled": 2
+      },
+      "top_errors": [
+        [
+          "knit -> synthetic",
+          2
+        ]
+      ]
+    },
+    "neckline": {
+      "attribute": "neckline",
+      "n_compared": 2,
+      "n_agree": 1,
+      "accuracy": 0.5,
+      "ci_low": 0.0945,
+      "ci_high": 0.9055,
+      "verdict": "insufficient_data",
+      "status_confusion": {
+        "labeled->labeled": 1
+      },
+      "top_errors": [
+        [
+          "square -> scoop",
+          1
+        ]
+      ]
+    },
+    "occasion": {
+      "attribute": "occasion",
+      "n_compared": 7,
+      "n_agree": 4,
+      "accuracy": 0.5714,
+      "ci_low": 0.2505,
+      "ci_high": 0.8418,
+      "verdict": "insufficient_data",
+      "status_confusion": {
+        "labeled->labeled": 3
+      },
+      "top_errors": [
+        [
+          "beach -> casual",
+          2
+        ],
+        [
+          "lounge -> casual",
+          1
+        ]
+      ]
+    },
+    "pattern": {
+      "attribute": "pattern",
+      "n_compared": 3,
+      "n_agree": 1,
+      "accuracy": 0.3333,
+      "ci_low": 0.0615,
+      "ci_high": 0.7923,
+      "verdict": "insufficient_data",
+      "status_confusion": {
+        "labeled->labeled": 2
+      },
+      "top_errors": [
+        [
+          "graphic -> abstract",
+          1
+        ],
+        [
+          "graphic -> solid",
+          1
+        ]
+      ]
+    },
+    "silhouette": {
+      "attribute": "silhouette",
+      "n_compared": 2,
+      "n_agree": 2,
+      "accuracy": 1.0,
+      "ci_low": 0.3424,
+      "ci_high": 1.0,
+      "verdict": "insufficient_data",
+      "status_confusion": {},
+      "top_errors": []
+    },
+    "sleeve_style": {
+      "attribute": "sleeve_style",
+      "n_compared": 3,
+      "n_agree": 3,
+      "accuracy": 1.0,
+      "ci_low": 0.4385,
+      "ci_high": 1.0,
+      "verdict": "insufficient_data",
+      "status_confusion": {},
+      "top_errors": []
+    }
+  }
+}
