@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt, target, and why the length numbers matter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F8F6; --ink:#16211E; --card:#fff;
+    --career:#1D4ED8; --vastraa:#9D174D; --commercial:#0F766E; --gate:#D97706;
+    --muted:#6B7370; --line:#DCE0DC; --done:#1A7F4B; --revise:#7C3AED;
+    --body:#454E4B; --soft:#4A544F; --codebg:#F1F3F0; --codeline:#E2E6E2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#141A18; --ink:#E8EDEA; --card:#1B2321;
+      --career:#7CA0F5; --vastraa:#E88AB0; --commercial:#4FBFA8; --gate:#E0A94A;
+      --muted:#939D99; --line:#2C3634; --done:#4FCB8B; --revise:#B18CF5;
+      --body:#BFC7C4; --soft:#AEB6B3; --codebg:#101615; --codeline:#2C3634;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;line-height:1.6;padding:44px 20px 90px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto}
+  .eyebrow{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:clamp(26px,4.4vw,36px);line-height:1.12;letter-spacing:-.015em;max-width:22ch}
+  .sub{margin-top:13px;color:var(--soft);font-size:15.5px;max-width:64ch}
+  h2.sec{font-family:'Space Grotesk',sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:52px 0 16px;border-top:1px solid var(--line);padding-top:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:20px;overflow:hidden;border-top:4px solid var(--wk,var(--career))}
+  .card-head{padding:18px 22px 15px;border-bottom:1px solid var(--line)}
+  .card-head h3{font-family:'Space Grotesk',sans-serif;font-size:19px;letter-spacing:-.005em}
+  .card-meta{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px;color:var(--muted);margin-top:6px}
+  .card-body{padding:6px 22px 20px}
+  .step{display:grid;grid-template-columns:30px 1fr;gap:13px;padding:16px 0;border-bottom:1px dashed var(--line)}
+  .step:last-child{border-bottom:none}
+  .num{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:#fff;background:var(--wk,var(--career));width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-top:3px;flex:none}
+  .step h4{font-size:15px;font-weight:600;margin-bottom:6px}
+  .step p{font-size:14px;color:var(--body)}
+  .step p + p{margin-top:9px}
+  p.lead{font-size:14.5px;color:var(--body);max-width:70ch}
+  .analogy{font-size:14px;color:var(--body);background:color-mix(in srgb,var(--career) 7%,transparent);border-left:3px solid var(--career);border-radius:0 8px 8px 0;padding:11px 15px;margin:12px 0}
+  .analogy b{color:var(--ink)}
+  .note{font-size:13px;color:#7A5B12;background:#FBF3E2;border-radius:7px;padding:9px 13px;margin-top:11px}
+  .trap{font-size:13px;color:#8A2A20;background:#FDF3F2;border-radius:7px;padding:9px 13px;margin-top:11px}
+  .win{font-size:13px;color:var(--done);background:color-mix(in srgb,var(--done) 10%,transparent);border-radius:7px;padding:9px 13px;margin-top:11px}
+  @media (prefers-color-scheme: dark){
+    .note{color:#EBC77A;background:rgba(224,169,74,.10)}
+    .trap{color:#F0938A;background:rgba(240,147,138,.10)}
+  }
+  pre{background:var(--codebg);border:1px solid var(--codeline);border-radius:9px;padding:13px 15px;margin:12px 0;overflow-x:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;line-height:1.55;color:var(--ink)}
+  code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.9em;background:var(--codebg);border:1px solid var(--codeline);border-radius:4px;padding:1px 5px}
+  pre code{background:none;border:none;padding:0;font-size:inherit}
+  .cm{color:var(--muted)} .ok{color:var(--done)} .no{color:#B4402F}
+  @media (prefers-color-scheme: dark){ .no{color:#F0938A} }
+  .tbl{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  .tbl th{text-align:left;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400;padding:0 12px 8px 0;border-bottom:1px solid var(--line)}
+  .tbl td{padding:10px 12px 10px 0;border-bottom:1px solid var(--line);color:var(--body);vertical-align:top}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl td b{color:var(--ink);font-weight:600}
+  .scroll{overflow-x:auto}
+
+  /* token strip */
+  .toks{display:flex;flex-wrap:wrap;gap:3px;margin:8px 0 2px}
+  .toks span{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;
+    background:color-mix(in srgb,var(--career) 12%,transparent);
+    border:1px solid color-mix(in srgb,var(--career) 25%,transparent);
+    border-radius:4px;padding:2px 6px;white-space:pre}
+
+  /* histogram */
+  .hist{display:flex;align-items:flex-end;gap:3px;height:110px;margin:14px 0 4px}
+  .hist div{flex:1;background:var(--bar,var(--career));border-radius:3px 3px 0 0;min-height:2px;
+    position:relative;opacity:.85}
+  .hist div.over{background:#B4402F}
+  .axis{display:flex;gap:3px;font-family:'IBM Plex Mono',ui-monospace,monospace;
+    font-size:9.5px;color:var(--muted)}
+  .axis span{flex:1;text-align:center}
+  .cap{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .foot{margin-top:40px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;max-width:74ch;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">tagging-rl · week 2 · setting the length budgets</div>
+  <h1>What the model reads, what it writes, and how long to let it.</h1>
+  <p class="sub">Every example below is a real row from your 3,600-row training set, measured with the actual Qwen tokenizer.</p>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">The two halves of one training example</h2>
+
+  <div class="card" style="--wk:var(--career)">
+    <div class="card-head">
+      <h3>Prompt in, target out</h3>
+      <div class="card-meta">a real row · Taylor Stitch, The Ledge Shirt</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">→</div><div>
+        <h4>The prompt is what the model reads</h4>
+        <p>Everything the shop wrote about the product, glued together in a fixed order:</p>
+        <pre><code>Title: The Ledge Shirt in Dried Cherry Twill
+Brand: Taylor Stitch
+Category: Wovens
+Description: The Ledge Shirt in Dried Cherry Twill from Taylor Stitch
+10.5-oz. 100% organic cotton twill. Garment dyed and washed for a soft,
+lived-in feel. Dual button-through chest pockets. Left pocket features a
+pen slot. Double-needle felled construction. Wash cold and tumble dry low.
+Made in India.
+Tags: chino-variant-oos, Construction: Twill, flannel, long sleeve, ...</code></pre>
+        <p><b>170 tokens.</b> That's the whole input — no images, no size chart, nothing the shop didn't type.</p>
+      </div></div>
+
+      <div class="step"><div class="num">←</div><div>
+        <h4>The target is what it should write</h4>
+        <p>The filled-in form, as JSON. This is the "right answer" the model is trained toward:</p>
+        <pre><code>{"closure": "unknown",        "collar_type": "unknown",
+ "colour_primary": "red",     "details": ["washed"],
+ "fit": "unknown",            "garment_category": "shirt_blouse",
+ "garment_length": "unknown", "material": "cotton",
+ "neckline": "unknown",       "occasion": "unknown",
+ "pattern": "unknown",        "silhouette": "unknown",
+ "sleeve_length": "long",     "sleeve_style": "unknown",
+ "waistline": null}</code></pre>
+        <p><b>110 tokens.</b> Note how much of it is <code>unknown</code> — the copy talks about fabric and construction, not necklines. That's the honest answer, not a failure.</p>
+      </div></div>
+
+      <div class="step"><div class="num">=</div><div>
+        <h4>Training is just: show the prompt, grade what comes out</h4>
+        <div class="analogy">Exam paper on the left, mark scheme on the right. Thousands of times. <b>Prompt = the question. Target = the answer key.</b></div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">What a "token" actually is</h2>
+
+  <div class="card" style="--wk:var(--commercial)">
+    <div class="card-head">
+      <h3>Not words, not letters — chunks</h3>
+      <div class="card-meta">measured with Qwen2.5-0.5B-Instruct's own tokenizer</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4>Models read in pieces, and the pieces are uneven</h4>
+        <p>Common words are one chunk. Unusual ones get split:</p>
+
+        <p style="margin-top:12px"><code>dress</code> — 1 token</p>
+        <div class="toks"><span>dress</span></div>
+
+        <p style="margin-top:12px"><code>Women's Linen Wrap Midi Dress</code> — 7 tokens</p>
+        <div class="toks"><span>Women</span><span>'s</span><span> Lin</span><span>en</span><span> Wrap</span><span> Midi</span><span> Dress</span></div>
+
+        <p style="margin-top:12px"><code>three_quarter</code> — <b>3 tokens</b></p>
+        <div class="toks"><span>three</span><span>_qu</span><span>arter</span></div>
+
+        <p style="margin-top:12px"><code>shirt_blouse</code> — <b>3 tokens</b></p>
+        <div class="toks"><span>shirt</span><span>_bl</span><span>ouse</span></div>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4>Which is why guessing token counts kept failing</h4>
+        <p>Three different estimates of the same labelling prompt, before anyone measured:</p>
+        <div class="scroll"><table class="tbl">
+          <tr><th>method</th><th>said</th><th>truth</th></tr>
+          <tr><td>characters ÷ 4</td><td>746</td><td rowspan="3"><b>1,908</b></td></tr>
+          <tr><td>tiktoken <code>o200k_base</code></td><td>805</td></tr>
+          <tr><td>the API's own count</td><td><b>1,908</b></td></tr>
+        </table></div>
+        <p>Both shortcuts were wrong by more than 2×, in the same direction. Vocabulary lists tokenize badly — they're dense with rare words and underscores.</p>
+        <div class="note">Our snake_case values cost 3 tokens where a plain word costs 1. Not worth changing now — renaming values would invalidate 20,000 paid-for labels — but worth knowing the target JSON is roughly twice as long as it needs to be.</div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Reading p50, p95, p99</h2>
+
+  <div class="card" style="--wk:var(--gate)">
+    <div class="card-head">
+      <h3>"How long is a product description?" has no single answer</h3>
+      <div class="card-meta">3,600 rows, so 3,600 different lengths</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">?</div><div>
+        <h4>Percentiles, in one line each</h4>
+        <div class="scroll"><table class="tbl">
+          <tr><th></th><th>means</th><th>prompt</th><th>target</th></tr>
+          <tr><td><b>p50</b></td><td>half are shorter than this</td><td>157</td><td>109</td></tr>
+          <tr><td><b>p95</b></td><td>95 out of 100 are shorter</td><td>268</td><td>113</td></tr>
+          <tr><td><b>p99</b></td><td>99 out of 100 are shorter</td><td>350</td><td>115</td></tr>
+          <tr><td><b>max</b></td><td>the single longest one</td><td><b>585</b></td><td>118</td></tr>
+        </table></div>
+        <div class="analogy">Averages hide the tail, and <b>the tail is what breaks things</b>. An average of 158 tells you nothing about the one product with a 585-token description — and that's the one that gets cut off.</div>
+      </div></div>
+
+      <div class="step"><div class="num">▁</div><div>
+        <h4>The two distributions look nothing alike</h4>
+
+        <p style="margin-top:10px"><b>Prompts</b> — a long right tail. Some shops write two lines; some write an essay.</p>
+        <div class="hist">
+          <div style="height:12%"></div><div style="height:70%"></div><div style="height:73%"></div>
+          <div style="height:100%"></div><div style="height:60%"></div><div style="height:17%"></div>
+          <div style="height:5%"></div><div class="over" style="height:3%"></div>
+          <div class="over" style="height:2%"></div><div class="over" style="height:2%"></div>
+          <div class="over" style="height:2%"></div><div class="over" style="height:2%"></div>
+        </div>
+        <div class="axis"><span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>250</span><span>300</span><span>350</span><span>400</span><span>450</span><span>500</span><span>550</span></div>
+        <div class="cap">tokens · red bars sit above the 324 budget — <b>55 of 3,600 rows (1.5%)</b></div>
+
+        <p style="margin-top:20px"><b>Targets</b> — a narrow spike. Every answer is the same 15 fields, so they're nearly identical in length.</p>
+        <div class="hist" style="--bar:var(--commercial)">
+          <div style="height:2px"></div><div style="height:2%"></div><div style="height:26%"></div>
+          <div style="height:26%"></div><div style="height:21%"></div><div style="height:100%"></div>
+          <div style="height:48%"></div><div style="height:10%"></div><div style="height:2%"></div>
+          <div style="height:2px"></div><div style="height:2px"></div><div style="height:2px"></div>
+        </div>
+        <div class="axis"><span>90</span><span>93</span><span>97</span><span>100</span><span>103</span><span>107</span><span>110</span><span>113</span><span>117</span><span>120</span><span>123</span><span>127</span></div>
+        <div class="cap">tokens · nothing anywhere near the 170 budget — <b>0 of 3,600 rows</b></div>
+
+        <div class="win">That shape difference is the whole finding. The <b>output</b> budget is safe with room to spare. The <b>input</b> budget is the one with a tail to think about.</div>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">Why the budget matters</h2>
+
+  <div class="card" style="--wk:var(--vastraa)">
+    <div class="card-head">
+      <h3>Two limits, two different failures</h3>
+      <div class="card-meta">both have already cost someone a day</div>
+    </div>
+    <div class="card-body">
+
+      <div class="step"><div class="num">1</div><div>
+        <h4><code>max_completion_length</code> — set it too low and the reward becomes impossible</h4>
+        <p>The model writes until it hits the limit, then stops <b>mid-character</b>. Not "a shorter answer" — a broken one:</p>
+        <pre><code>{"closure": "unknown", "collar_type": "unknown", "colour_prim<span class="no">◀ cut</span></code></pre>
+        <div class="trap">That isn't valid JSON, so the "did you produce valid JSON?" reward can <b>never be earned</b>. The score stays at zero no matter how well the model learns — and it looks exactly like a broken reward function. In an earlier run this clipped 50–87% of outputs and cost a day of debugging.</div>
+        <p>It already bit us once this week, on the Gemini adjudication run: 20% of rows returned truncated JSON, which surfaced as a parsing error rather than a budget one.</p>
+        <div class="win"><b>170</b> against a 118-token maximum. Zero risk, and the wasted memory is negligible.</div>
+      </div></div>
+
+      <div class="step"><div class="num">2</div><div>
+        <h4><code>max_prompt_length</code> — set it too low and you silently delete evidence</h4>
+        <p>Over-long prompts get cut from one end. No error, no warning — the model simply never sees the last part of the description.</p>
+        <div class="analogy">Marking an exam where the last paragraph of the question was torn off. The student's answer looks wrong; the paper was the problem.</div>
+        <p>And it's not random which ones get cut — <b>the longest descriptions are the most informative ones</b>. You'd be blinding the model precisely where the text had the most to say.</p>
+        <p><b>324</b> still clips 55 rows (1.5%). Raising it to ~600 covers everything at some memory cost.</p>
+        <div class="note">Worth deciding rather than defaulting: 1.5% of rows lose their tail, and they're disproportionately the rich ones. Cheap to fix now, invisible later.</div>
+      </div></div>
+
+      <div class="step"><div class="num">3</div><div>
+        <h4>Why not just set both enormous?</h4>
+        <p>Memory scales with the limits, whether or not the text is that long. A larger budget means smaller batches, or no room on the GPU at all.</p>
+        <p>The point of measuring is to pick the smallest number that clips nothing — not to guess a round one and hope.</p>
+      </div></div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="sec">The numbers to put in the config</h2>
+
+  <div class="card" style="--wk:var(--muted)">
+    <div class="card-head">
+      <h3>Settled</h3>
+      <div class="card-meta">measured with the real tokenizer, on the real training set</div>
+    </div>
+    <div class="card-body">
+      <div class="step"><div class="num">▸</div><div>
+        <pre><code>max_prompt_length     = <b>324</b>   <span class="cm"># p95 + 15% — clips 55/3600 (1.5%)</span>
+                        600     <span class="cm"># clips nothing, costs memory</span>
+max_completion_length = <b>170</b>   <span class="cm"># p99 + 20% — clips 0/3600</span>
+                        335     <span class="cm"># if you add a reasoning block</span></code></pre>
+        <p class="lead">The 335 figure matters if you later ask the model to think before answering — reasoning tokens are charged against the same completion budget. That's exactly what broke the Gemini run: ~1,000 thinking tokens against a 2,048 limit left too little for the JSON.</p>
+      </div></div>
+    </div>
+  </div>
+
+  <p class="foot">Both numbers exist to answer one question: is the model failing, or was it never given room to succeed? A clipped completion and a broken reward function look identical from the outside — the only difference is that one is fixed by a config line and the other by a week of debugging. Measuring first is what keeps you from confusing them.</p>
+
+</div>
+</body>
+</html>
