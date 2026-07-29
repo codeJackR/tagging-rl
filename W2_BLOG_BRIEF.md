@@ -200,7 +200,7 @@ The training machine is an RTX 3090 with 24 GB of VRAM and roughly 5.3 GB of fre
 
 - The selected Qwen2.5-1.5B-Instruct checkpoint is already cached on the machine.
 - Measured training-data lengths: prompt p95 is 268 tokens, prompt maximum is 585, and target maximum is 118.
-- A conservative SFT sequence ceiling is 768 tokens, covering the longest prompt, target, and chat-template overhead.
+- The fully rendered prompt-plus-target maximum is 833 tokens, so SFT uses a 896-token ceiling; the earlier 768-token estimate would have clipped seven rows.
 - GRPO will use separately reserved limits: 600 prompt tokens and 170 completion tokens.
 - Only two checkpoints per experiment arm should be retained. Adapter-only saves preserve the learned LoRA changes for evaluation without storing expensive optimizer state.
 

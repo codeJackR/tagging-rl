@@ -18,6 +18,7 @@ Two rules keep this file boring on purpose:
 from __future__ import annotations
 
 import json
+import hashlib
 import sys
 from pathlib import Path
 
@@ -33,6 +34,7 @@ from labeling.records import Row, read_jsonl  # noqa: E402
 # 324/p95 was rejected: it cuts 55 rows, and precisely the information-rich ones.
 MAX_PROMPT_TOKENS = 600
 MAX_COMPLETION_TOKENS = 170
+MAX_SFT_TOKENS = 896
 
 SYSTEM = """You label clothing products from their listing text.
 
@@ -73,6 +75,41 @@ def load_sft_dataset(pack, path: str | Path = ROOT / "data" / "train_weak.jsonl"
 
     rows = read_jsonl(path)
     return Dataset.from_list([to_messages(r, pack) for r in rows])
+
+
+def load_sft_splits(
+    pack,
+    manifest_path: str | Path = ROOT / "data" / "splits" / "sft-v1.json",
+):
+    """Load the one frozen family-grouped split shared by every SFT arm."""
+    from datasets import Dataset
+
+    manifest_path = Path(manifest_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source = Path(manifest["source"])
+    if not source.is_absolute():
+        source = ROOT / source
+    actual_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+    if actual_hash != manifest["source_sha256"]:
+        raise RuntimeError(
+            f"SFT source drifted: expected {manifest['source_sha256']}, "
+            f"got {actual_hash}"
+        )
+
+    rows_by_sku = {row.sku_id: row for row in read_jsonl(source)}
+    train_ids = manifest["train"]
+    validation_ids = manifest["validation"]
+    expected = set(train_ids) | set(validation_ids)
+    if set(train_ids) & set(validation_ids):
+        raise RuntimeError("SFT manifest has train/validation overlap")
+    if expected != set(rows_by_sku):
+        raise RuntimeError("SFT manifest does not cover the source dataset exactly")
+
+    train = Dataset.from_list([to_messages(rows_by_sku[sku], pack) for sku in train_ids])
+    validation = Dataset.from_list(
+        [to_messages(rows_by_sku[sku], pack) for sku in validation_ids]
+    )
+    return train, validation
 
 
 def load_grpo_prompts(

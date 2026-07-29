@@ -15,12 +15,15 @@ from labeling.lengths import render_prompt, render_target
 from labeling.records import read_jsonl
 from training.dataset import (
     MAX_COMPLETION_TOKENS,
+    MAX_SFT_TOKENS,
     SYSTEM,
     load_grpo_prompts,
     load_sft_dataset,
+    load_sft_splits,
     to_messages,
 )
 from training.predict import prompt_messages
+from training.train_sft import target_modules
 from verifier import load_pack, verify
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -90,3 +93,21 @@ def test_system_prompt_is_small(pack):
 
 def test_prediction_prompt_matches_training_prompt(pack, rows):
     assert prompt_messages(rows[0]) == to_messages(rows[0], pack)["prompt"]
+
+
+def test_frozen_sft_split_loads_exact_sizes(pack):
+    train, validation = load_sft_splits(pack)
+    assert len(train) == 3240
+    assert len(validation) == 360
+    assert set(train["sku_id"]).isdisjoint(validation["sku_id"])
+
+
+def test_sft_sequence_budget_covers_measured_maximum():
+    assert MAX_SFT_TOKENS == 896
+
+
+def test_sft_arms_differ_only_by_mlp_targets():
+    attention = target_modules("attention")
+    combined = target_modules("combined")
+    assert attention == ["q_proj", "k_proj", "v_proj", "o_proj"]
+    assert set(combined) - set(attention) == {"gate_proj", "up_proj", "down_proj"}
