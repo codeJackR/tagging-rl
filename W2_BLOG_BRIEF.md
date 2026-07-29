@@ -1,0 +1,178 @@
+# Draft brief — teaching a small model to tag a catalog before asking it to learn from reward
+
+**Status:** pre-training draft. This document describes the design, constraints, and planned comparison for Week 2. It does not claim SFT or GRPO results yet.
+
+## The post in one sentence
+
+Before using GRPO to improve a catalog tagger, establish an honest LoRA-SFT baseline, make the model's output contract mechanically verifiable, and compare small adaptation choices without quietly using the final test set as a tuning knob.
+
+## Why this project exists
+
+The project is a controlled catalog-tagging task for apparel listings. Given text from a product page—title, brand, category, description, and merchant tags—the model must emit one JSON object with 15 controlled fields, such as garment category, material, fit, pattern, closure, and occasion.
+
+The broader project is built around one idea: the same verifier should serve two consumers.
+
+1. During RL, it provides a reward signal for a generated answer.
+2. In the production path, it acts as a QA gate before a catalog record is accepted.
+
+That means “correct” is not a fuzzy prompt instruction. It has a concrete definition in code: valid JSON, expected keys and shapes, controlled vocabulary compliance, and declarative cross-field rules.
+
+## What was completed before Week 2
+
+Week 1 created the measuring instrument that makes an RL comparison meaningful.
+
+- A pack-agnostic schema/verifier exists under `verifier/`.
+- The apparel pack has 15 fields, 156 controlled values, and 34 cross-field rules (25 explicit, 9 derived from applicability metadata).
+- The data contains 3,600 weakly labeled training rows, a frozen 300-row evaluation set, and a 100-row production-style probe set.
+- The evaluation harness reports per-attribute metrics, macro-F1, schema validity, vocabulary validity, and rule violations.
+- The evaluation set is checksummed and tagged `eval-v1`, so accidental edits fail the harness rather than silently changing the scoreboard.
+
+One design choice matters especially: `null` and `"unknown"` are different.
+
+- `null` means a field does not apply. A pair of pants has no neckline.
+- `"unknown"` means the field could apply, but the listing does not provide enough evidence. A listing may omit the color.
+
+This difference will matter later because abstention is a first-class RL action. A model should not receive credit for pretending a missing fact is inapplicable.
+
+## An actual SFT training example
+
+For a listing titled “Organic Cotton Pull On Pant,” the model receives a compact system instruction plus text such as:
+
+```text
+Title: Organic Cotton Pull On Pant
+Brand: NAADAM
+Category: Woven Pants
+Description: The Organic Cotton Pull On Pant is a warm-weather essential in
+100% organic cotton ... the easy elastic waist makes every occasion feel effortless.
+Tags: 100% cotton, Bottoms, elastic, full length, pant, summer, ...
+```
+
+Its target is one JSON record:
+
+```json
+{
+  "closure": "pullover",
+  "collar_type": null,
+  "colour_primary": "unknown",
+  "details": ["unknown"],
+  "fit": "loose",
+  "garment_category": "pants",
+  "material": "cotton",
+  "occasion": "casual",
+  "sleeve_length": null
+}
+```
+
+The real target contains all 15 fields. The verifier confirms that this exact output is structurally valid, uses only permitted vocabulary, and violates no rules.
+
+This is supervised fine-tuning in its plainest form: show the model many examples of “catalog text in, controlled JSON out.” The first objective is not to make a grand claim about intelligence. It is to teach a small model the format, vocabulary, and task behavior that RL will later refine.
+
+## A necessary warning about labels and evaluation
+
+The training labels are weak labels from a frontier model, not ground truth. The frozen evaluation set was partially human-corrected, but only 78 of 4,500 attribute cells received human review. Most remaining evaluation cells still equal the frontier model’s original answer.
+
+That creates two constraints on how results should be written:
+
+- Absolute scores are not trustworthy claims of real-world accuracy. A “99%” agreement number would be partly tautological.
+- Deltas between models scored against the same frozen set are still useful. If GRPO improves over SFT under the same evaluator, that comparison is meaningful even if the absolute number has caveats.
+
+The reward-reliability file is deliberately marked unusable: the human review sample is too small to support per-attribute reward weights. The first reward implementation must detect that flag and use uniform weights rather than accidentally assigning zero reward everywhere.
+
+## The SFT experiment: two LoRA arms
+
+The first experiment will compare two ways of adapting the same Qwen2.5-1.5B-Instruct base model.
+
+| Arm | LoRA targets | Rank | Purpose |
+|---|---|---:|---|
+| A | Attention projections: Q, K, V, output | 16 | Cheap baseline that adjusts how the model connects information across tokens. |
+| B | Attention projections plus MLP projections: gate, up, down | 16 | More adaptable baseline that can change both information routing and internal transformations. |
+
+Everything else stays constant: base model, training data, deterministic split, seed, batch configuration, learning rate, sequence budget, and maximum epochs. This is an ablation, not a scavenger hunt for the best-looking number.
+
+The stronger SFT arm will become the starting policy for GRPO.
+
+## LoRA in plain language
+
+Full fine-tuning changes every number in the original model. LoRA freezes the base model and adds small trainable adjustment paths beside selected layers.
+
+For a typical 1,536-by-1,536 model layer, full fine-tuning would change about 2.36 million numbers. A rank-16 LoRA update instead learns two thin tables:
+
+- 1,536 numbers wide down to 16;
+- 16 numbers back up to 1,536.
+
+Together, that is about 49,000 trainable numbers for that layer—about 2% of the full layer.
+
+The 1,536 width is part of Qwen’s original architecture. It is the size of the internal representation carried by each token through much of the model. The rank 16 is our choice: it determines the size of LoRA’s narrow adjustment path.
+
+The model computes both paths and adds them:
+
+```text
+original frozen layer output + small learned LoRA adjustment = layer output
+```
+
+For this Qwen configuration, rank-16 LoRA on attention and MLP projections is estimated at about 18.5 million trainable parameters. In bf16, an adapter-only checkpoint should be roughly 37 MB. Attention-only LoRA is much smaller, around 9 MB. These are estimates until the exact target module list is fixed.
+
+## How long should SFT train?
+
+The answer is not “a magic number of steps.” We will use a small held-out validation slice from the weak training data to choose duration.
+
+- 90% of the 3,600 weak rows train the model.
+- 10% are held out as validation data, split deterministically by SKU.
+- The frozen 300-row evaluation set is not used to choose an epoch.
+- Each arm trains for one epoch first, then has the option of a second epoch.
+
+After each epoch, inspect weak-validation loss and generated-output behavior: complete JSON, vocabulary/rule compliance, and whether outputs are becoming more useful rather than merely repetitive. Continue to epoch two only if there is meaningful improvement.
+
+The frozen evaluation set is then run once per pre-declared arm, and both results are reported. It is not a hidden tuning loop.
+
+The goal of SFT is not necessarily the final maximum score. For GRPO, the useful starting policy is one that succeeds on some examples and fails on others. If every sampled completion is always right or always wrong, GRPO sees no within-group difference to learn from.
+
+## Practical constraints that shape the experiment
+
+The training machine is an RTX 3090 with 24 GB of VRAM and roughly 5.3 GB of free disk space.
+
+- The selected Qwen2.5-1.5B-Instruct checkpoint is already cached on the machine.
+- Measured training-data lengths: prompt p95 is 268 tokens, prompt maximum is 585, and target maximum is 118.
+- A conservative SFT sequence ceiling is 768 tokens, covering the longest prompt, target, and chat-template overhead.
+- GRPO will use separately reserved limits: 600 prompt tokens and 170 completion tokens.
+- Only two checkpoints per experiment arm should be retained. Adapter-only saves preserve the learned LoRA changes for evaluation without storing expensive optimizer state.
+
+An optimizer is the training component that decides how each learned number should change after an error. Its saved state is not part of Qwen’s attention architecture; it is extra per-parameter bookkeeping. Omitting it means a run cannot resume with exactly the same training momentum, but the saved adapter still loads and evaluates normally. For this short two-epoch baseline, adapter checkpoints plus experiment metadata are the more useful trade-off.
+
+## The RL handoff: GRPO
+
+GRPO comes only after a defensible SFT baseline exists.
+
+The planned reward is built as ordinary functions over the same verifier used by tests. It begins with three signals:
+
+1. Format validity: did the model emit parseable JSON with the expected structure?
+2. Vocabulary and rule compliance: did it stay inside the allowed tag space and obey cross-field constraints?
+3. Per-attribute agreement with the training row’s label: did it provide useful tags rather than just valid empty JSON?
+
+The model must generate unconstrained during RL. Constrained JSON decoding would make format validity free and erase the very behavior the experiment is intended to observe. The point is to watch the model learn not to emit malformed JSON, empty-but-valid records, majority-class defaults, or blanket `unknown` answers.
+
+The expected reward-hacking story is part of the deliverable, not an embarrassment to hide. The first GRPO runs should reveal shortcuts; later reward shaping should close them with per-attribute partial credit, class balancing, and validity acting as a gate rather than the whole objective.
+
+## Current blocker before GRPO
+
+The GPU machine can import the SFT components, but its installed GRPO stack is internally inconsistent: `trl==0.24.0` expects an older vLLM API while the machine has `vllm==0.23.0`. `GRPOTrainer` currently fails at import time because the expected `GuidedDecodingParams` symbol is absent.
+
+This has to be resolved before any GRPO run. It does not prevent the conceptual work or the eventual SFT baseline, but it must be treated as a deliberate environment preflight rather than discovered after spending time on training.
+
+## What the final post should be able to say
+
+If the experiment lands cleanly, the finished version can make a modest, defensible claim:
+
+> On a frozen catalog-tagging evaluation set, we compared attention-only and combined LoRA SFT baselines, then used the selected baseline to study how verifier-based GRPO changes structured-output behavior. We report the improvements and the failure modes, not a misleading absolute-accuracy claim.
+
+The interesting story is not “RL makes a number go up.” It is how a small model learns an operational output contract, how the verifier exposes shortcuts, and why baseline discipline is what makes an RL result worth believing.
+
+## Evidence to add once runs exist
+
+- Exact training configuration and Git commit hash.
+- Dataset split manifest and checksum.
+- W&B charts for both SFT arms.
+- Frozen-eval table: macro-F1, schema validity, vocabulary validity, rule violations, and cost per SKU.
+- Example generations from both arms, including failures.
+- GRPO reward curves and at least three documented reward hacks.
+- The dependency-resolution decision for the GRPO/vLLM environment.

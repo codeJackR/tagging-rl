@@ -20,6 +20,7 @@ from training.dataset import (
     load_sft_dataset,
     to_messages,
 )
+from training.predict import prompt_messages
 from verifier import load_pack, verify
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -85,3 +86,7 @@ def test_system_prompt_names_every_field(pack):
 def test_system_prompt_is_small(pack):
     """The compressed prompt is the point — the vocabulary is what SFT teaches."""
     assert len(SYSTEM) < 800
+
+
+def test_prediction_prompt_matches_training_prompt(pack, rows):
+    assert prompt_messages(rows[0]) == to_messages(rows[0], pack)["prompt"]
