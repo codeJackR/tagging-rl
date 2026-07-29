@@ -20,6 +20,7 @@ Plan: `~/Downloads/rl-catalog-plan-stepwise.html`
 
 | model | macro-F1 | validity | rule viol. | cost/SKU |
 |---|---|---|---|---|
+| Qwen2.5-1.5B zero-shot | 0.1969 ‡ | 62.7% | 1,204 | — |
 | frontier (ceiling) | 0.9915 † | — | 6 | ~$0.005 |
 | SFT baseline (W2) | | | | |
 | GRPO (W2) | | | | |
@@ -35,6 +36,13 @@ the absolute level is not.
 
 What it is **not** good for: any claim about absolute correctness, or "we reached
 99% of frontier quality".
+
+**‡ The zero-shot macro-F1 is conditional on parseable output, not an end-to-end
+score.** The model attempted all 300 rows, but only 196 produced a parsed record;
+104 were unparseable and the harness skips rather than zero-fills them. At least
+93 of those reached the 170-token generation ceiling. Read `0.1969` together with
+`62.7%` schema validity. The raw outputs are in
+`runs/qwen2.5-1.5b-zero-shot.jsonl`.
 
 ### What the 78 reviewed cells did tell us
 
