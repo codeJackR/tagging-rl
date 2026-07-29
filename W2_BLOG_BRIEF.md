@@ -206,6 +206,14 @@ The training machine is an RTX 3090 with 24 GB of VRAM and roughly 5.3 GB of fre
 
 An optimizer is the training component that decides how each learned number should change after an error. Its saved state is not part of Qwen’s attention architecture; it is extra per-parameter bookkeeping. Omitting it means a run cannot resume with exactly the same training momentum, but the saved adapter still loads and evaluates normally. For this short two-epoch baseline, adapter checkpoints plus experiment metadata are the more useful trade-off.
 
+The five-step attention-only smoke test confirmed 4,358,144 trainable LoRA
+parameters, or 0.28% of the 1.548-billion-parameter model. It completed without
+an out-of-memory error, produced nonzero gradients, and saved a 17.5 MB adapter
+weight file. The full adapter directory was 32 MB because it also included the
+tokenizer files. The earlier ~9 MB estimate assumed bf16 adapter storage; PEFT
+saved these LoRA tensors in fp32, so the measured weight file is roughly twice
+that estimate.
+
 ## The RL handoff: GRPO
 
 GRPO comes only after a defensible SFT baseline exists.
