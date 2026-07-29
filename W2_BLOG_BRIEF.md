@@ -112,12 +112,79 @@ original frozen layer output + small learned LoRA adjustment = layer output
 
 For this Qwen configuration, rank-16 LoRA on attention and MLP projections is estimated at about 18.5 million trainable parameters. In bf16, an adapter-only checkpoint should be roughly 37 MB. Attention-only LoRA is much smaller, around 9 MB. These are estimates until the exact target module list is fixed.
 
+## Preventing product variants from leaking into validation
+
+A naïve random split would make validation look better than it is. Retail feeds
+often contain many versions of nearly the same product:
+
+```text
+Everyday Tote | Red (XL)
+Everyday Tote | Black (M)
+Everyday Tote | Navy (L)
+```
+
+If the red tote trains the model while the black tote tests it, the model has
+already seen nearly the same title, description, category, and expected tags.
+That measures recognition of a sibling product more than generalization.
+
+The split therefore operates on product families, not individual rows. A family
+key combines the normalized brand with a conservative base title:
+
+- lowercase the title;
+- remove punctuation and extra whitespace;
+- remove variant text after spaced separators such as ` | `, ` / `, or ` - `;
+- remove trailing parenthetical size text;
+- compare titles only within the same normalized brand.
+
+For example, all 57 color and size versions of Thursday Boots' `Everyday Tote`
+become one family:
+
+```text
+Thursday Boots + everyday tote
+```
+
+Likewise, these American Giant products become one 22-row family:
+
+```text
+Women's Classic Cotton V-Neck Tee - Black
+Women's Classic Cotton V-Neck Tee - Pearl Blue
+Women's Classic Cotton V-Neck Tee - Pine Bark
+
+→ American Giant + womens classic cotton v neck tee
+```
+
+A unique listing such as `NAADAM + Organic Cotton Pull On Pant` has no matching
+variants and forms a one-row family.
+
+The 3,600 rows break down as:
+
+```text
+1,764 one-product families       → 1,764 rows
+  491 multi-product families     → 1,836 rows
+---------------------------------------------
+2,255 total product families     → 3,600 rows
+```
+
+Every family is assigned wholly to training or validation. The method is
+deliberately conservative rather than broad fuzzy matching: two brands can both
+sell a “Classic Tee” without those products being treated as the same family.
+
+Grouping alone was not enough. The first deterministic family split put only
+3.4% of bag rows and 7.1% of shoe rows into validation, so it was rejected before
+training. The final split assigns whole families while targeting roughly 10% of
+each garment category. It contains 3,240 training rows and 360 validation rows;
+the major categories now land near the target—for example, shoes at 10.0%, bags
+at 9.4%, dresses at 10.1%, and pants at 10.1%.
+
+The frozen split manifest records the seed, grouping rule, source-data checksum,
+category counts, and exact SKU assignments. Both LoRA arms must reuse it.
+
 ## How long should SFT train?
 
 The answer is not “a magic number of steps.” We will use a small held-out validation slice from the weak training data to choose duration.
 
 - 90% of the 3,600 weak rows train the model.
-- 10% are held out as validation data, split deterministically by SKU.
+- 10% are held out as validation data through the frozen grouped-family split.
 - The frozen 300-row evaluation set is not used to choose an epoch.
 - Each arm trains for one epoch first, then has the option of a second epoch.
 
