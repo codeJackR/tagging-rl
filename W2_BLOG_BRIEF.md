@@ -206,13 +206,155 @@ The training machine is an RTX 3090 with 24 GB of VRAM and roughly 5.3 GB of fre
 
 An optimizer is the training component that decides how each learned number should change after an error. Its saved state is not part of Qwen’s attention architecture; it is extra per-parameter bookkeeping. Omitting it means a run cannot resume with exactly the same training momentum, but the saved adapter still loads and evaluates normally. For this short two-epoch baseline, adapter checkpoints plus experiment metadata are the more useful trade-off.
 
-The five-step attention-only smoke test confirmed 4,358,144 trainable LoRA
-parameters, or 0.28% of the 1.548-billion-parameter model. It completed without
-an out-of-memory error, produced nonzero gradients, and saved a 17.5 MB adapter
-weight file. The full adapter directory was 32 MB because it also included the
-tokenizer files. The earlier ~9 MB estimate assumed bf16 adapter storage; PEFT
-saved these LoRA tensors in fp32, so the measured weight file is roughly twice
-that estimate.
+### What the five-step attention-only smoke test actually proved
+
+This was an integration test, not a quality experiment. Its purpose was to prove
+that the model, grouped data split, LoRA setup, optimizer, validation pass, and
+adapter save all work together before paying for a full epoch.
+
+The smoke run used 64 rows from the frozen training split and 32 from validation.
+The GPU processed four examples at a time and accumulated four micro-batches
+before each optimizer update, giving an effective batch size of 16:
+
+```text
+5 optimizer steps × 16 examples = 80 example-visits
+```
+
+Because the smoke subset contains only 64 training rows, the fifth update begins
+a second pass. The run therefore ended at 1.25 smoke-subset epochs. These small
+subsets are not guaranteed to represent the full data distribution; they exist
+to test the machinery.
+
+#### Where 4,358,144 trainable parameters came from
+
+Qwen has 28 transformer blocks. Attention-only rank-16 LoRA attaches to four
+projections in every block:
+
+| projection | LoRA parameters per block |
+|---|---:|
+| Q | 49,152 |
+| K | 28,672 |
+| V | 28,672 |
+| attention output | 49,152 |
+| **total** | **155,648** |
+
+Across all blocks:
+
+```text
+155,648 × 28 = 4,358,144 trainable LoRA parameters
+```
+
+The loaded model, including its adapters, contained 1,548,072,448 parameters:
+
+```text
+4,358,144 / 1,548,072,448 × 100 = 0.2815%
+```
+
+So the run changed only 0.28% of the model; the other 99.72% remained frozen.
+Unsloth independently printed both counts when it constructed the model.
+
+#### What “five optimizer steps completed” means
+
+The trainer reached 100%, ran validation, exited successfully, and saved the
+adapter. Its progress matched the expected effective batch size:
+
+```text
+step 1 → 0.25 smoke-subset epoch
+step 2 → 0.50
+step 3 → 0.75
+step 4 → 1.00
+step 5 → 1.25
+```
+
+This confirms that micro-batching and gradient accumulation behaved as intended.
+
+#### Why the gradients looked healthy
+
+The gradient norm measures the combined strength of the proposed updates to the
+trainable parameters.
+
+| step | gradient norm |
+|---:|---:|
+| 1 | 0.541 |
+| 2 | 0.574 |
+| 3 | 0.592 |
+| 4 | 0.606 |
+| 5 | 0.568 |
+
+All five were nonzero, so a learning signal reached LoRA. They were finite—no
+`NaN` or infinity—and stayed in a narrow 0.54–0.61 range below the default
+clipping threshold of 1.0. In this context, “healthy” means no dead, exploding,
+or numerically broken gradients appeared in the short run. Five steps cannot
+prove that gradients will remain healthy for a full epoch.
+
+#### How to read the training and validation losses
+
+The five training losses were:
+
+```text
+0.4419, 0.5103, 0.4988, 0.4640, 0.4749
+```
+
+The trainer reported their average as `0.477982`. Loss here measures how
+surprised Qwen was by each correct next JSON token, calculated only on assistant
+answer tokens—not the system or product prompt.
+
+The values should not descend smoothly because each update contains different
+products, and five updates are too few to establish a trend.
+
+After step five, the trainer evaluated 32 validation rows in eight batches of
+four and reported `eval_loss = 0.460474`. That confirms the validation pipeline
+works; it does not prove generalization. There was only one measurement, the
+sample was tiny, and predictable JSON punctuation and field names can lower
+token loss without making the tags correct. The full run will evaluate all 360
+validation rows after each epoch.
+
+#### GPU memory: what was and was not measured
+
+The run completed without an out-of-memory error, CUDA crash, or numerical
+failure, and GPU use returned to ComfyUI's 428 MiB idle footprint afterward.
+That proves this configuration fits on the RTX 3090 for the smoke test.
+
+Peak VRAM was not recorded, so it would be inaccurate to claim an exact amount
+of remaining headroom. The full run should log peak allocated and reserved GPU
+memory.
+
+#### Why the adapter was 17.5 MB instead of the estimated 9 MB
+
+The saved adapter weight file was exactly 17,462,432 bytes. The measured size
+follows directly from the trainable parameter count:
+
+```text
+4,358,144 parameters × 4 bytes per fp32 number ≈ 17.43 MB
+```
+
+The small remainder is file metadata. The earlier ~9 MB estimate assumed the
+adapter would be stored in bf16 at two bytes per number. PEFT saved these adapter
+tensors in fp32, doubling that estimate.
+
+The complete adapter directory occupied about 32 MiB because it also contained
+the tokenizer:
+
+```text
+adapter weights        17.5 MB
+tokenizer.json         11.4 MB
+vocab.json              2.8 MB
+merges.txt              1.7 MB
+small configuration files
+```
+
+Disk tools mix decimal MB and binary MiB, so the displayed directory total does
+not add up identically to the decimal file sizes. The machine still reported
+5.3 GB free before and after the smoke run; a 32 MB artifact is too small to
+change that rounded display.
+
+#### W&B status
+
+The smoke deliberately used local logging with `report_to=none`. Separately, the
+W0 run log shows that this machine loaded W&B credentials, authenticated, created
+a run, and synchronized it successfully. The first real SFT epoch will use
+`report_to=wandb`, which will verify those credentials again in the current
+runner.
 
 ## The RL handoff: GRPO
 
