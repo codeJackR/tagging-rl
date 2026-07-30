@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import shutil
+import time
 from pathlib import Path
 
 ATTENTION_MODULES = ["q_proj", "k_proj", "v_proj", "o_proj"]
@@ -106,14 +109,55 @@ def main() -> int:
         train_dataset=train_dataset,  # Frozen manifest's 3,240 training rows.
         eval_dataset=eval_dataset,  # Frozen manifest's 360 validation rows.
     )
+
+    import torch
+
+    # Measure this training call rather than model-loading and tokenization peaks.
+    torch.cuda.reset_peak_memory_stats()
+    started = time.perf_counter()
     result = trainer.train()
+    wall_seconds = time.perf_counter() - started
+    gib = 1024**3
+    peak_allocated_gib = torch.cuda.max_memory_allocated() / gib
+    peak_reserved_gib = torch.cuda.max_memory_reserved() / gib
 
     adapter_dir = output / "final-adapter"
     model.save_pretrained(adapter_dir)
     tokenizer.save_pretrained(adapter_dir)
+    disk = shutil.disk_usage(output)
+    summary = {
+        "arm": args.arm,
+        "smoke": args.smoke,
+        "epochs_requested": args.epochs,
+        "train_rows": len(train_dataset),
+        "validation_rows": len(eval_dataset),
+        "target_modules": target_modules(args.arm),
+        "trainable_parameters": 4_358_144 if args.arm == "attention" else 18_464_768,
+        "training_loss": result.training_loss,
+        "trainer_metrics": result.metrics,
+        "wall_seconds": wall_seconds,
+        "peak_gpu_allocated_gib": peak_allocated_gib,
+        "peak_gpu_reserved_gib": peak_reserved_gib,
+        "disk_free_gib_after": disk.free / gib,
+        "adapter_dir": str(adapter_dir),
+    }
+    (output / "run-summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    trainer.log(
+        {
+            "peak_gpu_allocated_gib": peak_allocated_gib,
+            "peak_gpu_reserved_gib": peak_reserved_gib,
+            "wall_seconds_measured": wall_seconds,
+        }
+    )
     print(
         f"SFT {args.arm} {'smoke' if args.smoke else 'run'} complete: "
-        f"loss={result.training_loss:.6f}, adapter={adapter_dir}"
+        f"loss={result.training_loss:.6f}, "
+        f"peak_allocated={peak_allocated_gib:.2f} GiB, "
+        f"peak_reserved={peak_reserved_gib:.2f} GiB, "
+        f"adapter={adapter_dir}"
     )
     return 0
 
