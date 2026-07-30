@@ -15,6 +15,7 @@ authoritative and is not comparable to anything measured before the edit.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -43,6 +44,36 @@ def resolve_gold(path: str | Path) -> Path:
     if not p.exists():
         sys.exit(f"no gold file at {p}")
     return p
+
+
+def manifest_gold(
+    gold,
+    gold_path: str | Path,
+    manifest_path: str | Path,
+    split: str = "validation",
+):
+    """Filter gold by a checksum-bound SFT manifest for model selection."""
+    manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    actual = hashlib.sha256(Path(gold_path).read_bytes()).hexdigest()
+    expected = manifest["source_sha256"]
+    if actual != expected:
+        return gold, {
+            "ok": False,
+            "reason": "CHECKSUM MISMATCH — the SFT source has been modified",
+            "expected": expected,
+            "actual": actual,
+        }
+
+    by_sku = {row.sku_id: row for row in gold}
+    wanted = manifest[split]
+    missing = [sku for sku in wanted if sku not in by_sku]
+    if missing:
+        return gold, {
+            "ok": False,
+            "reason": f"{len(missing)} manifest SKUs missing from gold source",
+        }
+    filtered = [by_sku[sku] for sku in wanted]
+    return filtered, {"ok": True, "sha256": actual, "n_rows": len(filtered)}
 
 
 def format_report(rep: Report, *, pack_name: str, gold: Path, source: str) -> str:
@@ -147,6 +178,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--pack", default=str(ROOT / "packs" / "vastraa_taste_v1"))
     ap.add_argument("--gold", default=str(ROOT / "data" / "eval_300"))
+    ap.add_argument("--split-manifest", help="checksum-bound SFT split manifest")
+    ap.add_argument(
+        "--split-name",
+        choices=("train", "validation"),
+        default="validation",
+    )
     ap.add_argument("--pred", help="prediction JSONL")
     ap.add_argument(
         "--from-frontier",
@@ -171,7 +208,12 @@ def main() -> int:
     gold_path = resolve_gold(args.gold)
     gold = read_jsonl(gold_path)
 
-    fz = freeze.verify(gold_path)
+    if args.split_manifest:
+        gold, fz = manifest_gold(
+            gold, gold_path, args.split_manifest, args.split_name
+        )
+    else:
+        fz = freeze.verify(gold_path)
     if not fz.get("ok") and not args.allow_drift:
         print(json.dumps(fz, indent=2), file=sys.stderr)
         print(

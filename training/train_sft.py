@@ -125,6 +125,14 @@ def main() -> int:
     model.save_pretrained(adapter_dir)
     tokenizer.save_pretrained(adapter_dir)
     disk = shutil.disk_usage(output)
+    eval_metrics = next(
+        (
+            entry
+            for entry in reversed(trainer.state.log_history)
+            if "eval_loss" in entry
+        ),
+        {},
+    )
     summary = {
         "arm": args.arm,
         "smoke": args.smoke,
@@ -135,6 +143,7 @@ def main() -> int:
         "trainable_parameters": 4_358_144 if args.arm == "attention" else 18_464_768,
         "training_loss": result.training_loss,
         "trainer_metrics": result.metrics,
+        "eval_metrics": eval_metrics,
         "wall_seconds": wall_seconds,
         "peak_gpu_allocated_gib": peak_allocated_gib,
         "peak_gpu_reserved_gib": peak_reserved_gib,

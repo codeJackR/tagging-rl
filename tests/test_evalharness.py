@@ -17,13 +17,14 @@ import pytest
 
 from evalharness import predictions as preds_mod
 from evalharness.metrics import ABSTAIN, NA_CLASS, evaluate, score_attribute
-from evalharness.report import markdown_row
+from evalharness.report import manifest_gold, markdown_row
 from labeling.records import (
     AttributeLabel,
     LabelStatus,
     Provenance,
     Row,
     RowInput,
+    read_jsonl,
 )
 from verifier import load_pack
 
@@ -48,6 +49,18 @@ def mkrow(sku, labels):
         labels=labels,
         provenance=Provenance(labeler="t", prompt_version="v1"),
     )
+
+
+def test_manifest_gold_filters_validation_split():
+    path = ROOT / "data" / "train_weak.jsonl"
+    gold = read_jsonl(path)
+    filtered, frozen = manifest_gold(
+        gold,
+        path,
+        ROOT / "data" / "splits" / "sft-v1.json",
+    )
+    assert frozen["ok"]
+    assert len(filtered) == 360
 
 
 # --- the reason macro-F1 was chosen ------------------------------------------

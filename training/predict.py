@@ -18,6 +18,7 @@ measurement meaningless.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -33,10 +34,43 @@ def prompt_messages(row) -> list[dict[str, str]]:
     ]
 
 
+def filter_rows(rows, manifest_path: str | Path | None, split: str = "validation"):
+    """Select a frozen SFT split and refuse to use it if its source has drifted."""
+    if manifest_path is None:
+        return rows
+
+    manifest_path = Path(manifest_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    source = Path(manifest["source"])
+    if not source.is_absolute():
+        source = Path.cwd() / source
+    actual = hashlib.sha256(source.read_bytes()).hexdigest()
+    expected = manifest["source_sha256"]
+    if actual != expected:
+        raise RuntimeError(
+            f"SFT source drifted: expected {expected}, found {actual}"
+        )
+
+    wanted = manifest[split]
+    by_sku = {row.sku_id: row for row in rows}
+    missing = [sku for sku in wanted if sku not in by_sku]
+    if missing:
+        raise RuntimeError(f"{len(missing)} manifest SKUs missing from input")
+    return [by_sku[sku] for sku in wanted]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model", default="unsloth/Qwen2.5-1.5B-Instruct")
+    parser.add_argument("--adapter", help="optional PEFT/LoRA adapter directory")
     parser.add_argument("--input", required=True)
+    parser.add_argument("--manifest", help="optional frozen SFT split manifest")
+    parser.add_argument(
+        "--split",
+        choices=("train", "validation"),
+        default="validation",
+        help="manifest split to predict (default: validation)",
+    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--limit", type=int)
@@ -68,9 +102,14 @@ def main() -> int:
         device_map="auto",
         local_files_only=args.local_files_only,
     )
+    if args.adapter:
+        from peft import PeftModel
+
+        model = PeftModel.from_pretrained(model, args.adapter, is_trainable=False)
     model.eval()
 
     rows = read_jsonl(args.input)
+    rows = filter_rows(rows, args.manifest, args.split)
     if args.limit is not None:
         rows = rows[: args.limit]
 

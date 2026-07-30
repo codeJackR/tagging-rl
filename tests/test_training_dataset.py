@@ -22,7 +22,7 @@ from training.dataset import (
     load_sft_splits,
     to_messages,
 )
-from training.predict import prompt_messages
+from training.predict import filter_rows, prompt_messages
 from training.train_sft import target_modules
 from verifier import load_pack, verify
 
@@ -100,6 +100,12 @@ def test_frozen_sft_split_loads_exact_sizes(pack):
     assert len(train) == 3240
     assert len(validation) == 360
     assert set(train["sku_id"]).isdisjoint(validation["sku_id"])
+
+
+def test_prediction_filter_uses_frozen_validation_split(rows):
+    filtered = filter_rows(rows, ROOT / "data" / "splits" / "sft-v1.json")
+    assert len(filtered) == 360
+    assert len({row.sku_id for row in filtered}) == 360
 
 
 def test_sft_sequence_budget_covers_measured_maximum():
