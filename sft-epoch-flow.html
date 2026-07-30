@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Attention-only SFT — epoch 1 execution flow</title>
+  <style>
+    :root {
+      --paper: #f5f2ea;
+      --card: #fffdf8;
+      --ink: #18201d;
+      --muted: #64706b;
+      --line: #d9ddd7;
+      --blue: #2457c5;
+      --blue-soft: #e9effc;
+      --green: #167452;
+      --green-soft: #e8f5ef;
+      --amber: #ad6814;
+      --amber-soft: #fbf0dd;
+      --violet: #7450b8;
+      --violet-soft: #f0eafa;
+      --red: #a23e32;
+      --red-soft: #f9eae7;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 0%, rgba(36,87,197,.08), transparent 31rem),
+        var(--paper);
+      font-family: var(--sans);
+      line-height: 1.5;
+    }
+    main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 80px; }
+    header { display: grid; grid-template-columns: 1.5fr .8fr; gap: 28px; align-items: end; }
+    .eyebrow { color: var(--blue); font: 700 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+    h1 { max-width: 17ch; margin: 12px 0 10px; font-size: clamp(34px, 6vw, 64px); line-height: .98; letter-spacing: -.045em; }
+    .lede { max-width: 68ch; margin: 0; color: var(--muted); font-size: 17px; }
+    .command {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #18201d;
+      color: #f7faf7;
+      font: 13px/1.6 var(--mono);
+      overflow-wrap: anywhere;
+    }
+    .facts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 30px 0 48px; }
+    .fact { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,253,248,.76); }
+    .fact b { display: block; font: 700 21px/1.1 var(--mono); }
+    .fact span { color: var(--muted); font-size: 12px; }
+    h2 { margin: 52px 0 18px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .phase {
+      position: relative;
+      display: grid;
+      grid-template-columns: 155px 1fr;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .phase-label {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      padding: 13px;
+      border-radius: 10px;
+      color: white;
+      background: var(--phase);
+      font: 700 12px/1.35 var(--mono);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .rail { display: grid; gap: 10px; }
+    .node {
+      position: relative;
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      gap: 13px;
+      align-items: start;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--phase);
+      border-radius: 12px;
+      background: var(--card);
+      box-shadow: 0 8px 24px rgba(31,42,37,.04);
+    }
+    .node:not(:last-child)::after {
+      content: "↓";
+      position: absolute;
+      left: 31px;
+      bottom: -19px;
+      z-index: 2;
+      color: var(--phase);
+      font: 700 18px/1 var(--mono);
+    }
+    .step {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--phase-soft);
+      color: var(--phase);
+      font: 700 12px/1 var(--mono);
+    }
+    .node h3 { margin: 0 0 4px; font-size: 15px; }
+    .node p { margin: 0; color: #4d5954; font-size: 14px; }
+    code, .file { font-family: var(--mono); }
+    code { padding: 2px 5px; border-radius: 4px; background: #edf0ec; font-size: .9em; }
+    .file { max-width: 330px; color: var(--phase); font-size: 11px; text-align: right; overflow-wrap: anywhere; }
+    .blue { --phase: var(--blue); --phase-soft: var(--blue-soft); }
+    .violet { --phase: var(--violet); --phase-soft: var(--violet-soft); }
+    .green { --phase: var(--green); --phase-soft: var(--green-soft); }
+    .amber { --phase: var(--amber); --phase-soft: var(--amber-soft); }
+    .loop {
+      margin: 4px 0 8px 58px;
+      padding: 9px 14px;
+      border: 1px dashed var(--green);
+      border-radius: 999px;
+      color: var(--green);
+      background: var(--green-soft);
+      font: 700 12px/1.3 var(--mono);
+      text-align: center;
+    }
+    .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .panel { padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+    .panel h3 { margin: 0 0 12px; font-size: 17px; }
+    .panel ul { margin: 0; padding-left: 20px; }
+    .panel li + li { margin-top: 8px; }
+    .no { border-top: 4px solid var(--red); background: var(--red-soft); }
+    .yes { border-top: 4px solid var(--green); background: var(--green-soft); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--card); border: 1px solid var(--line); }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font: 700 11px/1.2 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { width: 34%; color: var(--blue); font-family: var(--mono); }
+    .foot { margin-top: 34px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 850px) {
+      header, .columns { grid-template-columns: 1fr; }
+      .facts { grid-template-columns: repeat(2, 1fr); }
+      .phase { grid-template-columns: 1fr; }
+      .phase-label { position: static; }
+      .node { grid-template-columns: 40px 1fr; }
+      .file { grid-column: 2; max-width: none; text-align: left; }
+    }
+    @media print {
+      body { background: white; }
+      main { width: 100%; padding: 20px; }
+      .phase-label { position: static; }
+      .node { break-inside: avoid; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="eyebrow">tagging-rl · W2 · attention-only LoRA</div>
+      <h1>One SFT epoch, end to end.</h1>
+      <p class="lede">The actual call path through this repository and the training libraries—from frozen SKU assignments to 203 LoRA updates, validation, W&amp;B, and the adapter checkpoint.</p>
+    </div>
+    <div class="command">HF_HOME=/workspace/.hf_home PYTHONPATH=. /venv/rl/bin/python -m training.train_sft --arm attention --epochs 1 --report-to wandb</div>
+  </header>
+
+  <section class="facts">
+    <div class="fact"><b>3,240</b><span>training rows</span></div>
+    <div class="fact"><b>360</b><span>validation rows</span></div>
+    <div class="fact"><b>4 × 4 = 16</b><span>micro-batch × accumulation</span></div>
+    <div class="fact"><b>≈203</b><span>optimizer updates</span></div>
+    <div class="fact"><b>4.36M</b><span>trainable LoRA parameters</span></div>
+  </section>
+
+  <h2>Phase 1 — build the exact datasets</h2>
+  <section class="phase blue">
+    <div class="phase-label">Inputs<br>before GPU work</div>
+    <div class="rail">
+      <article class="node">
+        <div class="step">1</div>
+        <div><h3><code>main()</code> parses the experiment contract</h3><p>Selects the attention arm, one epoch, fixed seed 42, frozen split manifest, output directory, and W&amp;B reporting.</p></div>
+        <div class="file">training/train_sft.py</div>
+      </article>
+      <article class="node">
+        <div class="step">2</div>
+        <div><h3><code>load_pack()</code> loads the verifier vocabulary</h3><p>The same Vastraa pack determines the 15 fields, controlled values, unknown token, and target rendering.</p></div>
+        <div class="file">verifier/__init__.py<br>packs/vastraa_taste_v1/</div>
+      </article>
+      <article class="node">
+        <div class="step">3</div>
+        <div><h3><code>load_sft_splits()</code> verifies the frozen split</h3><p>Reads <code>sft-v1.json</code>, hashes <code>train_weak.jsonl</code>, rejects source drift, checks train/validation disjointness, and requires complete SKU coverage.</p></div>
+        <div class="file">training/dataset.py<br>data/splits/sft-v1.json</div>
+      </article>
+      <article class="node">
+        <div class="step">4</div>
+        <div><h3><code>read_jsonl()</code> validates each row</h3><p>Pydantic turns the 3,600 JSONL lines into typed <code>Row</code> objects with product input, three-state labels, provenance, lengths, and difficulty.</p></div>
+        <div class="file">labeling/records.py<br>data/train_weak.jsonl</div>
+      </article>
+      <article class="node">
+        <div class="step">5</div>
+        <div><h3><code>to_messages()</code> creates chat examples</h3><p><code>render_prompt()</code> makes the user listing text. <code>render_target()</code> makes the 15-field JSON assistant answer. The shared system prompt sits in front of both.</p></div>
+        <div class="file">training/dataset.py<br>labeling/lengths.py</div>
+      </article>
+      <article class="node">
+        <div class="step">6</div>
+        <div><h3>Hugging Face datasets are materialized</h3><p>The manifest yields exactly 3,240 prompt/completion examples for training and 360 for validation. Product families never cross the boundary.</p></div>
+        <div class="file">datasets.Dataset.from_list()</div>
+      </article>
+    </div>
+  </section>
+
+  <h2>Phase 2 — construct the trainable model</h2>
+  <section class="phase violet">
+    <div class="phase-label">Model setup<br>once per run</div>
+    <div class="rail">
+      <article class="node">
+        <div class="step">7</div>
+        <div><h3>Unsloth imports before TRL</h3><p>Import order lets Unsloth patch model loading, attention, gradient checkpointing, and the trainer before Transformers/TRL classes are used.</p></div>
+        <div class="file">training/train_sft.py</div>
+      </article>
+      <article class="node">
+        <div class="step">8</div>
+        <div><h3><code>FastLanguageModel.from_pretrained()</code></h3><p>Loads cached Qwen2.5-1.5B-Instruct in bf16, not 4-bit. The sequence ceiling is 896 because the measured maximum rendered example is 833 tokens.</p></div>
+        <div class="file">unsloth.FastLanguageModel</div>
+      </article>
+      <article class="node">
+        <div class="step">9</div>
+        <div><h3><code>get_peft_model()</code> attaches attention LoRA</h3><p>Freezes Qwen and adds rank-16 adapters to <code>q_proj</code>, <code>k_proj</code>, <code>v_proj</code>, and <code>o_proj</code> in all 28 blocks: 4,358,144 trainable parameters.</p></div>
+        <div class="file">unsloth.FastLanguageModel<br>training/train_sft.py::target_modules()</div>
+      </article>
+      <article class="node">
+        <div class="step">10</div>
+        <div><h3><code>SFTConfig</code> freezes training behavior</h3><p>Batch 4, accumulate 4, LR 1e-4, 5% warmup, cosine decay, fused AdamW, bf16, completion-only loss, epoch validation/save, and at most two retained model-only checkpoints.</p></div>
+        <div class="file">trl.SFTConfig</div>
+      </article>
+      <article class="node">
+        <div class="step">11</div>
+        <div><h3><code>SFTTrainer</code> tokenizes and masks</h3><p>Applies Qwen's chat template. Prompt tokens provide context but receive no loss; only assistant JSON tokens teach the adapter.</p></div>
+        <div class="file">trl.SFTTrainer</div>
+      </article>
+    </div>
+  </section>
+
+  <h2>Phase 3 — one optimizer update, repeated ≈203 times</h2>
+  <section class="phase green">
+    <div class="phase-label">Epoch loop<br>GPU work</div>
+    <div class="rail">
+      <article class="node">
+        <div class="step">12</div>
+        <div><h3>Load micro-batch 1 of 4</h3><p>Four product conversations are padded for the batch, capped at 896 tokens, and moved to the RTX 3090.</p></div>
+        <div class="file">TRL DataLoader</div>
+      </article>
+      <article class="node">
+        <div class="step">13</div>
+        <div><h3>Forward pass: frozen Qwen + LoRA adjustment</h3><p>Each selected attention projection computes its normal frozen output plus the trainable LoRA side-path output. Qwen produces a next-token probability distribution.</p></div>
+        <div class="file">Qwen2ForCausalLM.forward()</div>
+      </article>
+      <article class="node">
+        <div class="step">14</div>
+        <div><h3>Completion-only cross-entropy loss</h3><p>For every assistant JSON token, compare the probability assigned to the correct next token. System and user tokens are masked out.</p></div>
+        <div class="file">TRL completion loss mask</div>
+      </article>
+      <article class="node">
+        <div class="step">15</div>
+        <div><h3>Backward pass computes LoRA gradients</h3><p>Autograd traces how each trainable LoRA number contributed to the loss. Frozen base weights receive no update.</p></div>
+        <div class="file">torch.autograd</div>
+      </article>
+      <div class="loop">repeat steps 12–15 for micro-batches 2, 3, and 4 · gradients add up · no update yet</div>
+      <article class="node">
+        <div class="step">16</div>
+        <div><h3>Gradient norm, clipping, then AdamW update</h3><p>After 16 examples, TRL logs the gradient norm, clips if needed, and fused AdamW changes only the 4.36M LoRA parameters. Gradients are then cleared.</p></div>
+        <div class="file">torch.optim.AdamW<br>Transformers Trainer</div>
+      </article>
+      <article class="node">
+        <div class="step">17</div>
+        <div><h3>Scheduler and W&amp;B advance</h3><p>The first 5% of updates warm the learning rate toward 1e-4; cosine decay lowers it afterward. Every 10 updates, loss, gradient norm, LR, and progress are sent to W&amp;B.</p></div>
+        <div class="file">Transformers scheduler<br>Weights &amp; Biases</div>
+      </article>
+      <div class="loop">repeat the optimizer-update loop ≈203 times · 3,240 / effective batch 16 = 202.5</div>
+    </div>
+  </section>
+
+  <h2>Phase 4 — epoch boundary and decision gate</h2>
+  <section class="phase amber">
+    <div class="phase-label">After row 3,240<br>no hidden tuning</div>
+    <div class="rail">
+      <article class="node">
+        <div class="step">18</div>
+        <div><h3>Evaluate all 360 validation rows</h3><p>The model runs forward passes without gradients or updates. TRL averages completion-token loss into <code>eval_loss</code>.</p></div>
+        <div class="file">SFTTrainer.evaluate()</div>
+      </article>
+      <article class="node">
+        <div class="step">19</div>
+        <div><h3>Save the epoch checkpoint</h3><p>Because <code>save_only_model=True</code>, the checkpoint retains adapter/model state but omits resumable AdamW memory. <code>save_total_limit=2</code> bounds disk use.</p></div>
+        <div class="file">runs/sft-attention/checkpoint-*/</div>
+      </article>
+      <article class="node">
+        <div class="step">20</div>
+        <div><h3>Save the explicit final adapter</h3><p>The runner writes LoRA weights, adapter config, and tokenizer files to a stable path after <code>trainer.train()</code> returns.</p></div>
+        <div class="file">runs/sft-attention/final-adapter/</div>
+      </article>
+      <article class="node">
+        <div class="step">21</div>
+        <div><h3>Human decision: stop or run epoch 2</h3><p>Inspect full validation loss, loss curve, gradient norms, runtime, generated validation outputs, vocabulary compliance, repetition, checkpoint size, and disk. Peak VRAM requires the planned instrumentation before this run. Epoch 2 is not automatic.</p></div>
+        <div class="file">W&amp;B + validation generation report</div>
+      </article>
+    </div>
+  </section>
+
+  <h2>Files and responsibilities</h2>
+  <table>
+    <thead><tr><th>File or artifact</th><th>Responsibility in this epoch</th></tr></thead>
+    <tbody>
+      <tr><td>training/train_sft.py</td><td>Experiment entry point, model/LoRA construction, TRL settings, train call, final adapter save.</td></tr>
+      <tr><td>training/dataset.py</td><td>Manifest verification, source checksum, exact split loading, system/user/assistant message construction.</td></tr>
+      <tr><td>training/split_sft.py</td><td>Created the frozen family-grouped, category-balanced manifest earlier; it does not rerun during the epoch.</td></tr>
+      <tr><td>labeling/records.py</td><td>Typed row parsing and the three-state label contract.</td></tr>
+      <tr><td>labeling/lengths.py</td><td>Canonical product prompt and JSON target rendering.</td></tr>
+      <tr><td>data/train_weak.jsonl</td><td>3,600 weakly labeled source rows; checksum must match the manifest.</td></tr>
+      <tr><td>data/splits/sft-v1.json</td><td>Exact 3,240/360 SKU assignments and source hash shared by both LoRA arms.</td></tr>
+      <tr><td>packs/vastraa_taste_v1/</td><td>15-field vocabulary and rules used to render targets.</td></tr>
+      <tr><td>runs/sft-attention/</td><td>Epoch checkpoint and stable final adapter output.</td></tr>
+      <tr><td>W&amp;B</td><td>Remote metric history: loss, eval loss, gradient norm, learning rate, runtime/progress.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What this epoch does—and deliberately does not do</h2>
+  <section class="columns">
+    <div class="panel yes">
+      <h3>It does</h3>
+      <ul>
+        <li>Teach controlled JSON targets with supervised next-token loss.</li>
+        <li>Update only attention LoRA adapters.</li>
+        <li>Use the frozen grouped validation split for epoch decisions.</li>
+        <li>Log the run and save a compact adapter.</li>
+      </ul>
+    </div>
+    <div class="panel no">
+      <h3>It does not</h3>
+      <ul>
+        <li>Touch the frozen 300-row final evaluation set.</li>
+        <li>Change Qwen's original base weights.</li>
+        <li>Run the combined attention+MLP arm.</li>
+        <li>Run GRPO or use verifier rewards.</li>
+        <li>Automatically continue to epoch 2.</li>
+      </ul>
+    </div>
+  </section>
+
+  <p class="foot">Generated from repository state after the five-step attention-only smoke test. Intended command and method flow for the first full attention-only epoch; no full-epoch result is claimed here.</p>
+</main>
+</body>
+</html>
