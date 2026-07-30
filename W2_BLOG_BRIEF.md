@@ -352,9 +352,9 @@ change that rounded display.
 
 The smoke deliberately used local logging with `report_to=none`. Separately, the
 W0 run log shows that this machine loaded W&B credentials, authenticated, created
-a run, and synchronized it successfully. The first real SFT epoch will use
-`report_to=wandb`, which will verify those credentials again in the current
-runner.
+a run, and synchronized it successfully. Both full attention-only runs later
+confirmed the same path: W&B authenticated from `/root/.netrc` and synchronized
+their metrics without exposing credentials in the repository.
 
 ### Attention-only SFT: epoch 1
 
@@ -428,6 +428,201 @@ the run is cheap enough to continue. We should still keep the epoch-1 adapter
 and generated predictions. Epoch 2 earns selection only if generated-output
 metrics improve rather than merely producing a lower token loss.
 
+### Why “continue to epoch 2” required a fresh two-epoch run
+
+The one-epoch adapter was saved with `save_only_model=True`. That preserved the
+LoRA weights for inference, but not AdamW's internal moving averages or enough
+state to resume the optimizer exactly. Loading that adapter and training for one
+more epoch would reset the optimizer and learning-rate schedule. It would be a
+new training phase, not a faithful continuation.
+
+There was a second subtlety. The cosine learning-rate schedule is calculated
+from the total planned number of updates. In the one-epoch run it was designed
+to reach zero at step 203. In a two-epoch run, step 203 is only the midpoint, so
+the learning rate is still above zero. Comparing the original one-epoch adapter
+directly with the end of a two-epoch run would mix together two effects:
+
+1. seeing the data for a second time; and
+2. following a different learning-rate schedule during the first pass.
+
+We therefore launched a clean two-epoch experiment from the same Qwen base
+model, frozen split, LoRA configuration, and seed. It ran continuously for 406
+optimizer updates and saved checkpoints at both step 203 and step 406. Comparing
+those two checkpoints isolates what the second pass added within one optimizer
+and one schedule.
+
+The new run used its own output directory,
+`runs/sft-attention-2epoch`, so it did not overwrite the original epoch-1
+artifacts.
+
+### Attention-only SFT: continuous two-epoch run
+
+The continuous run used the same 4,358,144 attention-only LoRA parameters,
+representing 0.28% of Qwen's 1.548 billion parameters. The data and effective
+batch size were unchanged:
+
+```text
+training products                 3,240
+validation products                 360
+products loaded on GPU at once        4
+gradient accumulation                 4
+effective batch size                  16
+optimizer updates per epoch          203
+total optimizer updates              406
+```
+
+Training took 530 seconds—about eight minutes and 50 seconds. The trainer itself
+reported 528 seconds, 12.27 samples per second, and 0.768 optimizer steps per
+second. Peak allocated GPU memory was 4.75 GiB and peak reserved memory was
+4.79 GiB, essentially identical to the one-epoch run. No CUDA out-of-memory,
+`NaN`, infinity, or training crash occurred. The box still had 5.08 GiB free
+after saving two epoch checkpoints and the final adapter.
+
+The aggregate training loss over both passes was `0.08482`. Near the start it
+was `0.5245`; near the end of the second pass, logged ten-step losses were
+roughly `0.036–0.041`. Gradient norms remained finite and nonzero. During the
+second pass, representative logged values ranged from about `0.19` to `0.45`,
+so a usable learning signal continued reaching LoRA even as the cosine learning
+rate approached zero.
+
+Validation token loss improved at the epoch boundary:
+
+| checkpoint | validation loss |
+|---|---:|
+| step 203, after pass 1 | 0.05013 |
+| step 406, after pass 2 | 0.04202 |
+
+The run synchronized to W&B as
+[`iwsrgsn2`](https://wandb.ai/rushabhsp95-vastraa/tagging-rl/runs/iwsrgsn2).
+Its display name remained `sft-attention`; the unique run ID is the unambiguous
+reference.
+
+### The fair epoch-1 versus epoch-2 generation test
+
+Loss was not the selection criterion by itself. We separately loaded
+`checkpoint-203` and `checkpoint-406`, then generated unconstrained answers for
+the same 360 held-out SKUs. Both generations used the same system prompt, input
+length, 170-token output ceiling, batch size of eight, greedy decoding with
+sampling disabled, and checksum-verified validation manifest.
+
+| generated-output measure | step 203 | step 406 | change |
+|---|---:|---:|---:|
+| schema-valid records | 359/360 (99.7%) | 359/360 (99.7%) | unchanged |
+| fully vocabulary-valid records | 280/359 (78.0%) | 323/359 (90.0%) | +43 records |
+| rule violations | 19 | 15 | -4 |
+| coverage | 95.2% | 97.1% | +1.9 points |
+| macro-F1 | 0.708 | 0.751 | +0.043 |
+| selective macro-F1 | 0.728 | 0.777 | +0.049 |
+
+This is the load-bearing comparison. The second pass did not merely lower token
+loss: it produced more useful answers, obeyed the closed vocabulary much more
+often, broke fewer cross-field rules, and raised both headline and selective
+macro-F1. Schema validity was already nearly saturated, so remaining flat at
+99.7% is expected rather than a failure.
+
+The original standalone one-epoch run scored 0.650 macro-F1 and 67.9%
+vocabulary validity. The two-epoch final scored 0.751 and 90.0%, respectively.
+That larger difference is useful operational evidence, but it is not the clean
+measure of the second epoch because the runs used different cosine horizons.
+The step-203 versus step-406 comparison above is the defensible duration
+ablation.
+
+### Where the second epoch helped
+
+Twelve of the 15 attribute macro-F1 scores improved between the same-run
+checkpoints. The largest changes were:
+
+| attribute | step 203 | step 406 | change |
+|---|---:|---:|---:|
+| closure | 0.285 | 0.549 | +0.264 |
+| pattern | 0.757 | 0.919 | +0.162 |
+| sleeve length | 0.793 | 0.870 | +0.077 |
+| silhouette | 0.562 | 0.610 | +0.048 |
+| fit | 0.876 | 0.904 | +0.028 |
+| material | 0.804 | 0.827 | +0.022 |
+
+`waistline` was unchanged at 0.518. `garment_category` moved slightly from
+0.874 to 0.868, and `occasion` from 0.614 to 0.609. Those small regressions are
+why we inspect per-field results rather than hiding everything behind one
+average. They do not outweigh the broad improvements, especially the 12-point
+gain in whole-record vocabulary validity.
+
+At the final checkpoint, `neckline` was strongest at 0.988 macro-F1, followed
+by `pattern` at 0.919, `fit` at 0.904, `sleeve_length` at 0.870, and
+`garment_category` at 0.868. The weakest fields remained `waistline` at 0.518,
+`closure` at 0.549, `details` at 0.596, `occasion` at 0.609, and `silhouette`
+at 0.610.
+
+These scores are against weak validation labels, not fully reviewed human
+truth. They are suitable for comparing checkpoints trained and measured under
+the same protocol, but not for claiming absolute production accuracy.
+
+### What epoch 2 still did not solve
+
+One SKU failed schema validation at both same-run checkpoints:
+`shopify:naadam.co:6619044577376`. Instead of JSON, it emitted a long,
+comma-separated vocabulary-like sequence beginning with terms such as
+`xlarge`, `xl`, `yeezy`, and `zipped`, then repeated `unknown` until the output
+limit. This looks like a stubborn generation loop or memorized vocabulary
+fragment, not ordinary JSON punctuation damage.
+
+Among the 36 parsed records that were not completely vocabulary-valid, the
+remaining invalid-value fields were:
+
+```text
+neckline           8
+closure            7
+details            7
+material           5
+pattern            3
+silhouette         3
+garment_category   2
+occasion           2
+sleeve_style       1
+```
+
+A record may appear in more than one field count. Representative invented
+values included:
+
+```text
+material:          "woven"
+pattern:           "patchwork"
+closure:           "snap"
+neckline:          "open" or "asymmetric"
+garment_category:  "scarf"
+silhouette:        "popovers"
+details:           ["gather"]
+```
+
+These are often understandable English descriptions, but they violate the
+operational contract because downstream systems expect the exact controlled
+vocabulary. That distinction—semantically plausible versus contract-valid—is
+one of the reasons this task is a useful RL testbed.
+
+The final output also contained 15 rule violations:
+
+```text
+solid_is_not_multicolour             5
+athletic_material_subset             2
+dress_needs_length_and_neckline      2
+auto applies-to violations           6
+```
+
+The model has therefore learned the JSON shell and most individual labels
+before fully learning every relationship among fields. That remaining gap is a
+natural target for verifier-based rewards later.
+
+### Epoch-duration decision
+
+Epoch 2 is selected as the attention-only SFT checkpoint. It earned selection
+on held-out generated-output behavior, not because “two is more than one” or
+because training loss kept falling.
+
+This does **not** yet select attention-only LoRA as the final SFT arm. The
+combined attention-plus-MLP arm still needs the same controlled training and
+validation protocol. Only after comparing the two selected-duration arms should
+one become the baseline handed to GRPO.
+
 ## The RL handoff: GRPO
 
 GRPO comes only after a defensible SFT baseline exists.
@@ -458,9 +653,8 @@ The interesting story is not “RL makes a number go up.” It is how a small mo
 
 ## Evidence to add once runs exist
 
-- Exact training configuration and Git commit hash.
-- Dataset split manifest and checksum.
-- W&B charts for both SFT arms.
+- Exact Git commit hash for the selected final arm.
+- W&B charts for the combined LoRA arm; the attention-only run is `iwsrgsn2`.
 - Frozen-eval table: macro-F1, schema validity, vocabulary validity, rule violations, and cost per SKU.
 - Example generations from both arms, including failures.
 - GRPO reward curves and at least three documented reward hacks.
