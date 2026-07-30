@@ -1,0 +1,28 @@
+{
+  "arm": "attention",
+  "smoke": false,
+  "epochs_requested": 1.0,
+  "train_rows": 3240,
+  "validation_rows": 360,
+  "target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj"
+  ],
+  "trainable_parameters": 4358144,
+  "training_loss": 0.12624580651668493,
+  "trainer_metrics": {
+    "train_runtime": 267.35,
+    "train_samples_per_second": 12.119,
+    "train_steps_per_second": 0.759,
+    "total_flos": 1.019044037855232e+16,
+    "train_loss": 0.12624580651668493,
+    "epoch": 1.0
+  },
+  "wall_seconds": 269.1212183199823,
+  "peak_gpu_allocated_gib": 4.746860027313232,
+  "peak_gpu_reserved_gib": 4.79296875,
+  "disk_free_gib_after": 5.1743621826171875,
+  "adapter_dir": "runs/sft-attention/final-adapter"
+}

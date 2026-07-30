@@ -12,6 +12,10 @@ data/raw/fashionpedia/images/
 # W&B
 wandb/
 
+# Local safety copies of trained weights. Keep small metrics and predictions in
+# Git, but do not turn the source repository into a model-artifact store.
+runs/**/final-adapter/
+
 .DS_Store
 .ipynb_checkpoints/
 

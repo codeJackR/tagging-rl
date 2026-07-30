@@ -1,0 +1,32 @@
+{
+  "split": "validation",
+  "split_manifest": "data/splits/sft-v1.json",
+  "split_source_sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b",
+  "attempted": 360,
+  "parsed": 358,
+  "schema_valid": 358,
+  "schema_validity": 0.9944444444444445,
+  "fully_vocab_valid": 243,
+  "vocab_validity_among_parsed": 0.6787709497206704,
+  "rule_violations": 25,
+  "macro_f1": 0.6499456303507853,
+  "selective_macro_f1": 0.6788521690974316,
+  "coverage": 0.9648666232921275,
+  "attributes": {
+    "garment_category": 0.7774747976393828,
+    "silhouette": 0.5728395061728395,
+    "fit": 0.8984141493945416,
+    "garment_length": 0.7639471639471639,
+    "sleeve_length": 0.7597535111610999,
+    "sleeve_style": 0.4855072463768116,
+    "neckline": 0.8377245367314122,
+    "collar_type": 0.6288048660781421,
+    "waistline": 0.5232067510548523,
+    "closure": 0.469752105986025,
+    "pattern": 0.5599322806045495,
+    "details": 0.5374006399146439,
+    "material": 0.6777944941634116,
+    "colour_primary": 0.7405583125818574,
+    "occasion": 0.5160740934550458
+  }
+}

@@ -356,6 +356,78 @@ a run, and synchronized it successfully. The first real SFT epoch will use
 `report_to=wandb`, which will verify those credentials again in the current
 runner.
 
+### Attention-only SFT: epoch 1
+
+The first full attention-only epoch ran against Git commit `8a781e6`. It used all
+3,240 training rows, evaluated all 360 held-out weak-validation rows, and made
+203 optimizer updates. With four products on the GPU at once and four
+micro-batches accumulated per update, each update represented 16 products.
+
+Training completed in 269 seconds—about four minutes and 29 seconds—without an
+out-of-memory or CUDA error. Peak allocated GPU memory was 4.75 GiB and peak
+reserved memory was 4.79 GiB. The disk had 5.17 GiB free afterward. W&B synced
+the run as `vmmfmi7y`.
+
+The average training loss across the epoch was `0.12625`. The logged loss fell
+from `0.5245` at the first update to roughly `0.06` near the end. Gradient norms
+remained finite and nonzero; sampled logs ranged from about `0.19` to `0.61`,
+with no numerical failure. The all-row validation loss was `0.06236`.
+
+Those token losses are useful health signals, but they do not by themselves
+prove that the generated tags are correct. We therefore loaded the saved LoRA
+adapter and generated answers for the exact 360 validation SKUs named by the
+checksum-bound split manifest. Sampling was disabled.
+
+The generated-output results were:
+
+| measure | epoch-1 result |
+|---|---:|
+| attempted products | 360 |
+| parseable, schema-valid records | 358 / 360 (99.4%) |
+| completely vocabulary-valid records | 243 / 358 (67.9%) |
+| rule violations | 25 |
+| coverage | 96.5% |
+| macro-F1 | 0.650 |
+| selective macro-F1 | 0.679 |
+
+This is weak-validation performance, not the final frozen 300-row evaluation.
+It is for choosing training duration and the LoRA arm; reporting it as final
+test performance would leak model-selection decisions into the test set.
+
+The most important gap after one epoch is no longer JSON syntax. Only two
+outputs failed to parse. The larger issue is controlled vocabulary: the model
+occasionally emitted plausible human terms that the catalog contract does not
+allow. Examples included:
+
+```text
+garment_length: "full"   (not in the permitted garment-length list)
+material:       "woven"  (not in the permitted material list)
+pattern:        "patchwork" (not in the permitted pattern list)
+```
+
+The most common invalid-value fields were material (23 records), details (20),
+garment length (17), neckline (17), and pattern (15). A single record can fail
+more than one field, so those counts should not be added to get a row count.
+
+The two syntax failures were also informative. One answer began with stray
+vocabulary-like prose before eventually producing JSON; another emitted the
+bare token `unknown` without JSON quotes. Epoch 1 has therefore learned the
+output shape extremely well, but has not fully learned that every value must
+come from a closed list.
+
+The per-attribute macro-F1 range exposed where correctness remains uneven.
+`fit` was strongest at 0.898, followed by `neckline` at 0.838 and
+`garment_category` at 0.777. `closure` was weakest at 0.470, followed by
+`sleeve_style` at 0.486, `occasion` at 0.516, and `waistline` at 0.523. These
+weak labels are not fully human-trusted, so the numbers are best used as
+comparative diagnostics rather than absolute truth.
+
+The evidence supports testing epoch 2: vocabulary compliance still has
+substantial room to improve, the first epoch remained numerically stable, and
+the run is cheap enough to continue. We should still keep the epoch-1 adapter
+and generated predictions. Epoch 2 earns selection only if generated-output
+metrics improve rather than merely producing a lower token loss.
+
 ## The RL handoff: GRPO
 
 GRPO comes only after a defensible SFT baseline exists.
