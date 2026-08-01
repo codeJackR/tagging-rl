@@ -1,0 +1,101 @@
+{
+  "evaluation": "locked-sft-frozen-eval-300",
+  "evaluated_at_utc": "2026-08-01T22:23:51Z",
+  "checkpoint": "runs/sft-combined-2epoch/checkpoint-406",
+  "adapter_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+  "gold": {
+    "path": "data/eval_300/eval.jsonl",
+    "rows": 300,
+    "canonical_sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052",
+    "freeze_verified": true
+  },
+  "predictions": {
+    "path": "runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl",
+    "sha256": "cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b",
+    "rows": 300,
+    "unique_skus": 300,
+    "sku_sets_equal": true
+  },
+  "headline": {
+    "macro_f1": 0.6411414820991878,
+    "selective_macro_f1": 0.7169543520009967,
+    "coverage": 0.9430127041742287,
+    "schema_validity": 1.0,
+    "schema_valid": 300,
+    "vocab_validity": 0.8866666666666667,
+    "fully_vocab_valid": 266,
+    "rule_violations": 12,
+    "rows_with_rule_violations": 11,
+    "missing_predictions": 0
+  },
+  "generation_shape": {
+    "max_completion_tokens": 117,
+    "p95_completion_tokens": 114,
+    "configured_max_new_tokens": 170,
+    "outputs_at_token_cap": 0
+  },
+  "attributes": {
+    "garment_category": {"macro_f1": 0.8350583315851544, "coverage": 1.0},
+    "silhouette": {"macro_f1": 0.4100438912938913, "coverage": 0.8198198198198198},
+    "fit": {"macro_f1": 0.9503024083196496, "coverage": 0.9936708860759493},
+    "garment_length": {"macro_f1": 0.7731360689437066, "coverage": 0.9669421487603306},
+    "sleeve_length": {"macro_f1": 0.5663126337403906, "coverage": 0.9545454545454546},
+    "sleeve_style": {"macro_f1": 0.5206444676894467, "coverage": 0.8881987577639752},
+    "neckline": {"macro_f1": 0.6470905888128448, "coverage": 0.8894230769230769},
+    "collar_type": {"macro_f1": 0.7489931688090503, "coverage": 0.9603960396039604},
+    "waistline": {"macro_f1": 0.44412770236299653, "coverage": 0.9361702127659575},
+    "closure": {"macro_f1": 0.40453439976360184, "coverage": 0.8161764705882353},
+    "pattern": {"macro_f1": 0.5651483437197723, "coverage": 0.8921568627450981},
+    "details": {"macro_f1": 0.46323938752437954, "coverage": 0.9487179487179487},
+    "material": {"macro_f1": 0.8329415040281195, "coverage": 1.0},
+    "colour_primary": {"macro_f1": 0.7753342492285987, "coverage": 0.9819004524886877},
+    "occasion": {"macro_f1": 0.6802150856662135, "coverage": 0.943502824858757}
+  },
+  "vocab_error_fields": {
+    "silhouette": 7,
+    "neckline": 5,
+    "colour_primary": 5,
+    "details": 4,
+    "material": 4,
+    "sleeve_style": 3,
+    "collar_type": 3,
+    "closure": 2,
+    "occasion": 2,
+    "sleeve_length": 1,
+    "fit": 1,
+    "garment_length": 1,
+    "pattern": 1
+  },
+  "rule_histogram": {
+    "slits_need_a_hem": 2,
+    "bodycon_is_tight": 2,
+    "solid_is_not_multicolour": 2,
+    "auto:applies_to:neckline": 1,
+    "pants_length_subset": 3,
+    "turtleneck_has_no_collar": 1,
+    "lapels_are_tailored_only": 1
+  },
+  "zero_shot": {
+    "macro_f1": 0.196873757347379,
+    "selective_macro_f1": 0.2047413999670536,
+    "coverage": 0.8807758128921849,
+    "schema_validity": 0.6266666666666667,
+    "vocab_validity": 0.0,
+    "rule_violations": 1204,
+    "missing_predictions": 104
+  },
+  "delta_over_zero_shot": {
+    "macro_f1": 0.44426772475180876,
+    "selective_macro_f1": 0.5122129520339431,
+    "coverage": 0.062236891282043794,
+    "schema_validity": 0.3733333333333333,
+    "vocab_validity": 0.8866666666666667,
+    "rule_violations": -1192,
+    "missing_predictions": -104
+  },
+  "reliability": {
+    "usable": false,
+    "reviewed_cells": 78,
+    "interpretation": "Absolute label scores are provisional. Quote the like-for-like zero-shot delta together with validity and missing-output counts."
+  }
+}

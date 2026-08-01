@@ -2,6 +2,7 @@
   "version": "sft-selection-v1",
   "locked_at_utc": "2026-08-01T22:11:31Z",
   "status": "locked_before_frozen_eval",
+  "lock_commit": "8bff4c6667cf3e3d008b513a566d2c377006a880",
   "selected_checkpoint": {
     "arm": "combined_attention_mlp",
     "remote_path": "runs/sft-combined-2epoch/checkpoint-406",
@@ -59,10 +60,54 @@
     "selection_reason": "Checkpoint 406 improved generated-output macro-F1, vocabulary validity, rule compliance, and coverage over combined checkpoint 203, and outperformed the selected attention-only checkpoint under the same held-out validation protocol."
   },
   "frozen_eval": {
-    "status": "not_run_as_of_lock",
+    "status": "completed_after_lock",
+    "evaluated_at_utc": "2026-08-01T22:23:51Z",
     "path": "data/eval_300/eval.jsonl",
     "rows": 300,
     "canonical_sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052",
-    "file_sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c"
+    "file_sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c",
+    "prediction_file": "runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl",
+    "prediction_file_sha256": "cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b",
+    "integrity": {
+      "prediction_rows": 300,
+      "unique_prediction_skus": 300,
+      "prediction_and_gold_sku_sets_equal": true,
+      "all_predictions_are_raw_strings": true
+    },
+    "decoding": {
+      "do_sample": false,
+      "batch_size": 8,
+      "max_input_tokens": 640,
+      "max_new_tokens": 170,
+      "max_observed_completion_tokens": 117,
+      "outputs_at_token_cap": 0
+    },
+    "result": {
+      "attempted": 300,
+      "parsed": 300,
+      "schema_valid": 300,
+      "schema_validity": 1.0,
+      "fully_vocab_valid": 266,
+      "vocab_validity": 0.8866666666666667,
+      "fully_schema_vocab_and_rule_valid": 256,
+      "rule_violations": 12,
+      "rows_with_rule_violations": 11,
+      "coverage": 0.9430127041742287,
+      "macro_f1": 0.6411414820991878,
+      "selective_macro_f1": 0.7169543520009967,
+      "missing_predictions": 0
+    },
+    "zero_shot_comparison": {
+      "prediction_file": "runs/qwen2.5-1.5b-zero-shot.jsonl",
+      "prediction_file_sha256": "dd1798229fb37aff2f40fea7a1b90257b530425ce129b16c3b261ce5a19107b5",
+      "macro_f1": 0.196873757347379,
+      "schema_validity": 0.6266666666666667,
+      "vocab_validity": 0.0,
+      "rule_violations": 1204,
+      "coverage": 0.8807758128921849,
+      "missing_predictions": 104,
+      "macro_f1_absolute_change": 0.44426772475180876
+    },
+    "interpretation_caveat": "The reliability audit is usable=false: only 78 cells were human-reviewed, so absolute label scores are provisional. The like-for-like delta over zero-shot is more defensible, but zero-shot macro-F1 is conditional on only 196 parsed outputs and must be quoted with validity and missing-output counts."
   }
 }

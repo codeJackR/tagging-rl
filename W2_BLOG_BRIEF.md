@@ -855,8 +855,8 @@ The selected adapter weight file is 73,911,112 bytes with SHA-256:
 00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af
 ```
 
-The frozen 300-row set is named in the lock, but no selected-model inference has
-been run against it yet. Its canonical checksum is:
+At the moment the lock was committed, no selected-model inference had been run
+against the frozen 300-row set. Its canonical checksum was recorded as:
 
 ```text
 5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052
@@ -867,6 +867,196 @@ development and validation; everything after it is final evaluation. The lock
 manifest and this brief were committed together before any selected-model test
 inference. The next step is to evaluate the locked checkpoint exactly as
 declared.
+
+## One-time frozen SFT evaluation
+
+The lock commit was `8bff4c6`. Before generating anything, we repeated every
+identity check declared by that commit:
+
+```text
+selected adapter SHA-256   00ae54af...51af   MATCH
+split manifest SHA-256     4d14d46f...9a3b   MATCH
+frozen file SHA-256        2d4e3be8...829c   MATCH
+frozen canonical SHA-256   5e849d2b...5052   MATCH
+frozen rows                300               MATCH
+destination prediction file                  ABSENT
+```
+
+The canonical freeze verifier returned `ok: true`. The GPU was idle apart from
+ComfyUI's 420 MiB process, and 4.8 GiB of disk remained. Only after those checks
+passed did we cross the evaluation boundary.
+
+The exact locked checkpoint generated one answer for each frozen SKU:
+
+```text
+runs/sft-combined-2epoch/checkpoint-406
+    ↓ greedy, unconstrained generation
+runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl
+```
+
+Generation used the same system prompt and inference runner as validation,
+`do_sample=False`, batch size eight, a 640-token input limit, and a 170-token
+completion ceiling. The output file's SHA-256 is:
+
+```text
+cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b
+```
+
+Before scoring, the file passed four integrity checks: exactly 300 records,
+exactly 300 unique SKU IDs, exact set equality with the frozen gold SKUs, and a
+raw string on every prediction record. This guards against flattering a model
+with a partial run, duplicated easy products, or silently pre-parsed output.
+
+### Official SFT result
+
+The frozen harness reverified the checksum before reporting:
+
+| measure | locked combined SFT |
+|---|---:|
+| attempted products | 300 |
+| schema-valid records | 300/300 (100%) |
+| fully vocabulary-valid records | 266/300 (88.7%) |
+| records valid across schema, vocabulary, and rules | 256/300 (85.3%) |
+| rule violations | 12 across 11 records |
+| missing predictions | 0 |
+| coverage | 94.3% |
+| macro-F1 | 0.6411 |
+| selective macro-F1 | 0.7170 |
+
+No completion hit the generation ceiling. The longest answer was 117 tokens,
+the 95th percentile was 114, and the configured cap was 170. The perfect schema
+score is therefore real generated behavior rather than a side effect of
+constrained decoding or post-processing, and no malformed output was hidden by
+truncation.
+
+The frozen macro-F1 was lower than the weak-validation score of 0.854. We should
+not explain that gap away as one known cause: it may combine differences in
+label quality, product composition, class support, and ordinary validation
+optimism. The purpose of the frozen boundary is precisely to reveal performance
+that model selection did not get to optimize against.
+
+### Like-for-like zero-shot comparison
+
+We did not call the base model again. We re-scored the already saved 300-row
+zero-shot prediction artifact with the same current harness and frozen checksum.
+
+| measure | zero-shot Qwen | locked SFT | change |
+|---|---:|---:|---:|
+| macro-F1 | 0.1969 | 0.6411 | +0.4443 |
+| selective macro-F1 | 0.2047 | 0.7170 | +0.5122 |
+| schema validity | 62.7% | 100.0% | +37.3 points |
+| vocabulary validity | 0.0% | 88.7% | +88.7 points |
+| coverage | 88.1% | 94.3% | +6.2 points |
+| rule violations | 1,204 | 12 | -1,192 |
+| missing/unparseable outputs | 104 | 0 | -104 |
+
+SFT produced a 3.26-times larger conditional macro-F1 and, more importantly,
+turned the model into a reliable participant in the structured-output protocol.
+The base model failed to produce a scorable record for 104 products and had no
+fully vocabulary-valid parsed record. The SFT model produced scorable JSON for
+all 300.
+
+The word “conditional” matters. The harness does not replace zero-shot's 104
+unparseable attempts with all-wrong records; its macro-F1 is calculated over the
+196 parsed survivors. SFT's F1 covers all 300. Quoting only the two F1 values
+would therefore understate the importance of schema validity and make the
+denominators easy to misunderstand. The validity, coverage, and missing-output
+counts belong beside the headline score.
+
+### Per-attribute frozen results
+
+Every attribute macro-F1 improved over zero-shot:
+
+| attribute | zero-shot | SFT |
+|---|---:|---:|
+| garment category | 0.285 | 0.835 |
+| silhouette | 0.151 | 0.410 |
+| fit | 0.139 | 0.950 |
+| garment length | 0.290 | 0.773 |
+| sleeve length | 0.054 | 0.566 |
+| sleeve style | 0.382 | 0.521 |
+| neckline | 0.244 | 0.647 |
+| collar type | 0.153 | 0.749 |
+| waistline | 0.128 | 0.444 |
+| closure | 0.100 | 0.405 |
+| pattern | 0.227 | 0.565 |
+| details | 0.086 | 0.463 |
+| material | 0.241 | 0.833 |
+| colour primary | 0.406 | 0.775 |
+| occasion | 0.067 | 0.680 |
+
+`fit` was strongest at 0.950, followed by garment category at 0.835 and
+material at 0.833. Closure, silhouette, waistline, details, and sleeve style
+remained below 0.53. Those are useful targets for error analysis and eventually
+reward shaping, but thin class support means small per-class counts can move
+macro-F1 sharply.
+
+### What remained broken after SFT
+
+All 300 outputs were parseable JSON, but 34 records invented at least one value
+outside the controlled vocabulary. The most frequent fields were:
+
+```text
+silhouette          7
+neckline            5
+colour_primary      5
+details             4
+material            4
+sleeve_style        3
+collar_type         3
+closure             2
+occasion            2
+five other fields   1 each
+```
+
+Representative invalid values included:
+
+```text
+silhouette:      "trapeze"
+closure:        "strap"
+material:       "cotton_silk"
+colour_primary: "gold"
+details:        ["gather"]
+neckline:       "supraprise", "supraplex", or "cowling"
+```
+
+Some are reasonable fashion terms that are simply outside this contract;
+others are malformed near-words. Both must be rejected operationally because a
+downstream enum consumer cannot infer what the model meant.
+
+The 12 rule violations were:
+
+```text
+pants_length_subset            3
+slits_need_a_hem               2
+bodycon_is_tight               2
+solid_is_not_multicolour       2
+applies_to:neckline            1
+turtleneck_has_no_collar       1
+lapels_are_tailored_only       1
+```
+
+These residual failures are especially valuable for GRPO. SFT has already
+removed the easy failure mode—unstructured output—so verifier rewards can focus
+on exact vocabulary membership and relationships among otherwise valid fields.
+
+### Reliability boundary
+
+The reliability audit is still `usable: false`. Only 78 attribute cells were
+human-reviewed, too few to establish trustworthy per-attribute reward weights
+or treat 0.6411 as a production-accuracy claim. The frozen labels are useful
+for a consistent experiment, but they are not a fully audited ground truth.
+
+The most defensible SFT claim is therefore comparative:
+
+> Under the same frozen data, verifier, and unconstrained decoding protocol,
+> combined LoRA SFT raised conditional macro-F1 from 0.197 to 0.641, eliminated
+> all 104 unparseable outputs, raised whole-record vocabulary validity from zero
+> to 88.7%, and reduced rule violations from 1,204 to 12.
+
+The exact prediction artifact, metrics, and post-lock result were added back to
+`runs/sft-selection.json`. The original checkpoint identity and pre-evaluation
+selection evidence remain unchanged.
 
 ## The RL handoff: GRPO
 
@@ -898,7 +1088,7 @@ The interesting story is not “RL makes a number go up.” It is how a small mo
 
 ## Remaining evidence to add
 
-- Frozen-eval table: macro-F1, schema validity, vocabulary validity, rule violations, and cost per SKU.
+- Measured GPU rental cost per SKU; inference wall time was not instrumented precisely.
 - Example generations from both arms, including failures.
 - GRPO reward curves and at least three documented reward hacks.
 - The dependency-resolution decision for the GRPO/vLLM environment.
