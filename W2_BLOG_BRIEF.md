@@ -618,10 +618,255 @@ Epoch 2 is selected as the attention-only SFT checkpoint. It earned selection
 on held-out generated-output behavior, not because “two is more than one” or
 because training loss kept falling.
 
-This does **not** yet select attention-only LoRA as the final SFT arm. The
-combined attention-plus-MLP arm still needs the same controlled training and
-validation protocol. Only after comparing the two selected-duration arms should
-one become the baseline handed to GRPO.
+At this stage, this did **not** yet select attention-only LoRA as the final SFT
+arm. The combined attention-plus-MLP arm still had to pass the same controlled
+training and validation protocol. Only after comparing the two selected-duration
+arms could one become the baseline handed to GRPO.
+
+## Combined attention-plus-MLP LoRA
+
+The second arm kept every experimental choice fixed except where LoRA was
+attached. Attention-only trained adapters on:
+
+```text
+q_proj, k_proj, v_proj, o_proj
+```
+
+Combined LoRA added the three MLP projections:
+
+```text
+gate_proj, up_proj, down_proj
+```
+
+This increased the trainable parameter count from 4,358,144 to 18,464,768. The
+combined arm therefore trained 1.18% of the 1.56-billion-parameter model instead
+of 0.28%. Rank, alpha, dropout, seed, dataset split, prompt, completion-only
+loss, batch size, accumulation, optimizer, and learning-rate schedule stayed
+the same. That isolation matters: if combined wins, the additional MLP adaptation
+is the meaningful architectural difference.
+
+### Combined LoRA smoke test
+
+We did not jump directly into a full run. The combined adapter was more than
+four times larger, so it first had to pass the same five-update smoke test on 64
+training and 32 validation products.
+
+Unsloth reported that it patched all 28 transformer layers with 28 QKV adapter
+groups, 28 output-projection adapters, and 28 MLP adapter groups. The trainable
+count was exactly 18,464,768, confirming that the requested MLP targets were not
+silently skipped.
+
+The five smoke updates produced:
+
+| step | loss | gradient norm |
+|---:|---:|---:|
+| 1 | 0.4419 | 0.7660 |
+| 2 | 0.5103 | 0.8165 |
+| 3 | 0.4781 | 0.8129 |
+| 4 | 0.4081 | 0.7604 |
+| 5 | 0.3970 | 0.6035 |
+
+All gradient norms were finite and nonzero. They were somewhat larger than the
+attention-only smoke gradients but remained below the trainer's default
+clipping threshold of 1.0. The aggregate training loss was `0.44707`, and the
+32-row validation loss was `0.37642`. As with the earlier smoke run, those tiny
+loss measurements were health checks rather than quality claims.
+
+Peak allocated GPU memory was 4.50 GiB and peak reserved memory was 4.61 GiB.
+The run completed without a CUDA, out-of-memory, or numerical error. The saved
+combined adapter contained 73,911,112 bytes of weights, and its complete
+directory occupied about 86 MiB after including tokenizer files. The machine
+still had 4.99 GiB free.
+
+The adapter size again follows directly from the parameter count:
+
+```text
+18,464,768 trainable values × 4 bytes per saved fp32 value
+≈ 73.86 MB, plus safetensors metadata
+```
+
+The smoke test therefore passed every gate: correct modules, correct parameter
+count, healthy gradients, successful validation, enough VRAM, a saved adapter,
+and sufficient disk for a two-checkpoint full run.
+
+### Full continuous combined run
+
+We launched a fresh two-epoch run from the same Qwen base model rather than
+continuing from the smoke adapter. The smoke subset had already repeated some
+examples and existed only to test plumbing; using it as initialization would
+contaminate the controlled comparison.
+
+The full run wrote to `runs/sft-combined-2epoch`, preserving both the smoke
+artifacts and the attention-only runs. Its configuration was:
+
+```text
+training products                 3,240
+validation products                 360
+effective batch size                  16
+optimizer updates per epoch          203
+total optimizer updates              406
+trainable LoRA parameters      18,464,768
+```
+
+Training completed in 572.5 seconds—about nine minutes and 33 seconds. The
+trainer reported 11.36 samples per second and 0.711 optimizer steps per second.
+Peak allocated GPU memory was 4.90 GiB and peak reserved memory was 5.00 GiB.
+The three saved copies—checkpoint 203, checkpoint 406, and the final adapter—used
+about 258 MiB in total, leaving 4.74 GiB free.
+
+The aggregate two-epoch training loss was `0.06355`. It began at `0.5245`, fell
+to roughly `0.036` near the end of pass one, and stayed around `0.025–0.031`
+during the later part of pass two. Gradient norms remained finite and nonzero
+throughout. During pass two, representative values were roughly `0.14–0.30`,
+so the LoRA parameters continued receiving a learning signal as the cosine
+schedule approached zero.
+
+Validation token loss improved at the epoch boundary:
+
+| checkpoint | validation loss |
+|---|---:|
+| step 203, after pass 1 | 0.03617 |
+| step 406, after pass 2 | 0.03207 |
+
+The run synchronized to W&B as
+[`s0ar902g`](https://wandb.ai/rushabhsp95-vastraa/tagging-rl/runs/s0ar902g).
+
+### Did combined LoRA need its second epoch?
+
+We repeated the fair generated-output test used for attention-only. Both
+combined checkpoints generated unconstrained answers for the exact same 360
+validation SKUs with greedy decoding and the same input and output limits.
+
+| generated-output measure | step 203 | step 406 | change |
+|---|---:|---:|---:|
+| schema-valid records | 359/360 (99.7%) | 359/360 (99.7%) | unchanged |
+| fully vocabulary-valid records | 332/359 (92.5%) | 339/359 (94.4%) | +7 records |
+| rule violations | 15 | 10 | -5 |
+| coverage | 97.0% | 97.7% | +0.7 points |
+| macro-F1 | 0.814 | 0.854 | +0.040 |
+| selective macro-F1 | 0.833 | 0.868 | +0.034 |
+
+The second epoch earned selection. Its improvement was smaller than the second
+attention-only pass because combined checkpoint 203 was already strong, but all
+four operational quality measures moved in the desired direction: more valid
+closed-vocabulary records, fewer rule violations, greater coverage, and higher
+macro-F1.
+
+The average hid a few local regressions. `fit`, `sleeve_length`, `pattern`, and
+`details` macro-F1 fell slightly between combined checkpoints. The largest
+decrease was sleeve length, from 0.943 to 0.897. Those were outweighed by large
+gains in silhouette, garment length, occasion, and garment category. This is a
+reminder that checkpoint selection is a multi-metric decision, not permission
+to ignore individual fields.
+
+## Selecting the SFT arm
+
+With duration selected independently for each arm, we compared their step-406
+checkpoints under the same validation protocol:
+
+| measure | attention-only | attention + MLP | difference |
+|---|---:|---:|---:|
+| macro-F1 | 0.751 | 0.854 | +0.103 |
+| selective macro-F1 | 0.777 | 0.868 | +0.090 |
+| vocabulary validity | 90.0% | 94.4% | +4.4 points |
+| schema validity | 99.7% | 99.7% | unchanged |
+| rule violations | 15 | 10 | -5 |
+| coverage | 97.1% | 97.7% | +0.6 points |
+| trainable parameters | 4.36M | 18.46M | 4.24× |
+| adapter weight file | 17.5 MB | 73.9 MB | 4.23× |
+| training wall time | 530 s | 573 s | 8.0% slower |
+| peak reserved VRAM | 4.79 GiB | 5.00 GiB | +0.20 GiB |
+
+Combined LoRA improved all 15 attribute macro-F1 scores relative to the final
+attention-only checkpoint, although the improvement for `fit` was tiny. The
+largest gains appeared in silhouette, sleeve style, waistline, occasion, and
+garment length. These are plausible beneficiaries of MLP adaptation: MLP blocks
+help transform and store feature combinations after attention has gathered
+relevant title and description tokens.
+
+The trade-off is storage, not feasibility. Combined LoRA uses about four times
+as many adapter parameters and produces a roughly four-times-larger weight file.
+On this 24 GB RTX 3090, however, it required only about 0.20 GiB more peak
+reserved VRAM and eight percent more training time. A 0.103 macro-F1 gain plus
+better validity and rule compliance justified that modest runtime cost for this
+experiment.
+
+Combined checkpoint 406 therefore became the selected SFT baseline:
+
+```text
+runs/sft-combined-2epoch/checkpoint-406
+```
+
+`runs/sft-combined-2epoch/final-adapter` contains the same final trained weights,
+but the numbered checkpoint is the precise auditable reference.
+
+### Remaining combined-checkpoint failures
+
+The selected checkpoint still had one schema failure. It was the same stubborn
+SKU seen in attention-only evaluation, `shopify:naadam.co:6619044577376`. The
+model emitted a short vocabulary-like preamble—`xlarge, xl, yeezy, zipped, zip,
+zero waste`—before otherwise valid JSON. Because the literal output began with
+prose, the whole attempt correctly failed schema validation.
+
+Twenty of the 359 parsed records contained at least one value outside the
+controlled vocabulary. The field-level invalid-value counts were:
+
+```text
+details             8
+closure             6
+neckline            5
+garment_length      1
+garment_category    1
+pattern             1
+```
+
+A record can contribute to multiple counts. Examples included `strap` as a bag
+closure, `gather` or `darted` as details, `asymmetric` or `cutout` as necklines,
+`normal` as a garment length, and one out-of-vocabulary garment category. These
+are semantically plausible but contract-invalid answers—the exact behavior that
+later verifier rewards should target.
+
+Ten cross-field rule violations remained: two athletic-material violations,
+one pants-length violation, two solid-versus-multicolour contradictions, and
+five applies-to violations. SFT has made the contract mostly reliable, but it
+has not made the verifier redundant.
+
+## Locking the checkpoint before final evaluation
+
+Checkpoint selection must be written down before looking at the frozen test
+score. Otherwise, it would be possible—even unintentionally—to test several
+models and select whichever happened to look best on the supposedly untouched
+set.
+
+We created `runs/sft-selection.json` with status
+`locked_before_frozen_eval`. The manifest records:
+
+- the selected arm and exact remote checkpoint path;
+- the base model and training-code Git commit;
+- LoRA rank, alpha, dropout, target modules, and trainable count;
+- the training split manifest and source checksums;
+- the validation prediction checksum and selection metrics;
+- the attention-only and combined checkpoint comparisons;
+- the frozen evaluation identity with status `not_run_as_of_lock`.
+
+The selected adapter weight file is 73,911,112 bytes with SHA-256:
+
+```text
+00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af
+```
+
+The frozen 300-row set is named in the lock, but no selected-model inference has
+been run against it yet. Its canonical checksum is:
+
+```text
+5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052
+```
+
+This sequence creates a clean boundary: everything above the lock is model
+development and validation; everything after it is final evaluation. The lock
+manifest and this brief were committed together before any selected-model test
+inference. The next step is to evaluate the locked checkpoint exactly as
+declared.
 
 ## The RL handoff: GRPO
 
@@ -651,10 +896,8 @@ If the experiment lands cleanly, the finished version can make a modest, defensi
 
 The interesting story is not “RL makes a number go up.” It is how a small model learns an operational output contract, how the verifier exposes shortcuts, and why baseline discipline is what makes an RL result worth believing.
 
-## Evidence to add once runs exist
+## Remaining evidence to add
 
-- Exact Git commit hash for the selected final arm.
-- W&B charts for the combined LoRA arm; the attention-only run is `iwsrgsn2`.
 - Frozen-eval table: macro-F1, schema validity, vocabulary validity, rule violations, and cost per SKU.
 - Example generations from both arms, including failures.
 - GRPO reward curves and at least three documented reward hacks.

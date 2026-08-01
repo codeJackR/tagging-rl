@@ -1,0 +1,68 @@
+{
+  "version": "sft-selection-v1",
+  "locked_at_utc": "2026-08-01T22:11:31Z",
+  "status": "locked_before_frozen_eval",
+  "selected_checkpoint": {
+    "arm": "combined_attention_mlp",
+    "remote_path": "runs/sft-combined-2epoch/checkpoint-406",
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "training_code_commit": "ea5ab04f5f092ecb48b3bd90e8a67864d425324a",
+    "optimizer_steps": 406,
+    "epochs": 2,
+    "adapter_weights": {
+      "file": "adapter_model.safetensors",
+      "bytes": 73911112,
+      "sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af"
+    },
+    "lora": {
+      "rank": 16,
+      "alpha": 16,
+      "dropout": 0,
+      "bias": "none",
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ],
+      "trainable_parameters": 18464768
+    }
+  },
+  "training_data": {
+    "split_manifest": "data/splits/sft-v1.json",
+    "split_manifest_file_sha256": "4d14d46fa4f7df95a24658c741940db64093e7798b5ccd1558f4faa29bbe9a3b",
+    "source": "data/train_weak.jsonl",
+    "source_sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b",
+    "train_rows": 3240,
+    "validation_rows": 360
+  },
+  "selection_evidence": {
+    "prediction_file": "runs/sft-combined-2epoch/validation-predictions.jsonl",
+    "prediction_file_sha256": "f46b90becab16487b8403776b8de9d085e95c3c07a50f9f76b2b93916b2023a4",
+    "attempted": 360,
+    "schema_valid": 359,
+    "schema_validity": 0.9972222222222222,
+    "fully_vocab_valid": 339,
+    "vocab_validity_among_parsed": 0.9442896935933147,
+    "rule_violations": 10,
+    "coverage": 0.9769555339175592,
+    "macro_f1": 0.8536806947422352,
+    "selective_macro_f1": 0.8675592350219463
+  },
+  "comparison": {
+    "combined_checkpoint_203_macro_f1": 0.8135733736972373,
+    "combined_checkpoint_406_macro_f1": 0.8536806947422352,
+    "attention_checkpoint_406_macro_f1": 0.7509511218263504,
+    "selection_reason": "Checkpoint 406 improved generated-output macro-F1, vocabulary validity, rule compliance, and coverage over combined checkpoint 203, and outperformed the selected attention-only checkpoint under the same held-out validation protocol."
+  },
+  "frozen_eval": {
+    "status": "not_run_as_of_lock",
+    "path": "data/eval_300/eval.jsonl",
+    "rows": 300,
+    "canonical_sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052",
+    "file_sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c"
+  }
+}
