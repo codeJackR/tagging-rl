@@ -1052,10 +1052,211 @@ samples, and the run log's exit-code-zero marker. The copied evidence is
 included in the same scoped Git commit as this tracker, so the technical claims
 and their backing artifacts travel together.
 
+#### Retained-pool composition and family audit
+
+Before treating the 1,702 mixed-outcome rows as a GRPO dataset, we audited
+whether difficulty filtering accidentally collapsed category/store coverage or
+overweighted near-duplicate products. The audit reuses the exact SFT family key
+from `training.split_sft.group_key()`: normalized brand plus normalized title
+before a conservative spaced variant separator. Store is parsed from the domain
+inside `sku_id`; the generic row-level source is `shopify` for all 3,600 rows and
+therefore cannot measure store diversity.
+
+The reproducible builder is `training/audit_grpo_pool.py`, covered by two
+dataset-locked regression tests. The full project suite passed with **207
+tests**. It produced:
+
+```text
+runs/sft-difficulty-k8/retained-pool-audit.json
+```
+
+| artifact property | value |
+|---|---|
+| report version | `grpo-retained-pool-audit-v1` |
+| bytes | 42,290 |
+| SHA-256 | `3cce5b94adcc140ed6ff08f58243a6e90b201413cd3b284cabadf920fe12ef7e` |
+| scored-data SHA verified | `ec68b0ccf3ba84a82cdb0799956d36f53c9113d3cb7c7fd5232ecd50412a975f` |
+| difficulty-manifest SHA verified | `5c6fcc41bab65b36904cef256c56e747a19302b30b6da3c7208382e4dfdd3e5b` |
+| retained SKU-set SHA-256 | `e8e318a46b8c11e9898e9bfdd6f8df2c821129002ac12279eae6dda7e8aab3e7` |
+
+Rebuilding the report with its saved timestamp reproduced the complete JSON
+structure exactly.
+
+Category coverage is broadly preserved. The total-variation distance between
+the full and retained category distributions is 5.77%. The largest supported
+increases are shoes, from 14.94% to 17.27% (`+2.33` percentage points), and tops,
+from 16.58% to 18.51% (`+1.92`). The largest decreases are dresses, from 6.89%
+to 5.41% (`-1.48`), and jackets, from 8.03% to 6.64% (`-1.39`). Jumpsuits are the
+only absent category, but the full pool contains only two jumpsuit rows. This is
+a rare-support limitation, not evidence of broad category collapse.
+
+All 14 stores remain represented. Store-distribution total variation is 8.47%,
+larger than category shift and worth tracking during training:
+
+| store | full rows | retained rows | retention rate | retained-share shift |
+|---|---:|---:|---:|---:|
+| Thursday Boots | 490 | 300 | 61.2% | +4.02 pp |
+| Everlane | 382 | 212 | 55.5% | +1.84 pp |
+| American Giant | 384 | 196 | 51.0% | +0.85 pp |
+| Faherty | 419 | 192 | 45.8% | -0.36 pp |
+| Taylor Stitch | 332 | 166 | 50.0% | +0.53 pp |
+| Naadam | 274 | 148 | 54.0% | +1.08 pp |
+| UNTUCKit | 236 | 114 | 48.3% | +0.14 pp |
+| tentree | 212 | 90 | 42.5% | -0.60 pp |
+| Marine Layer | 306 | 79 | 25.8% | -3.86 pp |
+| Allbirds | 215 | 73 | 34.0% | -1.68 pp |
+| Rothy's | 172 | 71 | 41.3% | -0.61 pp |
+| Outdoor Voices | 102 | 41 | 40.2% | -0.42 pp |
+| Ministry of Supply | 51 | 11 | 21.6% | -0.77 pp |
+| Girlfriend Collective | 25 | 9 | 36.0% | -0.17 pp |
+
+Seven nominal brand strings have no retained row, but together they account for
+only 19 of 3,600 source rows. Brand-distribution total variation is 9.47%; most
+of that reflects the same store and catalog-family effects rather than loss of a
+large brand.
+
+Family concentration is the main actionable finding:
+
+| family measurement | result |
+|---|---:|
+| full families | 2,255 |
+| full multi-product families | 491 |
+| retained families | 1,150 |
+| retained rows | 1,702 |
+| duplicate rows beyond one per retained family | 552, 32.43% |
+| retained rows originating in multi-product families | 921, 54.11% |
+| represented multi-product families | 369 |
+| fully retained multi-product families | 114 |
+| partially retained multi-product families | 255 |
+| largest retained family | 40 rows, 2.35% of the pool |
+| top five families | 82 rows, 4.82% |
+| top ten families | 125 rows, 7.34% |
+
+The largest family is Thursday Boots Women's Bags’ **Everyday Tote**: 57 source
+variants, of which 40 have mixed outcomes. Its source-family pass-rate histogram
+spans one always-fail row, 40 mixed rows and 16 always-pass rows. That variation
+shows the filter is not merely selecting the entire family, but row-uniform GRPO
+sampling would still give this one product concept forty times the weight of a
+singleton family.
+
+Gold completeness improves slightly after filtering rather than degrading:
+
+| gold-density measure | full 3,600 | retained 1,702 |
+|---|---:|---:|
+| mean scorable fields | 8.48 | 8.81 |
+| mean substantive labeled fields | 5.41 | 5.61 |
+| mean unknown fields | 6.52 | 6.19 |
+| rows with at most two scorable fields | 73 | 6 |
+| rows with at most two substantive fields | 387 | 97 |
+
+**Audit conclusion:** the strict difficulty filter leaves enough category and
+store diversity for GRPO, and sparse-gold rows do not dominate. The pool is not
+distribution-neutral: Thursday Boots is overrepresented, Marine Layer is
+underrepresented, and repeated product families create meaningful row weights.
+We will not change the locked `0 < pass_rate < 1` eligibility rule; training
+weight is handled separately by the sampling policy below.
+
+##### What these findings mean
+
+The retained pool is **usable for GRPO, but not perfectly balanced**.
+
+1. **Category diversity survived filtering.** Shoes, tops, sweaters, dresses,
+   bags and the other major garment categories remain represented. The modest
+   5.77% category-distribution shift means difficulty filtering did not collapse
+   the training pool into one dominant garment type.
+2. **Store coverage survived, but store weights changed.** All 14 stores remain,
+   yet Thursday Boots grows from 13.6% of the source to 17.6% of retained rows,
+   while Marine Layer falls from 8.5% to 4.6%. The filter therefore creates a
+   curriculum concentrated on catalogs where the locked SFT model produced more
+   mixed outcomes.
+3. **Sparse weak gold is not driving the retained pool.** Retained rows have
+   slightly more scorable and substantive fields than the source average, and
+   only six retained rows have at most two scorable fields. Most GRPO rewards
+   will therefore be based on meaningful multi-field comparisons rather than
+   trivially easy one- or two-field records.
+4. **Near-duplicate weighting is the principal sampling risk.** A row-uniform
+   loader would treat the 40 retained Everyday Tote variants as 40 separate
+   votes while a singleton family gets one. This could spend disproportionate
+   optimization effort on one product concept even though the formal membership
+   rule is correct.
+5. **The mixed pool is an intentional curriculum.** These are prompts near the
+   current policy's decision boundary: neither always solved nor always failed
+   under eight sampled attempts. That reward variance is useful for GRPO, but it
+   also means the retained distribution is no longer the original catalog
+   distribution.
+
+The supported operational decision is to preserve all 1,702 rows as the locked
+**eligible** pool while separately choosing a family-aware sampling policy. Pool
+membership and training weight are different decisions: retaining a row keeps
+the evidence complete; sampling controls how often it influences optimization.
+
+##### Sampling-policy comparison and decision
+
+We compared five policies without training. Deterministic caps order retained
+rows inside each canonical family by SHA-256 of `42\0<sku_id>` and keep the first
+`N`. This makes every proposed active set reproducible rather than dependent on
+input order.
+
+“Effective families” is the inverse Herfindahl index of family sampling
+probability. It answers: *how many equally weighted families would create the
+same concentration?* Higher is more balanced; the real maximum is 1,150.
+
+| policy | active rows | largest family weight | top-10 family weight | effective families | category TVD vs full | store TVD vs full | difficulty TVD vs eligible |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| row-uniform | 1,702, 100% | 2.350% | 7.344% | 513 | 5.77% | 8.47% | 0.00% |
+| family cap 2 | 1,390, 81.7% | 0.144% | 1.439% | 1,033 | 4.99% | 9.15% | 2.12% |
+| **family cap 4** | **1,565, 92.0%** | **0.256%** | **2.556%** | **855** | **5.53%** | **7.85%** | **1.20%** |
+| family cap 8 | 1,657, 97.4% | 0.483% | 4.828% | 710 | 6.27% | 7.56% | 0.90% |
+| family-uniform | 1,702, 100% | 0.087% | 0.870% | 1,150 | 7.62% | 16.24% | 2.04% |
+
+Row-uniform is simplest and preserves every eligible row, but it has the worst
+practical family concentration: only 513 effective families and 2.35% of all
+updates assigned to Everyday Tote. Family-uniform removes that concentration
+entirely, but it gives every family equal weight regardless of catalog/store
+structure. In this dataset that nearly doubles store shift to 16.24%, requires a
+custom weighted sampler, and makes “one epoch” less intuitive because rows no
+longer have equal inclusion probability.
+
+Cap two balances families strongly but removes 312 eligible rows and slightly
+worsens store balance. Cap eight keeps nearly everything but leaves materially
+more duplicate weighting. **Cap four is the selected first-run policy** because
+it keeps all 1,150 families and 1,565 of 1,702 eligible rows, raises effective
+family diversity from 513 to 855, cuts the largest family's weight by about 9×,
+slightly improves category and store balance, and shifts the difficulty
+histogram by only 1.20%. Its expected pass rate is 0.4624 versus 0.4666 under
+row-uniform sampling.
+
+The deterministic cap-four active SKU-set SHA-256 is
+`77d926c88447e3cda5852f015629a4eae8bb9c7e32a00a67694abd985fb75c76`.
+The 137 uncapped variants remain in the locked eligible evidence; they are not
+deleted or reclassified, only excluded from the first run's active sampling
+set. A later ablation can compare row-uniform or cap eight without rerunning
+difficulty scoring.
+
+##### What these findings do not prove
+
+- They do not prove that Thursday Boots products are inherently harder or that
+  Marine Layer products are inherently easier. The observed rates combine the
+  locked model, weak-label quality, catalog wording, product mix and one decoding
+  configuration.
+- They do not prove that the retained pool matches real production traffic.
+  Every source row is from Shopify catalogs, and no traffic weighting exists.
+- They do not measure generalization. These are weak-training prompts already
+  seen during SFT; the locked 300-row frozen evaluation remains the comparison
+  set for model quality.
+- They do not prove cap four is universally optimal. It is the best measured
+  engineering compromise for this first run; only a controlled training
+  ablation could establish whether another weighting improves frozen evaluation.
+- They do not make exact pass rate an intrinsic property of a product. With
+  eight rollouts, rates move in 0.125 increments and may shift under another
+  random seed or decoding configuration.
+
 Remaining post-run breakdowns:
 
-- Pass-rate distribution by garment category.
-- Pass-rate distribution by product family/store to detect source shortcuts.
+- Retained composition and retention rates by garment category are complete;
+  the full nine-bin histogram within each category remains optional follow-up.
+- Retained composition by product family/store is complete; the sampling
+  comparison selected deterministic family cap four for the first run.
 - ~~Incorrect-label frequency across all failed rollouts.~~ Completed.
 - Schema and vocabulary failures by field.
 - Rule-violation histogram.
@@ -1252,7 +1453,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Full pass-rate histogram.
 - [x] Full semantic, abstention and unknown-aware measurements.
 - [x] Scorable-density bias audit of the retained pool.
-- [ ] Retained-pool category/source audit.
+- [x] Retained-pool category/store/family and gold-density audit.
+- [x] Row-uniform, family-cap and family-uniform sampling comparison.
 - [ ] Second-seed sensitivity sample.
 - [ ] GRPO reward specification.
 - [ ] GRPO smoke and gradient evidence.

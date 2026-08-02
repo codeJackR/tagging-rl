@@ -1,0 +1,1261 @@
+{
+  "composition": {
+    "brands": {
+      "full_group_count": 49,
+      "groups": [
+        {
+          "full_rows": 215,
+          "full_share": 0.059722222222222225,
+          "key": "Allbirds",
+          "retained_rows": 73,
+          "retained_share": 0.04289071680376028,
+          "retention_rate": 0.3395348837209302,
+          "share_shift_percentage_points": -1.6831505418461943
+        },
+        {
+          "full_rows": 384,
+          "full_share": 0.10666666666666667,
+          "key": "American Giant",
+          "retained_rows": 196,
+          "retained_share": 0.11515863689776733,
+          "retention_rate": 0.5104166666666666,
+          "share_shift_percentage_points": 0.8491970231100654
+        },
+        {
+          "full_rows": 1,
+          "full_share": 0.0002777777777777778,
+          "key": "Boston One Bag",
+          "retained_rows": 0,
+          "retained_share": 0.0,
+          "retention_rate": 0.0,
+          "share_shift_percentage_points": -0.027777777777777776
+        },
+        {
+          "full_rows": 11,
+          "full_share": 0.0030555555555555557,
+          "key": "Custom Club",
+          "retained_rows": 6,
+          "retained_share": 0.0035252643948296123,
+          "retention_rate": 0.5454545454545454,
+          "share_shift_percentage_points": 0.04697088392740566
+        },
+        {
+          "full_rows": 382,
+          "full_share": 0.10611111111111111,
+          "key": "Everlane",
+          "retained_rows": 212,
+          "retained_share": 0.1245593419506463,
+          "retention_rate": 0.5549738219895288,
+          "share_shift_percentage_points": 1.8448230839535187
+        },
+        {
+          "full_rows": 419,
+          "full_share": 0.11638888888888889,
+          "key": "Faherty",
+          "retained_rows": 192,
+          "retained_share": 0.1128084606345476,
+          "retention_rate": 0.45823389021479716,
+          "share_shift_percentage_points": -0.35804282543412946
+        },
+        {
+          "full_rows": 25,
+          "full_share": 0.006944444444444444,
+          "key": "Girlfriend Collective",
+          "retained_rows": 9,
+          "retained_share": 0.005287896592244419,
+          "retention_rate": 0.36,
+          "share_shift_percentage_points": -0.16565478522000254
+        },
+        {
+          "full_rows": 295,
+          "full_share": 0.08194444444444444,
+          "key": "Marine Layer",
+          "retained_rows": 73,
+          "retained_share": 0.04289071680376028,
+          "retention_rate": 0.24745762711864408,
+          "share_shift_percentage_points": -3.9053727640684164
+        },
+        {
+          "full_rows": 13,
+          "full_share": 0.003611111111111111,
+          "key": "Men's AeroZeroº Shirt (MPS)",
+          "retained_rows": 1,
+          "retained_share": 0.0005875440658049354,
+          "retention_rate": 0.07692307692307693,
+          "share_shift_percentage_points": -0.3023567045306175
+        },
+        {
+          "full_rows": 3,
+          "full_share": 0.0008333333333333334,
+          "key": "Men's Apollo Dress Shirt",
+          "retained_rows": 3,
+          "retained_share": 0.0017626321974148062,
+          "retention_rate": 1.0,
+          "share_shift_percentage_points": 0.09292988640814728
+        },
+        {
+          "full_rows": 3,
+          "full_share": 0.0008333333333333334,
+          "key": "Men's Kinetic Blazer (MPS)",
+          "retained_rows": 0,
+          "retained_share": 0.0,
+          "retention_rate": 0.0,
+          "share_shift_percentage_points": -0.08333333333333334
+        },
+        {
+          "full_rows": 3,
+          "full_share": 0.0008333333333333334,
+          "key": "Men's Kinetic Pant (MPS)",
+          "retained_rows": 1,
+          "retained_share": 0.0005875440658049354,
+          "retention_rate": 0.3333333333333333,
+          "share_shift_percentage_points": -0.024578926752839805
+        },
+        {
+          "full_rows": 2,
+          "full_share": 0.0005555555555555556,
+          "key": "Men's Travel Merino Tee",
+          "retained_rows": 0,
+          "retained_share": 0.0,
+          "retention_rate": 0.0,
+          "share_shift_percentage_points": -0.05555555555555555
+        },
+        {
+          "full_rows": 4,
+          "full_share": 0.0011111111111111111,
+          "key": "Men's Velocity Blazer (MPS)",
+          "retained_rows": 0,
+          "retained_share": 0.0,
+          "retention_rate": 0.0,
+          "share_shift_percentage_points": -0.1111111111111111
+        },
+        {
+          "full_rows": 2,
+          "full_share": 0.0005555555555555556,
+          "key": "Men's Velocity Blazer Sale",
+          "retained_rows": 0,
+          "retained_share": 0.0,
+          "retention_rate": 0.0,
+          "share_shift_percentage_points": -0.05555555555555555
+        },
+        {
+          "full_rows": 2,
+          "full_share": 0.0005555555555555556,
+          "key": "Men's Velocity Merino Harrington Jacket (MPS)",
+          "retained_rows": 2,
+          "retained_share": 0.0011750881316098707,
+          "retention_rate": 1.0,
+          "share_shift_percentage_points": 0.061953257605431515
+        },
+        {
+          "full_rows": 4,
+          "full_share": 0.0011111111111111111,
+          "key": "Men's Velocity Pant (MPS)",
+          "retained_rows": 1,
+          "retained_share": 0.0005875440658049354,
+          "retention_rate": 0.25,
+          "share_shift_percentage_points": -0.052356704530617575
+        },
+        {
+          "full_rows": 136,
+          "full_share": 0.03777777777777778,
+          "key": "NAADAM",
+          "retained_rows": 77,
+          "retained_share": 0.04524089306698002,
+          "retention_rate": 0.5661764705882353,
+          "share_shift_percentage_points": 0.7463115289202245
+        },
+        {
+          "full_rows": 138,
+          "full_share": 0.03833333333333333,
+          "key": "Naadam",
+          "retained_rows": 71,
+          "retained_share": 0.04171562867215041,
+          "retention_rate": 0.5144927536231884,
+          "share_shift_percentage_points": 0.3382295338817079
+        },
+        {
+          "full_rows": 3,
+          "full_share": 0.0008333333333333334,
+          "key": "Nothing New - Men's Sneakers",
+          "retained_rows": 1,
+          "retained_share": 0.0005875440658049354,
+          "retention_rate": 0.3333333333333333,
+          "share_shift_percentage_points": -0.024578926752839805
+        },
+        {
+          "full_rows": 102,
+          "full_share": 0.028333333333333332,
+          "key": "Outdoor Voices",
+          "retained_rows": 41,
+          "retained_share": 0.02408930669800235,
+          "retention_rate": 0.4019607843137255,
+          "share_shift_percentage_points": -0.424402663533098
+        },
+        {
+          "full_rows": 172,
+          "full_share": 0.04777777777777778,
+          "key": "Rothy's",
+          "retained_rows": 71,
+          "retained_share": 0.04171562867215041,
+          "retention_rate": 0.4127906976744186,
+          "share_shift_percentage_points": -0.606214910562737
+        },
+        {
+          "full_rows": 332,
+          "full_share": 0.09222222222222222,
+          "key": "Taylor Stitch",
+          "retained_rows": 166,
+          "retained_share": 0.09753231492361927,
+          "retention_rate": 0.5,
+          "share_shift_percentage_points": 0.5310092701397053
+        },
+        {
+          "full_rows": 50,
+          "full_share": 0.013888888888888888,
+          "key": "Thursday - Men's Jackets",
+          "retained_rows": 22,
+          "retained_share": 0.012925969447708578,
+          "retention_rate": 0.44,
+          "share_shift_percentage_points": -0.09629194411803106
+        },
+        {
+          "full_rows": 3,
+          "full_share": 0.0008333333333333334,
+          "key": "Thursday - Men's Jackets (WH)",
+          "retained_rows": 1,
+          "retained_share": 0.0005875440658049354,
+          "retention_rate": 0.3333333333333333,
+          "share_shift_percentage_points": -0.024578926752839805
+        },
+        {
+          "full_rows": 53,
+          "full_share": 0.014722222222222222,
+          "key": "Thursday - Men's Shirts",
+          "retained_rows": 35,
+          "retained_share": 0.020564042303172738,
+          "retention_rate": 0.660377358490566,
+          "share_shift_percentage_points": 0.5841820080950516
+        },
+        {
+          "full_rows": 28,
+          "full_share": 0.0077777777777777776,
+          "key": "Thursday - Women's Jackets",
+          "retained_rows": 9,
+          "retained_share": 0.005287896592244419,
+          "retention_rate": 0.32142857142857145,
+          "share_shift_percentage_points": -0.24898811855333589
+        },
+        {
+          "full_rows": 13,
+          "full_share": 0.003611111111111111,
+          "key": "Thursday Boots - Accessories",
+          "retained_rows": 3,
+          "retained_share": 0.0017626321974148062,
+          "retention_rate": 0.23076923076923078,
+          "share_shift_percentage_points": -0.18484789136963048
+        },
+        {
+          "full_rows": 58,
+          "full_share": 0.01611111111111111,
+          "key": "Thursday Boots - Men's",
+          "retained_rows": 50,
+          "retained_share": 0.02937720329024677,
+          "retention_rate": 0.8620689655172413,
+          "share_shift_percentage_points": 1.3266092179135658
+        },
+        {
+          "full_rows": 5,
+          "full_share": 0.001388888888888889,
+          "key": "Thursday Boots - Men's (WH)",
+          "retained_rows": 5,
+          "retained_share": 0.002937720329024677,
+          "retention_rate": 1.0,
+          "share_shift_percentage_points": 0.1548831440135788
+        },
+        {
+          "full_rows": 3,
+          "full_share": 0.0008333333333333334,
+          "key": "Thursday Boots - Men's Bags",
+          "retained_rows": 2,
+          "retained_share": 0.0011750881316098707,
+          "retention_rate": 0.6666666666666666,
+          "share_shift_percentage_points": 0.03417547982765373
+        },
+        {
+          "full_rows": 10,
+          "full_share": 0.002777777777777778,
+          "key": "Thursday Boots - Men's Shoes",
+          "retained_rows": 7,
+          "retained_share": 0.004112808460634548,
+          "retention_rate": 0.7,
+          "share_shift_percentage_points": 0.13350306828567698
+        },
+        {
+          "full_rows": 2,
+          "full_share": 0.0005555555555555556,
+          "key": "Thursday Boots - Men's Shoes (WH)",
+          "retained_rows": 2,
+          "retained_share": 0.0011750881316098707,
+          "retention_rate": 1.0,
+          "share_shift_percentage_points": 0.061953257605431515
+        },
+        {
+          "full_rows": 25,
+          "full_share": 0.006944444444444444,
+          "key": "Thursday Boots - Men's Sneakers",
+          "retained_rows": 20,
+          "retained_share": 0.011750881316098707,
+          "retention_rate": 0.8,
+          "share_shift_percentage_points": 0.4806436871654263
+        },
+        {
+          "full_rows": 32,
+          "full_share": 0.008888888888888889,
+          "key": "Thursday Boots - Seconds - Men's Boots",
+          "retained_rows": 20,
+          "retained_share": 0.011750881316098707,
+          "retention_rate": 0.625,
+          "share_shift_percentage_points": 0.28619924272098185
+        },
+        {
+          "full_rows": 5,
+          "full_share": 0.001388888888888889,
+          "key": "Thursday Boots - Seconds - Men's Jackets",
+          "retained_rows": 1,
+          "retained_share": 0.0005875440658049354,
+          "retention_rate": 0.2,
+          "share_shift_percentage_points": -0.08013448230839536
+        },
+        {
+          "full_rows": 3,
+          "full_share": 0.0008333333333333334,
+          "key": "Thursday Boots - Seconds - Men's Sneakers",
+          "retained_rows": 3,
+          "retained_share": 0.0017626321974148062,
+          "retention_rate": 1.0,
+          "share_shift_percentage_points": 0.09292988640814728
+        },
+        {
+          "full_rows": 15,
+          "full_share": 0.004166666666666667,
+          "key": "Thursday Boots - Seconds - Women's Boots",
+          "retained_rows": 9,
+          "retained_share": 0.005287896592244419,
+          "retention_rate": 0.6,
+          "share_shift_percentage_points": 0.1121229925577752
+        },
+        {
+          "full_rows": 18,
+          "full_share": 0.005,
+          "key": "Thursday Boots - Women's",
+          "retained_rows": 15,
+          "retained_share": 0.00881316098707403,
+          "retention_rate": 0.8333333333333334,
+          "share_shift_percentage_points": 0.3813160987074031
+        },
+        {
+          "full_rows": 13,
+          "full_share": 0.003611111111111111,
+          "key": "Thursday Boots - Women's (WH)",
+          "retained_rows": 13,
+          "retained_share": 0.00763807285546416,
+          "retention_rate": 1.0,
+          "share_shift_percentage_points": 0.40269617443530487
+        },
+        {
+          "full_rows": 90,
+          "full_share": 0.025,
+          "key": "Thursday Boots - Women's Bags",
+          "retained_rows": 55,
+          "retained_share": 0.03231492361927144,
+          "retention_rate": 0.6111111111111112,
+          "share_shift_percentage_points": 0.7314923619271441
+        },
+        {
+          "full_rows": 42,
+          "full_share": 0.011666666666666667,
+          "key": "Thursday Boots - Women's Shoes",
+          "retained_rows": 18,
+          "retained_share": 0.010575793184488837,
+          "retention_rate": 0.42857142857142855,
+          "share_shift_percentage_points": -0.10908734821778299
+        },
+        {
+          "full_rows": 1,
+          "full_share": 0.0002777777777777778,
+          "key": "Thursday Boots - Women's Shoes (WH)",
+          "retained_rows": 1,
+          "retained_share": 0.0005875440658049354,
+          "retention_rate": 1.0,
+          "share_shift_percentage_points": 0.030976628802715758
+        },
+        {
+          "full_rows": 18,
+          "full_share": 0.005,
+          "key": "Thursday Boots - Women's Sneakers",
+          "retained_rows": 8,
+          "retained_share": 0.004700352526439483,
+          "retention_rate": 0.4444444444444444,
+          "share_shift_percentage_points": -0.02996474735605173
+        },
+        {
+          "full_rows": 236,
+          "full_share": 0.06555555555555556,
+          "key": "UNTUCKit",
+          "retained_rows": 114,
+          "retained_share": 0.06698002350176263,
+          "retention_rate": 0.4830508474576271,
+          "share_shift_percentage_points": 0.14244679462070697
+        },
+        {
+          "full_rows": 7,
+          "full_share": 0.0019444444444444444,
+          "key": "Women's AeroZero Shirt (MPS)",
+          "retained_rows": 3,
+          "retained_share": 0.0017626321974148062,
+          "retention_rate": 0.42857142857142855,
+          "share_shift_percentage_points": -0.018181224702963822
+        },
+        {
+          "full_rows": 3,
+          "full_share": 0.0008333333333333334,
+          "key": "Women's Kinetic Tailored Blazer (MPS)",
+          "retained_rows": 0,
+          "retained_share": 0.0,
+          "retention_rate": 0.0,
+          "share_shift_percentage_points": -0.08333333333333334
+        },
+        {
+          "full_rows": 4,
+          "full_share": 0.0011111111111111111,
+          "key": "Women's Velocity Tailored Blazer (MPS)",
+          "retained_rows": 0,
+          "retained_share": 0.0,
+          "retention_rate": 0.0,
+          "share_shift_percentage_points": -0.1111111111111111
+        },
+        {
+          "full_rows": 212,
+          "full_share": 0.058888888888888886,
+          "key": "tentree",
+          "retained_rows": 90,
+          "retained_share": 0.052878965922444184,
+          "retention_rate": 0.42452830188679247,
+          "share_shift_percentage_points": -0.6009922966444703
+        }
+      ],
+      "retained_group_count": 42,
+      "total_variation_distance": 0.0946755451103277
+    },
+    "garment_categories": {
+      "full_group_count": 15,
+      "groups": [
+        {
+          "full_rows": 267,
+          "full_share": 0.07416666666666667,
+          "key": "bag",
+          "retained_rows": 130,
+          "retained_share": 0.07638072855464159,
+          "retention_rate": 0.4868913857677903,
+          "share_shift_percentage_points": 0.2214061887974919
+        },
+        {
+          "full_rows": 99,
+          "full_share": 0.0275,
+          "key": "cardigan",
+          "retained_rows": 42,
+          "retained_share": 0.024676850763807285,
+          "retention_rate": 0.42424242424242425,
+          "share_shift_percentage_points": -0.2823149236192715
+        },
+        {
+          "full_rows": 9,
+          "full_share": 0.0025,
+          "key": "coat",
+          "retained_rows": 4,
+          "retained_share": 0.0023501762632197414,
+          "retention_rate": 0.4444444444444444,
+          "share_shift_percentage_points": -0.014982373678025865
+        },
+        {
+          "full_rows": 248,
+          "full_share": 0.06888888888888889,
+          "key": "dress",
+          "retained_rows": 92,
+          "retained_share": 0.05405405405405406,
+          "retention_rate": 0.3709677419354839,
+          "share_shift_percentage_points": -1.4834834834834831
+        },
+        {
+          "full_rows": 289,
+          "full_share": 0.08027777777777778,
+          "key": "jacket",
+          "retained_rows": 113,
+          "retained_share": 0.06639247943595769,
+          "retention_rate": 0.39100346020761245,
+          "share_shift_percentage_points": -1.388529834182009
+        },
+        {
+          "full_rows": 2,
+          "full_share": 0.0005555555555555556,
+          "key": "jumpsuit",
+          "retained_rows": 0,
+          "retained_share": 0.0,
+          "retention_rate": 0.0,
+          "share_shift_percentage_points": -0.05555555555555555
+        },
+        {
+          "full_rows": 20,
+          "full_share": 0.005555555555555556,
+          "key": "other",
+          "retained_rows": 1,
+          "retained_share": 0.0005875440658049354,
+          "retention_rate": 0.05,
+          "share_shift_percentage_points": -0.49680114897506206
+        },
+        {
+          "full_rows": 129,
+          "full_share": 0.035833333333333335,
+          "key": "pants",
+          "retained_rows": 49,
+          "retained_share": 0.028789659224441832,
+          "retention_rate": 0.3798449612403101,
+          "share_shift_percentage_points": -0.7043674108891503
+        },
+        {
+          "full_rows": 783,
+          "full_share": 0.2175,
+          "key": "shirt_blouse",
+          "retained_rows": 357,
+          "retained_share": 0.2097532314923619,
+          "retention_rate": 0.4559386973180077,
+          "share_shift_percentage_points": -0.7746768507638085
+        },
+        {
+          "full_rows": 538,
+          "full_share": 0.14944444444444444,
+          "key": "shoe",
+          "retained_rows": 294,
+          "retained_share": 0.172737955346651,
+          "retention_rate": 0.5464684014869888,
+          "share_shift_percentage_points": 2.3293510902206576
+        },
+        {
+          "full_rows": 93,
+          "full_share": 0.025833333333333333,
+          "key": "shorts",
+          "retained_rows": 44,
+          "retained_share": 0.025851938895417155,
+          "retention_rate": 0.4731182795698925,
+          "share_shift_percentage_points": 0.0018605562083821858
+        },
+        {
+          "full_rows": 46,
+          "full_share": 0.012777777777777779,
+          "key": "skirt",
+          "retained_rows": 12,
+          "retained_share": 0.007050528789659225,
+          "retention_rate": 0.2608695652173913,
+          "share_shift_percentage_points": -0.5727248988118554
+        },
+        {
+          "full_rows": 461,
+          "full_share": 0.12805555555555556,
+          "key": "sweater",
+          "retained_rows": 236,
+          "retained_share": 0.13866039952996476,
+          "retention_rate": 0.5119305856832972,
+          "share_shift_percentage_points": 1.0604843974409195
+        },
+        {
+          "full_rows": 597,
+          "full_share": 0.16583333333333333,
+          "key": "top",
+          "retained_rows": 315,
+          "retained_share": 0.18507638072855465,
+          "retention_rate": 0.5276381909547738,
+          "share_shift_percentage_points": 1.9243047395221313
+        },
+        {
+          "full_rows": 19,
+          "full_share": 0.005277777777777778,
+          "key": "vest",
+          "retained_rows": 13,
+          "retained_share": 0.00763807285546416,
+          "retention_rate": 0.6842105263157895,
+          "share_shift_percentage_points": 0.23602950776863818
+        }
+      ],
+      "retained_group_count": 14,
+      "total_variation_distance": 0.05773436479958221
+    },
+    "sources": {
+      "full_group_count": 1,
+      "groups": [
+        {
+          "full_rows": 3600,
+          "full_share": 1.0,
+          "key": "shopify",
+          "retained_rows": 1702,
+          "retained_share": 1.0,
+          "retention_rate": 0.4727777777777778,
+          "share_shift_percentage_points": 0.0
+        }
+      ],
+      "retained_group_count": 1,
+      "total_variation_distance": 0.0
+    },
+    "stores": {
+      "full_group_count": 14,
+      "groups": [
+        {
+          "full_rows": 419,
+          "full_share": 0.11638888888888889,
+          "key": "fahertybrand.com",
+          "retained_rows": 192,
+          "retained_share": 0.1128084606345476,
+          "retention_rate": 0.45823389021479716,
+          "share_shift_percentage_points": -0.35804282543412946
+        },
+        {
+          "full_rows": 51,
+          "full_share": 0.014166666666666666,
+          "key": "ministryofsupply.com",
+          "retained_rows": 11,
+          "retained_share": 0.006462984723854289,
+          "retention_rate": 0.21568627450980393,
+          "share_shift_percentage_points": -0.7703681942812377
+        },
+        {
+          "full_rows": 274,
+          "full_share": 0.07611111111111112,
+          "key": "naadam.co",
+          "retained_rows": 148,
+          "retained_share": 0.08695652173913043,
+          "retention_rate": 0.5401459854014599,
+          "share_shift_percentage_points": 1.0845410628019316
+        },
+        {
+          "full_rows": 215,
+          "full_share": 0.059722222222222225,
+          "key": "www.allbirds.com",
+          "retained_rows": 73,
+          "retained_share": 0.04289071680376028,
+          "retention_rate": 0.3395348837209302,
+          "share_shift_percentage_points": -1.6831505418461943
+        },
+        {
+          "full_rows": 384,
+          "full_share": 0.10666666666666667,
+          "key": "www.american-giant.com",
+          "retained_rows": 196,
+          "retained_share": 0.11515863689776733,
+          "retention_rate": 0.5104166666666666,
+          "share_shift_percentage_points": 0.8491970231100654
+        },
+        {
+          "full_rows": 382,
+          "full_share": 0.10611111111111111,
+          "key": "www.everlane.com",
+          "retained_rows": 212,
+          "retained_share": 0.1245593419506463,
+          "retention_rate": 0.5549738219895288,
+          "share_shift_percentage_points": 1.8448230839535187
+        },
+        {
+          "full_rows": 25,
+          "full_share": 0.006944444444444444,
+          "key": "www.girlfriend.com",
+          "retained_rows": 9,
+          "retained_share": 0.005287896592244419,
+          "retention_rate": 0.36,
+          "share_shift_percentage_points": -0.16565478522000254
+        },
+        {
+          "full_rows": 306,
+          "full_share": 0.085,
+          "key": "www.marinelayer.com",
+          "retained_rows": 79,
+          "retained_share": 0.046415981198589897,
+          "retention_rate": 0.2581699346405229,
+          "share_shift_percentage_points": -3.858401880141011
+        },
+        {
+          "full_rows": 102,
+          "full_share": 0.028333333333333332,
+          "key": "www.outdoorvoices.com",
+          "retained_rows": 41,
+          "retained_share": 0.02408930669800235,
+          "retention_rate": 0.4019607843137255,
+          "share_shift_percentage_points": -0.424402663533098
+        },
+        {
+          "full_rows": 172,
+          "full_share": 0.04777777777777778,
+          "key": "www.rothys.com",
+          "retained_rows": 71,
+          "retained_share": 0.04171562867215041,
+          "retention_rate": 0.4127906976744186,
+          "share_shift_percentage_points": -0.606214910562737
+        },
+        {
+          "full_rows": 332,
+          "full_share": 0.09222222222222222,
+          "key": "www.taylorstitch.com",
+          "retained_rows": 166,
+          "retained_share": 0.09753231492361927,
+          "retention_rate": 0.5,
+          "share_shift_percentage_points": 0.5310092701397053
+        },
+        {
+          "full_rows": 212,
+          "full_share": 0.058888888888888886,
+          "key": "www.tentree.com",
+          "retained_rows": 90,
+          "retained_share": 0.052878965922444184,
+          "retention_rate": 0.42452830188679247,
+          "share_shift_percentage_points": -0.6009922966444703
+        },
+        {
+          "full_rows": 490,
+          "full_share": 0.1361111111111111,
+          "key": "www.thursdayboots.com",
+          "retained_rows": 300,
+          "retained_share": 0.1762632197414806,
+          "retention_rate": 0.6122448979591837,
+          "share_shift_percentage_points": 4.01521086303695
+        },
+        {
+          "full_rows": 236,
+          "full_share": 0.06555555555555556,
+          "key": "www.untuckit.com",
+          "retained_rows": 114,
+          "retained_share": 0.06698002350176263,
+          "retention_rate": 0.4830508474576271,
+          "share_shift_percentage_points": 0.14244679462070697
+        }
+      ],
+      "retained_group_count": 14,
+      "total_variation_distance": 0.0846722809766288
+    }
+  },
+  "created_at_utc": "2026-08-02T22:30:16+00:00",
+  "families": {
+    "full_families": 2255,
+    "full_rows_in_variant_families": 1836,
+    "full_variant_families": 491,
+    "fully_retained_variant_families": 114,
+    "grouping": "training.split_sft.group_key: normalized brand + title before spaced variant separator",
+    "maximum_retained_rows_one_family": 40,
+    "partially_retained_variant_families": 255,
+    "represented_variant_families": 369,
+    "retained_duplicate_rows_beyond_one_per_family": 552,
+    "retained_families": 1150,
+    "retained_family_size_histogram": {
+      "1": 910,
+      "11": 3,
+      "2": 125,
+      "3": 55,
+      "4": 20,
+      "40": 1,
+      "5": 14,
+      "6": 10,
+      "7": 6,
+      "8": 2,
+      "9": 4
+    },
+    "retained_rows_from_variant_families": 921,
+    "retained_rows_per_family": 1.48,
+    "top_20_retained_families": [
+      {
+        "brand": "Thursday Boots - Women's Bags",
+        "family_title": "everyday tote",
+        "full_rows": 57,
+        "key": "thursday boots women s bags::everyday tote",
+        "pass_rate_histogram": {
+          "0.000": 1,
+          "0.250": 6,
+          "0.375": 5,
+          "0.500": 3,
+          "0.625": 11,
+          "0.875": 15,
+          "1.000": 16
+        },
+        "retained_rows": 40,
+        "retained_share": 0.023501762632197415
+      },
+      {
+        "brand": "American Giant",
+        "family_title": "women s classic cotton v neck tee",
+        "full_rows": 22,
+        "key": "american giant::women s classic cotton v neck tee",
+        "pass_rate_histogram": {
+          "0.000": 9,
+          "0.125": 4,
+          "0.250": 5,
+          "0.500": 1,
+          "0.625": 1,
+          "1.000": 2
+        },
+        "retained_rows": 11,
+        "retained_share": 0.006462984723854289
+      },
+      {
+        "brand": "American Giant",
+        "family_title": "women s premium slub crew tee",
+        "full_rows": 18,
+        "key": "american giant::women s premium slub crew tee",
+        "pass_rate_histogram": {
+          "0.000": 2,
+          "0.125": 3,
+          "0.250": 2,
+          "0.500": 1,
+          "0.625": 3,
+          "0.750": 1,
+          "0.875": 1,
+          "1.000": 5
+        },
+        "retained_rows": 11,
+        "retained_share": 0.006462984723854289
+      },
+      {
+        "brand": "American Giant",
+        "family_title": "unisex american vintage pullover",
+        "full_rows": 12,
+        "key": "american giant::unisex american vintage pullover",
+        "pass_rate_histogram": {
+          "0.000": 1,
+          "0.125": 4,
+          "0.250": 3,
+          "0.625": 2,
+          "0.750": 1,
+          "0.875": 1
+        },
+        "retained_rows": 11,
+        "retained_share": 0.006462984723854289
+      },
+      {
+        "brand": "American Giant",
+        "family_title": "women s classic cotton crew tee",
+        "full_rows": 19,
+        "key": "american giant::women s classic cotton crew tee",
+        "pass_rate_histogram": {
+          "0.000": 6,
+          "0.125": 1,
+          "0.250": 2,
+          "0.375": 2,
+          "0.500": 2,
+          "0.625": 1,
+          "0.750": 1,
+          "1.000": 4
+        },
+        "retained_rows": 9,
+        "retained_share": 0.005287896592244419
+      },
+      {
+        "brand": "Everlane",
+        "family_title": "the box cut tee in essential cotton",
+        "full_rows": 13,
+        "key": "everlane::the box cut tee in essential cotton",
+        "pass_rate_histogram": {
+          "0.000": 4,
+          "0.250": 1,
+          "0.500": 2,
+          "0.625": 2,
+          "0.750": 3,
+          "0.875": 1
+        },
+        "retained_rows": 9,
+        "retained_share": 0.005287896592244419
+      },
+      {
+        "brand": "American Giant",
+        "family_title": "men s premium slub crew tee",
+        "full_rows": 12,
+        "key": "american giant::men s premium slub crew tee",
+        "pass_rate_histogram": {
+          "0.000": 3,
+          "0.125": 4,
+          "0.250": 3,
+          "0.375": 1,
+          "0.625": 1
+        },
+        "retained_rows": 9,
+        "retained_share": 0.005287896592244419
+      },
+      {
+        "brand": "Thursday - Men's Shirts",
+        "family_title": "everyday button down shirt",
+        "full_rows": 10,
+        "key": "thursday men s shirts::everyday button down shirt",
+        "pass_rate_histogram": {
+          "0.000": 1,
+          "0.375": 5,
+          "0.500": 2,
+          "0.625": 1,
+          "0.875": 1
+        },
+        "retained_rows": 9,
+        "retained_share": 0.005287896592244419
+      },
+      {
+        "brand": "Faherty",
+        "family_title": "sunwashed regenerative tee",
+        "full_rows": 14,
+        "key": "faherty::sunwashed regenerative tee",
+        "pass_rate_histogram": {
+          "0.000": 6,
+          "0.125": 1,
+          "0.250": 1,
+          "0.375": 2,
+          "0.500": 1,
+          "0.750": 3
+        },
+        "retained_rows": 8,
+        "retained_share": 0.004700352526439483
+      },
+      {
+        "brand": "Faherty",
+        "family_title": "the movement shirt",
+        "full_rows": 13,
+        "key": "faherty::the movement shirt",
+        "pass_rate_histogram": {
+          "0.000": 1,
+          "0.125": 3,
+          "0.250": 4,
+          "0.875": 1,
+          "1.000": 4
+        },
+        "retained_rows": 8,
+        "retained_share": 0.004700352526439483
+      },
+      {
+        "brand": "Faherty",
+        "family_title": "short sleeve breeze shirt",
+        "full_rows": 21,
+        "key": "faherty::short sleeve breeze shirt",
+        "pass_rate_histogram": {
+          "0.000": 4,
+          "0.125": 2,
+          "0.250": 2,
+          "0.875": 3,
+          "1.000": 10
+        },
+        "retained_rows": 7,
+        "retained_share": 0.004112808460634548
+      },
+      {
+        "brand": "Faherty",
+        "family_title": "legend sweater shirt",
+        "full_rows": 12,
+        "key": "faherty::legend sweater shirt",
+        "pass_rate_histogram": {
+          "0.000": 1,
+          "0.125": 1,
+          "0.375": 1,
+          "0.500": 3,
+          "0.750": 2,
+          "1.000": 4
+        },
+        "retained_rows": 7,
+        "retained_share": 0.004112808460634548
+      },
+      {
+        "brand": "Everlane",
+        "family_title": "archive standard fit cotton crew",
+        "full_rows": 9,
+        "key": "everlane::archive standard fit cotton crew",
+        "pass_rate_histogram": {
+          "0.125": 2,
+          "0.375": 3,
+          "0.500": 2,
+          "1.000": 2
+        },
+        "retained_rows": 7,
+        "retained_share": 0.004112808460634548
+      },
+      {
+        "brand": "Thursday - Men's Shirts",
+        "family_title": "summit flannel shirt",
+        "full_rows": 9,
+        "key": "thursday men s shirts::summit flannel shirt",
+        "pass_rate_histogram": {
+          "0.000": 2,
+          "0.125": 3,
+          "0.375": 1,
+          "0.625": 1,
+          "0.750": 2
+        },
+        "retained_rows": 7,
+        "retained_share": 0.004112808460634548
+      },
+      {
+        "brand": "American Giant",
+        "family_title": "men s premium slub v neck tee",
+        "full_rows": 8,
+        "key": "american giant::men s premium slub v neck tee",
+        "pass_rate_histogram": {
+          "0.000": 1,
+          "0.125": 3,
+          "0.250": 1,
+          "0.375": 1,
+          "0.750": 2
+        },
+        "retained_rows": 7,
+        "retained_share": 0.004112808460634548
+      },
+      {
+        "brand": "Thursday Boots - Men's",
+        "family_title": "journeyman",
+        "full_rows": 7,
+        "key": "thursday boots men s::journeyman",
+        "pass_rate_histogram": {
+          "0.750": 1,
+          "0.875": 6
+        },
+        "retained_rows": 7,
+        "retained_share": 0.004112808460634548
+      },
+      {
+        "brand": "American Giant",
+        "family_title": "men s golden state tee",
+        "full_rows": 12,
+        "key": "american giant::men s golden state tee",
+        "pass_rate_histogram": {
+          "0.000": 4,
+          "0.125": 3,
+          "0.250": 2,
+          "0.875": 1,
+          "1.000": 2
+        },
+        "retained_rows": 6,
+        "retained_share": 0.0035252643948296123
+      },
+      {
+        "brand": "Rothy's",
+        "family_title": "the classic tote",
+        "full_rows": 12,
+        "key": "rothy s::the classic tote",
+        "pass_rate_histogram": {
+          "0.250": 1,
+          "0.375": 1,
+          "0.750": 1,
+          "0.875": 3,
+          "1.000": 6
+        },
+        "retained_rows": 6,
+        "retained_share": 0.0035252643948296123
+      },
+      {
+        "brand": "Thursday Boots - Men's",
+        "family_title": "challenger",
+        "full_rows": 10,
+        "key": "thursday boots men s::challenger",
+        "pass_rate_histogram": {
+          "0.000": 4,
+          "0.125": 3,
+          "0.500": 1,
+          "0.750": 1,
+          "0.875": 1
+        },
+        "retained_rows": 6,
+        "retained_share": 0.0035252643948296123
+      },
+      {
+        "brand": "American Giant",
+        "family_title": "men s brushed crew tee",
+        "full_rows": 8,
+        "key": "american giant::men s brushed crew tee",
+        "pass_rate_histogram": {
+          "0.000": 2,
+          "0.125": 3,
+          "0.500": 2,
+          "0.625": 1
+        },
+        "retained_rows": 6,
+        "retained_share": 0.0035252643948296123
+      }
+    ]
+  },
+  "gold_density": {
+    "full": {
+      "maximum_scorable": 15,
+      "mean_not_applicable": 3.0775,
+      "mean_scorable": 8.484722222222222,
+      "mean_substantive_labeled": 5.407222222222222,
+      "mean_unknown": 6.5152777777777775,
+      "minimum_scorable": 1,
+      "rows": 3600,
+      "rows_with_at_most_2_scorable": 73,
+      "rows_with_at_most_2_substantive": 387
+    },
+    "retained": {
+      "maximum_scorable": 15,
+      "mean_not_applicable": 3.2015276145710927,
+      "mean_scorable": 8.814923619271445,
+      "mean_substantive_labeled": 5.613396004700353,
+      "mean_unknown": 6.185076380728555,
+      "minimum_scorable": 2,
+      "rows": 1702,
+      "rows_with_at_most_2_scorable": 6,
+      "rows_with_at_most_2_substantive": 97
+    }
+  },
+  "headline_findings": {
+    "all_stores_represented": true,
+    "largest_family": {
+      "brand": "Thursday Boots - Women's Bags",
+      "family_title": "everyday tote",
+      "full_rows": 57,
+      "key": "thursday boots women s bags::everyday tote",
+      "pass_rate_histogram": {
+        "0.000": 1,
+        "0.250": 6,
+        "0.375": 5,
+        "0.500": 3,
+        "0.625": 11,
+        "0.875": 15,
+        "1.000": 16
+      },
+      "retained_rows": 40,
+      "retained_share": 0.023501762632197415
+    },
+    "largest_supported_category_decrease": {
+      "full_rows": 248,
+      "full_share": 0.06888888888888889,
+      "key": "dress",
+      "retained_rows": 92,
+      "retained_share": 0.05405405405405406,
+      "retention_rate": 0.3709677419354839,
+      "share_shift_percentage_points": -1.4834834834834831
+    },
+    "largest_supported_category_increase": {
+      "full_rows": 538,
+      "full_share": 0.14944444444444444,
+      "key": "shoe",
+      "retained_rows": 294,
+      "retained_share": 0.172737955346651,
+      "retention_rate": 0.5464684014869888,
+      "share_shift_percentage_points": 2.3293510902206576
+    },
+    "largest_supported_store_decrease": {
+      "full_rows": 306,
+      "full_share": 0.085,
+      "key": "www.marinelayer.com",
+      "retained_rows": 79,
+      "retained_share": 0.046415981198589897,
+      "retention_rate": 0.2581699346405229,
+      "share_shift_percentage_points": -3.858401880141011
+    },
+    "largest_supported_store_increase": {
+      "full_rows": 490,
+      "full_share": 0.1361111111111111,
+      "key": "www.thursdayboots.com",
+      "retained_rows": 300,
+      "retained_share": 0.1762632197414806,
+      "retention_rate": 0.6122448979591837,
+      "share_shift_percentage_points": 4.01521086303695
+    },
+    "missing_categories": [
+      "jumpsuit"
+    ]
+  },
+  "inputs": {
+    "difficulty_manifest": "runs/sft-difficulty-k8/manifest.json",
+    "difficulty_manifest_sha256": "5c6fcc41bab65b36904cef256c56e747a19302b30b6da3c7208382e4dfdd3e5b",
+    "difficulty_manifest_version": "sft-difficulty-v2",
+    "scored_dataset": "data/train_weak_sft_scored.jsonl",
+    "scored_dataset_sha256": "ec68b0ccf3ba84a82cdb0799956d36f53c9113d3cb7c7fd5232ecd50412a975f"
+  },
+  "sampling_policy_comparison": {
+    "cap_seed": 42,
+    "cap_selection": "within each canonical family, sort SKU IDs by SHA-256 of '42\\0<sku_id>' and keep the first cap rows",
+    "family_uniform_definition": "choose one canonical family uniformly, then one retained row uniformly within that family",
+    "scenarios": [
+      {
+        "active_row_share": 1.0,
+        "active_rows": 1702,
+        "active_sku_set_sha256": "e8e318a46b8c11e9898e9bfdd6f8df2c821129002ac12279eae6dda7e8aab3e7",
+        "category_tvd_vs_full": 0.05773436479958282,
+        "difficulty_tvd_vs_eligible": 2.0261570199409107e-15,
+        "effective_family_count_inverse_hhi": 513.2537207654144,
+        "expected_pass_rate": 0.4665834312573443,
+        "families": 1150,
+        "maximum_family_probability": 0.02350176263219743,
+        "policy": "row_uniform",
+        "store_tvd_vs_full": 0.08467228097662963,
+        "top_10_family_probability": 0.07344300822561693,
+        "top_5_family_probability": 0.04817861339600471
+      },
+      {
+        "active_row_share": 0.8166862514688602,
+        "active_rows": 1390,
+        "active_sku_set_sha256": "21f05c964fc559513f54d84a645872ae3273df3611b12d439f49b90eb00c97e5",
+        "category_tvd_vs_full": 0.049878097521982086,
+        "difficulty_tvd_vs_eligible": 0.021226825824886136,
+        "effective_family_count_inverse_hhi": 1033.2085561497327,
+        "expected_pass_rate": 0.4548561151079137,
+        "families": 1150,
+        "maximum_family_probability": 0.0014388489208633094,
+        "policy": "deterministic_family_cap_2",
+        "store_tvd_vs_full": 0.09148281374900097,
+        "top_10_family_probability": 0.014388489208633094,
+        "top_5_family_probability": 0.007194244604316547
+      },
+      {
+        "active_row_share": 0.9195064629847238,
+        "active_rows": 1565,
+        "active_sku_set_sha256": "77d926c88447e3cda5852f015629a4eae8bb9c7e32a00a67694abd985fb75c76",
+        "category_tvd_vs_full": 0.055323926162584025,
+        "difficulty_tvd_vs_eligible": 0.011981393812203658,
+        "effective_family_count_inverse_hhi": 854.8778359511343,
+        "expected_pass_rate": 0.46238019169329075,
+        "families": 1150,
+        "maximum_family_probability": 0.0025559105431309905,
+        "policy": "deterministic_family_cap_4",
+        "store_tvd_vs_full": 0.07852147674831342,
+        "top_10_family_probability": 0.025559105431309903,
+        "top_5_family_probability": 0.012779552715654952
+      },
+      {
+        "active_row_share": 0.9735605170387779,
+        "active_rows": 1657,
+        "active_sku_set_sha256": "52683aeefefde7efa1ef800090bf4f439f1604db0f3598b034c11b2a47d3768a",
+        "category_tvd_vs_full": 0.06267082411318953,
+        "difficulty_tvd_vs_eligible": 0.009016337058110141,
+        "effective_family_count_inverse_hhi": 709.6533988110622,
+        "expected_pass_rate": 0.46522329511164756,
+        "families": 1150,
+        "maximum_family_probability": 0.004828002414001207,
+        "policy": "deterministic_family_cap_8",
+        "store_tvd_vs_full": 0.07564105143163641,
+        "top_10_family_probability": 0.04828002414001207,
+        "top_5_family_probability": 0.024140012070006035
+      },
+      {
+        "active_row_share": 1.0,
+        "active_rows": 1702,
+        "active_sku_set_sha256": "e8e318a46b8c11e9898e9bfdd6f8df2c821129002ac12279eae6dda7e8aab3e7",
+        "category_tvd_vs_full": 0.07620772946859974,
+        "difficulty_tvd_vs_eligible": 0.020446766642419408,
+        "effective_family_count_inverse_hhi": 1150.0,
+        "expected_pass_rate": 0.45362463924963925,
+        "families": 1150,
+        "maximum_family_probability": 0.0008695652173913052,
+        "policy": "family_uniform",
+        "store_tvd_vs_full": 0.16237922705314004,
+        "top_10_family_probability": 0.008695652173913045,
+        "top_5_family_probability": 0.0043478260869565235
+      }
+    ]
+  },
+  "selection": {
+    "full_rows": 3600,
+    "retained_rows": 1702,
+    "retained_share": 0.4727777777777778,
+    "retained_sku_set_sha256": "e8e318a46b8c11e9898e9bfdd6f8df2c821129002ac12279eae6dda7e8aab3e7",
+    "rule": "0 < sft_pass_rate < 1"
+  },
+  "version": "grpo-retained-pool-audit-v1"
+}
