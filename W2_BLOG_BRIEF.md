@@ -1,25 +1,44 @@
-# Draft brief — teaching a small model to tag a catalog before asking it to learn from reward
+# Teaching Qwen2.5-1.5B to tag an apparel catalog with LoRA-SFT
 
-**Status:** pre-training draft. This document describes the design, constraints, and planned comparison for Week 2. It does not claim SFT or GRPO results yet.
+**Status:** SFT experiment complete through checkpoint selection, pre-evaluation locking, and one-time frozen evaluation. This brief intentionally stops at SFT; later work is out of scope.
 
 ## The post in one sentence
 
-Before using GRPO to improve a catalog tagger, establish an honest LoRA-SFT baseline, make the model's output contract mechanically verifiable, and compare small adaptation choices without quietly using the final test set as a tuning knob.
+On a frozen 300-product evaluation set, combined attention-plus-MLP LoRA raised Qwen2.5-1.5B's conditional macro-F1 from 0.197 to 0.641, made all 300 outputs parseable JSON, and reduced verifier-rule violations from 1,204 to 12.
+
+## Executive summary
+
+We trained two controlled LoRA variants of the same Qwen2.5-1.5B-Instruct model: attention-only and attention plus MLP. Product variants were kept in the same split, epoch count was chosen using only a 360-product validation set, and the winning checkpoint was cryptographically locked before it saw the frozen test set.
+
+| decision or result | evidence |
+|---|---:|
+| selected arm | attention + MLP, rank 16 |
+| selected checkpoint | `runs/sft-combined-2epoch/checkpoint-406` |
+| trainable parameters | 18,464,768 (1.18% of the base model) |
+| validation macro-F1 | 0.854, versus 0.751 attention-only |
+| frozen macro-F1 | 0.641, 95% bootstrap CI 0.626–0.671 |
+| zero-shot conditional macro-F1 | 0.197, 95% bootstrap CI 0.161–0.213 |
+| paired macro-F1 improvement | +0.444 observed; 95% bootstrap CI +0.425–+0.496 |
+| schema-valid outputs | 62.7% zero-shot → 100% SFT |
+| fully vocabulary-valid outputs | 0% zero-shot → 88.7% SFT |
+| rule violations | 1,204 zero-shot → 12 SFT |
+
+The result is a strong controlled improvement, not a production-accuracy claim. Only 78 individual evaluation cells received explicit human review, so most frozen labels still reflect the weak-labeling model.
 
 ## Why this project exists
 
 The project is a controlled catalog-tagging task for apparel listings. Given text from a product page—title, brand, category, description, and merchant tags—the model must emit one JSON object with 15 controlled fields, such as garment category, material, fit, pattern, closure, and occasion.
 
-The broader project is built around one idea: the same verifier should serve two consumers.
+The broader project is built around one idea: the same verifier should serve training experiments and the production path.
 
-1. During RL, it provides a reward signal for a generated answer.
+1. During model development, it scores a generated answer mechanically.
 2. In the production path, it acts as a QA gate before a catalog record is accepted.
 
 That means “correct” is not a fuzzy prompt instruction. It has a concrete definition in code: valid JSON, expected keys and shapes, controlled vocabulary compliance, and declarative cross-field rules.
 
 ## What was completed before Week 2
 
-Week 1 created the measuring instrument that makes an RL comparison meaningful.
+Week 1 created the measuring instrument that makes a structured-output comparison meaningful.
 
 - A pack-agnostic schema/verifier exists under `verifier/`.
 - The apparel pack has 15 fields, 156 controlled values, and 34 cross-field rules (25 explicit, 9 derived from applicability metadata).
@@ -32,7 +51,13 @@ One design choice matters especially: `null` and `"unknown"` are different.
 - `null` means a field does not apply. A pair of pants has no neckline.
 - `"unknown"` means the field could apply, but the listing does not provide enough evidence. A listing may omit the color.
 
-This difference will matter later because abstention is a first-class RL action. A model should not receive credit for pretending a missing fact is inapplicable.
+This makes abstention a first-class model action. A model should not receive credit for pretending a missing fact is inapplicable.
+
+### Data and ontology provenance
+
+The product text came from public Shopify `/products.json` endpoints and was collected across multiple apparel retailers. The feed fetcher used round-robin per-store quotas, filtered to apparel using category aliases, and pruned tags that appeared on nearly every product from the same store. Direct measurement of the final 3,600-row training file found 49 brand strings, 297 merchant category strings, and 537 empty descriptions (14.9%), so titles, categories, and merchant tags sometimes carry the entire signal.
+
+Weak labels were produced by `gpt-5.6-luna@prelabel-v1` using five prompt perturbations per product and consensus metadata. Fashionpedia supplied ontology metadata—not product images or Fashionpedia annotations. The checked-in ontology records its source URL and BSD-3-Clause API license; the 15-field retail vocabulary is a documented merge and extension of that ontology. Public merchant text remains subject to the originating sites' terms, so this corpus should be treated as an experimental research artifact rather than a redistributable benchmark.
 
 ## An actual SFT training example
 
@@ -65,22 +90,22 @@ Its target is one JSON record:
 
 The real target contains all 15 fields. The verifier confirms that this exact output is structurally valid, uses only permitted vocabulary, and violates no rules.
 
-This is supervised fine-tuning in its plainest form: show the model many examples of “catalog text in, controlled JSON out.” The first objective is not to make a grand claim about intelligence. It is to teach a small model the format, vocabulary, and task behavior that RL will later refine.
+This is supervised fine-tuning in its plainest form: show the model many examples of “catalog text in, controlled JSON out.” The objective is not to make a grand claim about intelligence. It is to teach a small model the format, vocabulary, and task behavior required by this catalog contract.
 
 ## A necessary warning about labels and evaluation
 
-The training labels are weak labels from a frontier model, not ground truth. The frozen evaluation set was partially human-corrected, but only 78 of 4,500 attribute cells received human review. Most remaining evaluation cells still equal the frontier model’s original answer.
+The training labels are weak labels from a frontier model, not ground truth. The correction import touched 126 flagged cells across 111 frozen-evaluation rows: 78 cells across 75 rows were reviewed by a human, while 48 cells were machine-adjudicated. Only the 78 human-reviewed cells are eligible for the reliability calculation. Row-level `human_corrected` is therefore a historical field name, not a claim that all 15 cells in each of those 111 rows received human inspection. Most of the 4,500 evaluation cells still equal the frontier model's original answer.
 
 That creates two constraints on how results should be written:
 
 - Absolute scores are not trustworthy claims of real-world accuracy. A “99%” agreement number would be partly tautological.
-- Deltas between models scored against the same frozen set are still useful. If GRPO improves over SFT under the same evaluator, that comparison is meaningful even if the absolute number has caveats.
+- Deltas between models scored against the same frozen set are still useful. The zero-shot and SFT comparison is meaningful under the shared evaluator even though the absolute accuracy has caveats.
 
-The reward-reliability file is deliberately marked unusable: the human review sample is too small to support per-attribute reward weights. The first reward implementation must detect that flag and use uniform weights rather than accidentally assigning zero reward everywhere.
+The reliability file is deliberately marked `usable: false`: the reviewed sample is too small to support trustworthy per-attribute weighting. Its zero weights mean “insufficient evidence,” not that those fields are worthless.
 
 ## The SFT experiment: two LoRA arms
 
-The first experiment will compare two ways of adapting the same Qwen2.5-1.5B-Instruct base model.
+The experiment compared two ways of adapting the same Qwen2.5-1.5B-Instruct base model.
 
 | Arm | LoRA targets | Rank | Purpose |
 |---|---|---:|---|
@@ -89,7 +114,7 @@ The first experiment will compare two ways of adapting the same Qwen2.5-1.5B-Ins
 
 Everything else stays constant: base model, training data, deterministic split, seed, batch configuration, learning rate, sequence budget, and maximum epochs. This is an ablation, not a scavenger hunt for the best-looking number.
 
-The stronger SFT arm will become the starting policy for GRPO.
+The stronger arm became the locked SFT checkpoint reported in this brief.
 
 ## LoRA in plain language
 
@@ -110,7 +135,7 @@ The model computes both paths and adds them:
 original frozen layer output + small learned LoRA adjustment = layer output
 ```
 
-For this Qwen configuration, rank-16 LoRA on attention and MLP projections is estimated at about 18.5 million trainable parameters. In bf16, an adapter-only checkpoint should be roughly 37 MB. Attention-only LoRA is much smaller, around 9 MB. These are estimates until the exact target module list is fixed.
+Before training, the architecture calculation predicted about 18.5 million trainable parameters for combined rank-16 LoRA. The measured count was 18,464,768, so that prediction was accurate. The initial file-size estimate was not: it assumed two-byte bf16 saves, while PEFT actually wrote the adapter tensors as four-byte fp32 values. Measured adapter weight files were therefore 17.5 MB for attention-only and 73.9 MB for combined LoRA. Recording both the prediction and correction is more useful than silently rewriting the estimate after the run.
 
 ## Preventing product variants from leaking into validation
 
@@ -179,20 +204,20 @@ at 9.4%, dresses at 10.1%, and pants at 10.1%.
 The frozen split manifest records the seed, grouping rule, source-data checksum,
 category counts, and exact SKU assignments. Both LoRA arms must reuse it.
 
-## How long should SFT train?
+## How long did SFT train?
 
-The answer is not “a magic number of steps.” We will use a small held-out validation slice from the weak training data to choose duration.
+The answer was not “a magic number of steps.” We used a held-out validation slice from the weak training data to choose duration.
 
 - 90% of the 3,600 weak rows train the model.
 - 10% are held out as validation data through the frozen grouped-family split.
 - The frozen 300-row evaluation set is not used to choose an epoch.
-- Each arm trains for one epoch first, then has the option of a second epoch.
+- Each arm was evaluated after one epoch and again after a continuous second epoch.
 
-After each epoch, inspect weak-validation loss and generated-output behavior: complete JSON, vocabulary/rule compliance, and whether outputs are becoming more useful rather than merely repetitive. Continue to epoch two only if there is meaningful improvement.
+After each epoch, we inspected weak-validation loss and generated-output behavior: complete JSON, vocabulary/rule compliance, and whether outputs became more useful rather than merely repetitive. Both arms earned their second epoch under those criteria.
 
-The frozen evaluation set is then run once per pre-declared arm, and both results are reported. It is not a hidden tuning loop.
+The two arms were compared only on the grouped validation set. Combined checkpoint 406 won that comparison, was recorded in a Git-committed selection manifest, and only that locked checkpoint was run once on the frozen 300-product set. The frozen set was never used to choose an arm or epoch.
 
-The goal of SFT is not necessarily the final maximum score. For GRPO, the useful starting policy is one that succeeds on some examples and fails on others. If every sampled completion is always right or always wrong, GRPO sees no within-group difference to learn from.
+The goal was not merely the lowest token loss. Generated JSON validity, controlled-vocabulary compliance, cross-field rules, coverage, and macro-F1 all participated in the checkpoint decision.
 
 ## Practical constraints that shape the experiment
 
@@ -201,10 +226,104 @@ The training machine is an RTX 3090 with 24 GB of VRAM and roughly 5.3 GB of fre
 - The selected Qwen2.5-1.5B-Instruct checkpoint is already cached on the machine.
 - Measured training-data lengths: prompt p95 is 268 tokens, prompt maximum is 585, and target maximum is 118.
 - The fully rendered prompt-plus-target maximum is 833 tokens, so SFT uses a 896-token ceiling; the earlier 768-token estimate would have clipped seven rows.
-- GRPO will use separately reserved limits: 600 prompt tokens and 170 completion tokens.
 - Only two checkpoints per experiment arm should be retained. Adapter-only saves preserve the learned LoRA changes for evaluation without storing expensive optimizer state.
 
 An optimizer is the training component that decides how each learned number should change after an error. Its saved state is not part of Qwen’s attention architecture; it is extra per-parameter bookkeeping. Omitting it means a run cannot resume with exactly the same training momentum, but the saved adapter still loads and evaluates normally. For this short two-epoch baseline, adapter checkpoints plus experiment metadata are the more useful trade-off.
+
+## End-to-end flow
+
+```mermaid
+flowchart LR
+    A[Public Shopify product text] --> B[Five weak-label passes<br/>plus consensus]
+    C[Fashionpedia ontology metadata] --> D[15-field controlled pack<br/>156 values and 34 rules]
+    B --> E[3,600 weakly labeled rows]
+    D --> E
+    E --> F[Family-grouped frozen split<br/>3,240 train / 360 validation]
+    F --> G[Attention-only LoRA<br/>epoch 1 and epoch 2]
+    F --> H[Attention + MLP LoRA<br/>epoch 1 and epoch 2]
+    G --> I[Unconstrained validation generation]
+    H --> I
+    D --> J[Shared verifier and evaluator]
+    I --> J
+    J --> K[Select combined checkpoint 406]
+    K --> L[Git-commit lock manifest<br/>before frozen inference]
+    L --> M[One-time 300-row frozen evaluation]
+    M --> J
+```
+
+The companion [interactive epoch flow](sft-epoch-flow.html) traces the method and file calls inside one training epoch.
+
+## Exact reproducibility configuration
+
+The same compact system message was used for SFT and inference. It named all 15 keys, required one JSON object, defined `"unknown"` versus `null`, and prohibited extra prose. It deliberately did not list all 156 allowed values: learning the closed vocabulary was part of the task rather than free information repeated in every prompt.
+
+```text
+You label clothing products from their listing text.
+
+Answer with a single JSON object, one key per field:
+closure, collar_type, colour_primary, details, fit, garment_category,
+garment_length, material, neckline, occasion, pattern, silhouette,
+sleeve_length, sleeve_style, waistline.
+
+Rules:
+- "details" is a list; every other field is a single value.
+- Use "unknown" when the text does not say. Never guess.
+- Use null when the field cannot apply to this kind of product.
+- Output only the JSON object, nothing else.
+```
+
+| setting | value |
+|---|---|
+| base model | `unsloth/Qwen2.5-1.5B-Instruct` |
+| sequence length | 896 tokens |
+| base precision | bf16; no 4-bit loading |
+| LoRA rank / alpha / dropout / bias | 16 / 16 / 0 / none |
+| attention targets | `q_proj`, `k_proj`, `v_proj`, `o_proj` |
+| combined additions | `gate_proj`, `up_proj`, `down_proj` |
+| gradient checkpointing | Unsloth mode |
+| train / eval batch per device | 4 / 4 |
+| gradient accumulation | 4; effective train batch 16 |
+| optimizer | fused AdamW |
+| learning rate | 0.0001 |
+| warmup / schedule | 5% warmup, cosine decay |
+| epochs / optimizer steps | 2 / 406 |
+| loss | completion tokens only |
+| sequence packing | disabled |
+| precision | bf16 enabled, fp16 disabled |
+| seed / data seed | 42 / 42 |
+| checkpoint policy | save each epoch, keep two, model only |
+| inference | greedy, unconstrained, batch 8 |
+| inference limits | 640 input tokens, 170 new tokens |
+
+The remote environment was an NVIDIA RTX 3090 with 24,576 MiB VRAM, driver 590.48.01, CUDA toolkit 13.0, and compute capability 8.6. Exact Python packages were: PyTorch 2.11.0 (`+cu130` build observed on the box), Transformers 4.57.6, TRL 0.24.0, PEFT 0.19.1, Unsloth 2026.7.5, Datasets 4.3.0, Accelerate 1.14.0, Safetensors 0.8.0, and W&B 0.28.1.
+
+Code and small evidence artifacts were synchronized through a bare Git remote on
+the GPU host. Commits—not ad hoc file copies—defined the code used for each run;
+large adapters stayed under `runs/`, while manifests recorded their paths,
+sizes, and SHA-256 hashes. ComfyUI remained installed on the same machine but
+used only about 420–428 MiB while idle; training and generation loaded the model
+sequentially, so the dual-use setup did not create a practical VRAM conflict.
+
+Representative commands, run from `/workspace/tagging-rl`, were:
+
+```bash
+HF_HOME=/workspace/.hf_home PYTHONPATH=. /venv/rl/bin/python -m training.train_sft \
+  --arm attention --epochs 2 --output-dir runs/sft-attention-2epoch --report-to wandb
+
+HF_HOME=/workspace/.hf_home PYTHONPATH=. /venv/rl/bin/python -m training.train_sft \
+  --arm combined --epochs 2 --output-dir runs/sft-combined-2epoch --report-to wandb
+
+HF_HOME=/workspace/.hf_home PYTHONPATH=. /venv/rl/bin/python -m training.predict \
+  --model unsloth/Qwen2.5-1.5B-Instruct \
+  --adapter runs/sft-combined-2epoch/checkpoint-406 \
+  --input data/eval_300/eval.jsonl \
+  --output runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl \
+  --batch-size 8 --max-input-length 640 --max-new-tokens 170 --local-files-only
+
+PYTHONPATH=. /venv/rl/bin/python -m evalharness.report \
+  --gold data/eval_300 \
+  --pred runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl
+```
 
 ### What the five-step attention-only smoke test actually proved
 
@@ -285,7 +404,8 @@ All five were nonzero, so a learning signal reached LoRA. They were finite—no
 `NaN` or infinity—and stayed in a narrow 0.54–0.61 range below the default
 clipping threshold of 1.0. In this context, “healthy” means no dead, exploding,
 or numerically broken gradients appeared in the short run. Five steps cannot
-prove that gradients will remain healthy for a full epoch.
+prove that gradients would remain healthy for a full epoch; the later complete
+runs supplied that evidence.
 
 #### How to read the training and validation losses
 
@@ -306,8 +426,8 @@ After step five, the trainer evaluated 32 validation rows in eight batches of
 four and reported `eval_loss = 0.460474`. That confirms the validation pipeline
 works; it does not prove generalization. There was only one measurement, the
 sample was tiny, and predictable JSON punctuation and field names can lower
-token loss without making the tags correct. The full run will evaluate all 360
-validation rows after each epoch.
+token loss without making the tags correct. The full run subsequently evaluated
+all 360 validation rows after each epoch.
 
 #### GPU memory: what was and was not measured
 
@@ -315,9 +435,9 @@ The run completed without an out-of-memory error, CUDA crash, or numerical
 failure, and GPU use returned to ComfyUI's 428 MiB idle footprint afterward.
 That proves this configuration fits on the RTX 3090 for the smoke test.
 
-Peak VRAM was not recorded, so it would be inaccurate to claim an exact amount
-of remaining headroom. The full run should log peak allocated and reserved GPU
-memory.
+Peak VRAM was not recorded for this first smoke test, so it would be inaccurate
+to claim exact smoke-test headroom. The later full runs did log peak allocated
+and reserved GPU memory.
 
 #### Why the adapter was 17.5 MB instead of the estimated 9 MB
 
@@ -597,7 +717,7 @@ details:           ["gather"]
 These are often understandable English descriptions, but they violate the
 operational contract because downstream systems expect the exact controlled
 vocabulary. That distinction—semantically plausible versus contract-valid—is
-one of the reasons this task is a useful RL testbed.
+why schema validity alone is not a sufficient evaluation.
 
 The final output also contained 15 rule violations:
 
@@ -608,9 +728,9 @@ dress_needs_length_and_neckline      2
 auto applies-to violations           6
 ```
 
-The model has therefore learned the JSON shell and most individual labels
-before fully learning every relationship among fields. That remaining gap is a
-natural target for verifier-based rewards later.
+The model therefore learned the JSON shell and most individual labels before
+fully learning every relationship among fields. The verifier makes that
+remaining gap visible rather than allowing valid syntax to hide it.
 
 ### Epoch-duration decision
 
@@ -621,7 +741,7 @@ because training loss kept falling.
 At this stage, this did **not** yet select attention-only LoRA as the final SFT
 arm. The combined attention-plus-MLP arm still had to pass the same controlled
 training and validation protocol. Only after comparing the two selected-duration
-arms could one become the baseline handed to GRPO.
+arms could one become the locked baseline.
 
 ## Combined attention-plus-MLP LoRA
 
@@ -823,8 +943,8 @@ pattern             1
 A record can contribute to multiple counts. Examples included `strap` as a bag
 closure, `gather` or `darted` as details, `asymmetric` or `cutout` as necklines,
 `normal` as a garment length, and one out-of-vocabulary garment category. These
-are semantically plausible but contract-invalid answers—the exact behavior that
-later verifier rewards should target.
+are semantically plausible but contract-invalid answers, so downstream enum
+consumers must reject or repair them.
 
 Ten cross-field rule violations remained: two athletic-material violations,
 one pants-length violation, two solid-versus-multicolour contradictions, and
@@ -862,11 +982,10 @@ against the frozen 300-row set. Its canonical checksum was recorded as:
 5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052
 ```
 
-This sequence creates a clean boundary: everything above the lock is model
-development and validation; everything after it is final evaluation. The lock
+This sequence created a clean boundary: everything above the lock was model
+development and validation; everything after it was final evaluation. The lock
 manifest and this brief were committed together before any selected-model test
-inference. The next step is to evaluate the locked checkpoint exactly as
-declared.
+inference. The locked checkpoint was then evaluated exactly as declared below.
 
 ## One-time frozen SFT evaluation
 
@@ -963,6 +1082,25 @@ would therefore understate the importance of schema validity and make the
 denominators easy to misunderstand. The validity, coverage, and missing-output
 counts belong beside the headline score.
 
+### Uncertainty, not just point estimates
+
+We ran a paired nonparametric row bootstrap over the saved predictions: 5,000
+replicates, 300 sampled rows per replicate, seed `20260801`, and percentile 95%
+intervals. Each replicate sampled the same row identities for both models, so
+the delta preserves the pairing between zero-shot and SFT behavior.
+
+| statistic | observed | 95% bootstrap interval |
+|---|---:|---:|
+| locked SFT macro-F1 | 0.641 | 0.626–0.671 |
+| zero-shot conditional macro-F1 | 0.197 | 0.161–0.213 |
+| paired SFT minus zero-shot macro-F1 | +0.444 | +0.425–+0.496 |
+
+The bootstrap confirms that the measured gain is not being driven by a handful
+of products. It does not remove the label-quality limitation, and zero-shot's
+interval remains conditional on its 196 parsed survivors. The bootstrap means
+differ slightly from the full-sample point estimates because macro-F1 is a
+nonlinear average over attributes and classes.
+
 ### Per-attribute frozen results
 
 Every attribute macro-F1 improved over zero-shot:
@@ -1036,9 +1174,85 @@ turtleneck_has_no_collar       1
 lapels_are_tailored_only       1
 ```
 
-These residual failures are especially valuable for GRPO. SFT has already
-removed the easy failure mode—unstructured output—so verifier rewards can focus
-on exact vocabulary membership and relationships among otherwise valid fields.
+Raw rule counts need denominators because one record may violate several rules.
+Zero-shot produced 1,204 violations across its 196 parsed records: 6.14 per
+parsed record, or 4.01 per attempted product. SFT produced 12 across 300 parsed
+records: 0.04 per parsed or attempted product. That is a 99.35% reduction in
+violations per parsed record, while still leaving 11 individual SFT records with
+at least one contradiction.
+
+### Concrete before-and-after generations
+
+One clean recovery was Thursday Boots' **“Penny Platform | Leopard.”** The copy
+explicitly mentions black patent leather, leopard-print calf hair, a lined
+leather interior, and a platform outsole.
+
+The literal zero-shot answer began inventing free-form labels and then ended
+mid-object at the 170-token cap:
+
+```json
+{
+  "closure": "Moccasin",
+  "collar_type": "Unknown",
+  "colour_primary": "Black",
+  "details": ["Soft Patent Leather", "Leopard Print", "Calf Hair Detailing",
+    "Metal Horsebit Detail", "Gold Finish", "Hand-Stitched",
+    "Supple Glove Leather Interior", "Comfortable Shock-Absorbing Insoles",
+    "Long Lasting", "2\" Platform"],
+  "fit": "Unknown",
+  "garment_category": "Shoes",
+  "garment_length": "Unknown",
+  "material": "Black Soft Patent Leather, Calf Hair",
+  "neckline": "Unknown",
+  "occasion": "Casual",
+  "pattern": "Leopard"
+```
+
+The locked SFT model produced the complete gold record exactly:
+
+```json
+{
+  "closure": null,
+  "collar_type": null,
+  "colour_primary": "black",
+  "details": ["lined"],
+  "fit": null,
+  "garment_category": "shoe",
+  "garment_length": null,
+  "material": "leather",
+  "neckline": null,
+  "occasion": "unknown",
+  "pattern": "animal",
+  "silhouette": null,
+  "sleeve_length": null,
+  "sleeve_style": null,
+  "waistline": null
+}
+```
+
+This example shows that SFT learned more than braces. It mapped merchant phrases
+to the contract (`Shoes` → `shoe`, `Leopard` → `animal`), compressed free-form
+details to an allowed value, used `null` for inapplicable garment fields, and
+abstained on occasion instead of guessing.
+
+A useful remaining failure was Everlane's **“Maxi Dress in Silk Georgette |
+Floral/Black.”** The listing states `surplice neckline`, gathered detailing,
+silk, maxi length, and wedding/event use. The gold record was:
+
+```json
+{"closure":"wrap","collar_type":"none","colour_primary":"black","details":["gathered"],"fit":"unknown","garment_category":"dress","garment_length":"maxi","material":"silk","neckline":"wrap","occasion":"formal","pattern":"floral","silhouette":"unknown","sleeve_length":null,"sleeve_style":null,"waistline":"normal"}
+```
+
+The SFT output was structurally perfect but not vocabulary-valid:
+
+```json
+{"closure":"unknown","collar_type":"none","colour_primary":"black","details":["gather"],"fit":"unknown","garment_category":"dress","garment_length":"maxi","material":"silk","neckline":"supraprise","occasion":"casual","pattern":"floral","silhouette":"unknown","sleeve_length":null,"sleeve_style":null,"waistline":"unknown"}
+```
+
+It got the broad product identity, color, length, material, and pattern right,
+but invented `"gather"` and the near-word `"supraprise"`, missed the wrap
+closure, and mislabeled the occasion. This is why 100% JSON validity cannot be
+reported as task completion.
 
 ### Reliability boundary
 
@@ -1058,37 +1272,61 @@ The exact prediction artifact, metrics, and post-lock result were added back to
 `runs/sft-selection.json`. The original checkpoint identity and pre-evaluation
 selection evidence remain unchanged.
 
-## The RL handoff: GRPO
+## Limitations
 
-GRPO comes only after a defensible SFT baseline exists.
+- **Weak gold labels:** only 78 individual attribute cells were explicitly human-reviewed. The experiment supports a controlled comparison, not a production-accuracy claim.
+- **Conditional zero-shot F1:** the base model's F1 excludes 104 unparseable outputs. Schema validity and missing counts must remain beside that score.
+- **One model size and one domain:** the result covers Qwen2.5-1.5B-Instruct on this apparel contract. It does not establish that combined LoRA always beats attention-only LoRA.
+- **One split seed:** family grouping prevents obvious sibling leakage, but no repeated-seed training study was run. The bootstrap quantifies evaluation-row uncertainty, not training-run variance.
+- **No constrained decoding:** this was deliberate so format learning could be measured, but a production deployment might choose grammar-constrained decoding and obtain a different quality/latency trade-off.
+- **Cost measurement incomplete:** training wall time and GPU memory were instrumented; exact rental cost per run and frozen-inference wall time per SKU were not. Those numbers should not be reconstructed from memory.
+- **Public-feed caveat:** merchant text was fetched from public endpoints, but redistribution and long-term reuse should be checked against each site's terms.
 
-The planned reward is built as ordinary functions over the same verifier used by tests. It begins with three signals:
+## Audit trail and artifacts
 
-1. Format validity: did the model emit parseable JSON with the expected structure?
-2. Vocabulary and rule compliance: did it stay inside the allowed tag space and obey cross-field constraints?
-3. Per-attribute agreement with the training row’s label: did it provide useful tags rather than just valid empty JSON?
+| artifact | purpose |
+|---|---|
+| `data/splits/sft-v1.json` | immutable family-grouped train/validation assignments and source checksum |
+| `data/eval_300/eval.jsonl.frozen.json` | frozen-set checksum, row count, and correction metadata |
+| `runs/sft-selection.json` | selected checkpoint, LoRA configuration, hashes, validation evidence, and post-lock result |
+| `runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl` | all 300 literal generated strings |
+| `runs/sft-combined-2epoch/frozen-eval-300-metrics.json` | headline, per-attribute, integrity, error, and bootstrap metrics |
+| `training/train_sft.py` | commented Unsloth and TRL configuration |
+| `training/predict.py` | raw, greedy, unconstrained inference path |
+| `evalharness/metrics.py` | metric definitions and abstention handling |
+| `verifier/` | schema, vocabulary, and cross-field-rule implementation |
 
-The model must generate unconstrained during RL. Constrained JSON decoding would make format validity free and erase the very behavior the experiment is intended to observe. The point is to watch the model learn not to emit malformed JSON, empty-but-valid records, majority-class defaults, or blanket `unknown` answers.
+The pre-evaluation lock was commit `8bff4c6`; the frozen result was recorded in
+commit `4c3e986`. The selected adapter SHA-256 is
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`,
+and the saved prediction file SHA-256 is
+`cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b`.
 
-The expected reward-hacking story is part of the deliverable, not an embarrassment to hide. The first GRPO runs should reveal shortcuts; later reward shaping should close them with per-attribute partial credit, class balancing, and validity acting as a gate rather than the whole objective.
+## Conclusion
 
-## Current blocker before GRPO
+The main outcome was not merely a higher F1 score. Two epochs of combined LoRA
+turned a small general instruction model that frequently emitted malformed,
+open-ended labels into one that produced parseable JSON for every frozen product
+and obeyed the complete vocabulary and rule contract on 85.3% of records.
 
-The GPU machine can import the SFT components, but its installed GRPO stack is internally inconsistent: `trl==0.24.0` expects an older vLLM API while the machine has `vllm==0.23.0`. `GRPOTrainer` currently fails at import time because the expected `GuidedDecodingParams` symbol is absent.
+The experimental discipline matters just as much as the gain: variants were
+grouped before splitting, both adapter arms shared all non-architectural choices,
+duration was selected on validation generations rather than token loss alone,
+and the winning checkpoint was locked before a one-time frozen evaluation. The
+remaining errors—near-word vocabulary inventions, hard attributes such as
+closure and silhouette, and 11 contradictory records—are visible because the
+verifier tests semantics beyond JSON syntax.
 
-This has to be resolved before any GRPO run. It does not prevent the conceptual work or the eventual SFT baseline, but it must be treated as a deliberate environment preflight rather than discovered after spending time on training.
+The defensible claim is narrow and useful: under one frozen dataset, verifier,
+and unconstrained decoding protocol, combined rank-16 LoRA substantially improved
+Qwen2.5-1.5B's structured catalog tagging over both zero-shot inference and an
+attention-only LoRA baseline. Future work is intentionally left for a separate
+brief.
 
-## What the final post should be able to say
+## References
 
-If the experiment lands cleanly, the finished version can make a modest, defensible claim:
-
-> On a frozen catalog-tagging evaluation set, we compared attention-only and combined LoRA SFT baselines, then used the selected baseline to study how verifier-based GRPO changes structured-output behavior. We report the improvements and the failure modes, not a misleading absolute-accuracy claim.
-
-The interesting story is not “RL makes a number go up.” It is how a small model learns an operational output contract, how the verifier exposes shortcuts, and why baseline discipline is what makes an RL result worth believing.
-
-## Remaining evidence to add
-
-- Measured GPU rental cost per SKU; inference wall time was not instrumented precisely.
-- Example generations from both arms, including failures.
-- GRPO reward curves and at least three documented reward hacks.
-- The dependency-resolution decision for the GRPO/vLLM environment.
+- Hu et al., [“LoRA: Low-Rank Adaptation of Large Language Models”](https://arxiv.org/abs/2106.09685), 2021.
+- Qwen Team, [“Qwen2.5 Technical Report”](https://arxiv.org/abs/2412.15115), 2024.
+- Jia et al., [“Fashionpedia: Ontology, Segmentation, and an Attribute Localization Dataset”](https://arxiv.org/abs/2004.12276), ECCV 2020; [official API repository](https://github.com/KMnP/fashionpedia-api).
+- Hugging Face, [TRL SFTTrainer documentation](https://huggingface.co/docs/trl/en/sft_trainer), including completion-only loss and PEFT adapter integration.
+- Unsloth, [official repository](https://github.com/unslothai/unsloth).

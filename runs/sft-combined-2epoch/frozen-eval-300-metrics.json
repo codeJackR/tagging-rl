@@ -93,6 +93,16 @@
     "rule_violations": -1192,
     "missing_predictions": -104
   },
+  "uncertainty": {
+    "method": "paired nonparametric row bootstrap, percentile interval",
+    "seed": 20260801,
+    "replicates": 5000,
+    "rows_per_replicate": 300,
+    "sft_macro_f1_ci_95": [0.6258483415970006, 0.6713653347257056],
+    "zero_shot_conditional_macro_f1_ci_95": [0.16092423327291683, 0.21332655392796315],
+    "paired_delta_macro_f1_ci_95": [0.42493646724811024, 0.4958319314377654],
+    "caveat": "Zero-shot macro-F1 is conditional on the 196 parsed survivors; the paired resampling preserves each model's saved missing-output behavior."
+  },
   "reliability": {
     "usable": false,
     "reviewed_cells": 78,
