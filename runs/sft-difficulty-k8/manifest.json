@@ -1,0 +1,355 @@
+{
+  "artifacts": {
+    "rollout_records": 28800,
+    "rollouts": "runs/sft-difficulty-k8/rollouts.jsonl.gz",
+    "rollouts_sha256": "f17360b157287caaea8d0f8e907f0a4bf4fd107977452442e2e447628e95bf8b"
+  },
+  "checkpoint_lock": {
+    "adapter_sha256_verified": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+    "selection_manifest": "runs/sft-selection.json",
+    "selection_manifest_sha256": "e425635d323b3ffe9e7350fb61a2d9e1848345a95abab6b92032bf64d2718299",
+    "source_sha256_verified": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b",
+    "status": "locked_before_frozen_eval"
+  },
+  "code": {
+    "git_commit": "78e97d7ca5df73069f12c06212fbb46525c4dd85",
+    "tracked_worktree_dirty": false
+  },
+  "created_at_utc": "2026-08-02T21:45:59+00:00",
+  "data": {
+    "scored": "data/train_weak_sft_scored.jsonl",
+    "scored_rows": 3600,
+    "scored_sha256": "ec68b0ccf3ba84a82cdb0799956d36f53c9113d3cb7c7fd5232ecd50412a975f",
+    "source": "data/train_weak.jsonl",
+    "source_rows": 3600,
+    "source_sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b"
+  },
+  "generation": {
+    "backend": "vllm",
+    "batch_size": 32,
+    "gpu_memory_utilization": 0.65,
+    "max_new_tokens": 170,
+    "rollouts_per_product": 8,
+    "sampler_backend": "native",
+    "seed": 20260802,
+    "structured_outputs": false,
+    "temperature": 0.7,
+    "top_p": 0.95
+  },
+  "metrics": {
+    "abstention": {
+      "attributes": {
+        "closure": {
+          "f1": 0.8859043939533314,
+          "fn": 1250,
+          "fp": 2471,
+          "gold_unknown_support": 15696,
+          "precision": 0.8539339126322634,
+          "recall": 0.920361875637105,
+          "tn": 10633,
+          "tp": 14446
+        },
+        "collar_type": {
+          "f1": 0.8357992073976221,
+          "fn": 1001,
+          "fp": 1485,
+          "gold_unknown_support": 7328,
+          "precision": 0.8099078341013825,
+          "recall": 0.863400655021834,
+          "tn": 19987,
+          "tp": 6327
+        },
+        "colour_primary": {
+          "f1": 0.9079666082654849,
+          "fn": 734,
+          "fp": 1052,
+          "gold_unknown_support": 9544,
+          "precision": 0.8933279253701075,
+          "recall": 0.9230930427493713,
+          "tn": 18204,
+          "tp": 8810
+        },
+        "details": {
+          "f1": 0.7856304720642656,
+          "fn": 2320,
+          "fp": 2430,
+          "gold_unknown_support": 11024,
+          "precision": 0.7817495958325849,
+          "recall": 0.7895500725689405,
+          "tn": 15346,
+          "tp": 8704
+        },
+        "fit": {
+          "f1": 0.9701626860505366,
+          "fn": 234,
+          "fp": 628,
+          "gold_unknown_support": 14248,
+          "precision": 0.9571096844693348,
+          "recall": 0.9835766423357665,
+          "tn": 13924,
+          "tp": 14014
+        },
+        "garment_category": {
+          "f1": 0.0,
+          "fn": 0,
+          "fp": 11,
+          "gold_unknown_support": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "tn": 28789,
+          "tp": 0
+        },
+        "garment_length": {
+          "f1": 0.9855901890648952,
+          "fn": 152,
+          "fp": 412,
+          "gold_unknown_support": 19440,
+          "precision": 0.9790862944162436,
+          "recall": 0.9921810699588477,
+          "tn": 8948,
+          "tp": 19288
+        },
+        "material": {
+          "f1": 0.8989617624715119,
+          "fn": 668,
+          "fp": 928,
+          "gold_unknown_support": 7768,
+          "precision": 0.8844045839561535,
+          "recall": 0.9140061791967045,
+          "tn": 20104,
+          "tp": 7100
+        },
+        "neckline": {
+          "f1": 0.9564046960293128,
+          "fn": 490,
+          "fp": 676,
+          "gold_unknown_support": 13280,
+          "precision": 0.9497994950245061,
+          "recall": 0.9631024096385542,
+          "tn": 14844,
+          "tp": 12790
+        },
+        "occasion": {
+          "f1": 0.8303211738182356,
+          "fn": 2215,
+          "fp": 2376,
+          "gold_unknown_support": 13448,
+          "precision": 0.8254096553751195,
+          "recall": 0.835291493158834,
+          "tn": 12976,
+          "tp": 11233
+        },
+        "pattern": {
+          "f1": 0.9390818719982128,
+          "fn": 757,
+          "fp": 1970,
+          "gold_unknown_support": 21776,
+          "precision": 0.9143068424028883,
+          "recall": 0.9652369581190301,
+          "tn": 5054,
+          "tp": 21019
+        },
+        "silhouette": {
+          "f1": 0.9831100757134538,
+          "fn": 232,
+          "fp": 464,
+          "gold_unknown_support": 20488,
+          "precision": 0.9776061776061776,
+          "recall": 0.9886762983209684,
+          "tn": 7848,
+          "tp": 20256
+        },
+        "sleeve_length": {
+          "f1": 0.9267412869343802,
+          "fn": 513,
+          "fp": 868,
+          "gold_unknown_support": 9248,
+          "precision": 0.9096115797146725,
+          "recall": 0.9445285467128027,
+          "tn": 18684,
+          "tp": 8735
+        },
+        "sleeve_style": {
+          "f1": 0.9794685990338164,
+          "fn": 374,
+          "fp": 374,
+          "gold_unknown_support": 18216,
+          "precision": 0.9794685990338164,
+          "recall": 0.9794685990338164,
+          "tn": 10210,
+          "tp": 17842
+        },
+        "waistline": {
+          "f1": 0.976428802066516,
+          "fn": 88,
+          "fp": 204,
+          "gold_unknown_support": 6136,
+          "precision": 0.9673704414587332,
+          "recall": 0.9856584093872229,
+          "tn": 22460,
+          "tp": 6048
+        }
+      },
+      "fn": 11028,
+      "fp": 16349,
+      "macro_f1_supported_attributes": 0.9186837017758268,
+      "micro_f1": 0.9280690276693966,
+      "micro_precision": 0.9152730344473754,
+      "micro_recall": 0.9412278831805585,
+      "positive_definition": "gold unknown; prediction is explicit unknown",
+      "tn": 228011,
+      "tp": 176612
+    },
+    "semantic_known_gold": {
+      "attributes": {
+        "closure": {
+          "exact_match": 0.6807844932844933,
+          "gold_unknown_cells": 15696,
+          "macro_f1": 0.6259909332549488,
+          "scorable_cells": 13104
+        },
+        "collar_type": {
+          "exact_match": 0.8627049180327869,
+          "gold_unknown_cells": 7328,
+          "macro_f1": 0.7409753711061776,
+          "scorable_cells": 21472
+        },
+        "colour_primary": {
+          "exact_match": 0.8877752388865808,
+          "gold_unknown_cells": 9544,
+          "macro_f1": 0.8096734151211834,
+          "scorable_cells": 19256
+        },
+        "details": {
+          "exact_match": 0.7928667866786678,
+          "gold_unknown_cells": 11024,
+          "macro_f1": 0.6374861961681993,
+          "scorable_cells": 17776
+        },
+        "fit": {
+          "exact_match": 0.9445437053326003,
+          "gold_unknown_cells": 14248,
+          "macro_f1": 0.9477689333966829,
+          "scorable_cells": 14552
+        },
+        "garment_category": {
+          "exact_match": 0.9467708333333333,
+          "gold_unknown_cells": 0,
+          "macro_f1": 0.8862210362591051,
+          "scorable_cells": 28800
+        },
+        "garment_length": {
+          "exact_match": 0.9407051282051282,
+          "gold_unknown_cells": 19440,
+          "macro_f1": 0.8154874617318448,
+          "scorable_cells": 9360
+        },
+        "material": {
+          "exact_match": 0.947793837961202,
+          "gold_unknown_cells": 7768,
+          "macro_f1": 0.9520227648739432,
+          "scorable_cells": 21032
+        },
+        "neckline": {
+          "exact_match": 0.9545103092783506,
+          "gold_unknown_cells": 13280,
+          "macro_f1": 0.8280741675252148,
+          "scorable_cells": 15520
+        },
+        "occasion": {
+          "exact_match": 0.8027618551328817,
+          "gold_unknown_cells": 13448,
+          "macro_f1": 0.6491001014925526,
+          "scorable_cells": 15352
+        },
+        "pattern": {
+          "exact_match": 0.7041571753986332,
+          "gold_unknown_cells": 21776,
+          "macro_f1": 0.7237610656465789,
+          "scorable_cells": 7024
+        },
+        "silhouette": {
+          "exact_match": 0.938041385948027,
+          "gold_unknown_cells": 20488,
+          "macro_f1": 0.6534585136596747,
+          "scorable_cells": 8312
+        },
+        "sleeve_length": {
+          "exact_match": 0.9356076104746317,
+          "gold_unknown_cells": 9248,
+          "macro_f1": 0.9241475564561452,
+          "scorable_cells": 19552
+        },
+        "sleeve_style": {
+          "exact_match": 0.9641912320483749,
+          "gold_unknown_cells": 18216,
+          "macro_f1": 0.8399567001788796,
+          "scorable_cells": 10584
+        },
+        "waistline": {
+          "exact_match": 0.9896311330744794,
+          "gold_unknown_cells": 6136,
+          "macro_f1": 0.6172270657645716,
+          "scorable_cells": 22664
+        }
+      },
+      "cell_exact_accuracy": 0.8969553118349975,
+      "correct_cells": 219180,
+      "macro_f1": 0.7767567521757136,
+      "scorable_cells": 244360
+    },
+    "unknown_aware_pass": {
+      "definition": "semantic pass plus explicit unknown on every gold-unknown field",
+      "pass_rate": 0.3076388888888889,
+      "passed_rollouts": 8860
+    }
+  },
+  "mode": "full",
+  "model": {
+    "adapter_bytes": 73911112,
+    "adapter_file": "runs/sft-combined-2epoch/checkpoint-406/adapter_model.safetensors",
+    "adapter_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "checkpoint": "runs/sft-combined-2epoch/checkpoint-406"
+  },
+  "pack": {
+    "name": "vastraa_taste_v1",
+    "path": "packs/vastraa_taste_v1",
+    "rules_sha256": "2d5e186fb5157bd1f371aa2009a02052457d49b94e7c3ef0343ec43632157c56",
+    "vocab_sha256": "f98eba2177343867ce7f010b0ef4ec8d745b1154219a7137d29ad1807925c17d"
+  },
+  "prompt": {
+    "sha256": "75221709f7fc7c3d36cf67c2062f125f46122f2769f7faa237b4dba29895c699",
+    "source": "training.dataset.SYSTEM"
+  },
+  "scoring": {
+    "abstention_metric_policy": "reported separately as binary unknown precision/recall/F1",
+    "all_same_group_policy": "exclude pass rates 0.0 and 1.0 from GRPO",
+    "gold_unknown_policy": "excluded",
+    "multi_value_comparison": "order-insensitive exact set match",
+    "pass_definition": "verifier-clean and every scorable gold label matches exactly",
+    "unknown_aware_pass_policy": "exploratory only; does not replace sft_pass_rate"
+  },
+  "summary": {
+    "always_failed": 1116,
+    "always_passed": 782,
+    "failed_rollouts": 16191,
+    "pass_rate_histogram": {
+      "0.000": 1116,
+      "0.125": 395,
+      "0.250": 266,
+      "0.375": 186,
+      "0.500": 189,
+      "0.625": 171,
+      "0.750": 208,
+      "0.875": 287,
+      "1.000": 782
+    },
+    "passed_rollouts": 12609,
+    "products_scored": 3600,
+    "retained_for_grpo": 1702,
+    "total_rollouts": 28800,
+    "unknown_aware_passed_rollouts": 8860
+  },
+  "version": "sft-difficulty-v2"
+}
