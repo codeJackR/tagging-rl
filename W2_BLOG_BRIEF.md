@@ -313,6 +313,32 @@ Rules:
 
 The remote environment was an NVIDIA RTX 3090 with 24,576 MiB VRAM, driver 590.48.01, CUDA toolkit 13.0, and compute capability 8.6. Exact Python packages were: PyTorch 2.11.0 (`+cu130` build observed on the box), Transformers 4.57.6, TRL 0.24.0, PEFT 0.19.1, Unsloth 2026.7.5, Datasets 4.3.0, Accelerate 1.14.0, Safetensors 0.8.0, and W&B 0.28.1.
 
+### What the compute cost
+
+The machine was a rented single-3090 instance billed at $0.144 per hour, with
+27 GB of provisioned disk, a nominal 35.3 TFLOPS, and 805.4 GB/s of memory
+bandwidth. Multiplying that rate by the instrumented wall times gives the
+GPU-time cost of each training run — this is billing-rate arithmetic over
+measured durations, not reconstruction from memory:
+
+| run | measured wall time | GPU-time cost |
+|---|---:|---:|
+| attention-only, continuous 2 epochs | 530 s | $0.021 |
+| combined, continuous 2 epochs | 572.5 s | $0.023 |
+| standalone attention 1 epoch | 269 s | $0.011 |
+
+Both arms of the duration-and-architecture ablation therefore consumed about
+**4.4 cents** of GPU time; the entire training story in this brief, including
+the superseded standalone run, is under six cents. Rental billing also covers
+idle, setup, and generation time between runs, so the wall-clock rental total
+for an evening of experiments is larger — on the order of a dollar — but the
+marginal cost of one controlled training run at this scale is effectively zero.
+The expensive ingredient was never the GPU: the weak labels cost roughly $20 of
+frontier-model API calls, several hundred times the training compute.
+
+Frozen-evaluation and validation *generation* wall times were not instrumented,
+so no per-SKU inference cost is claimed.
+
 Code and small evidence artifacts were synchronized through a bare Git remote on
 the GPU host. Commits—not ad hoc file copies—defined the code used for each run;
 large adapters stayed under `runs/`, while manifests recorded their paths,
@@ -1358,7 +1384,7 @@ selection evidence remain unchanged.
 - **One model size and one domain:** the result covers Qwen2.5-1.5B-Instruct on this apparel contract. It does not establish that combined LoRA always beats attention-only LoRA.
 - **One split seed:** family grouping prevents obvious sibling leakage, but no repeated-seed training study was run. The bootstrap quantifies evaluation-row uncertainty, not training-run variance.
 - **No constrained decoding:** this was deliberate so format learning could be measured, but a production deployment might choose grammar-constrained decoding and obtain a different quality/latency trade-off.
-- **Cost measurement incomplete:** training wall time and GPU memory were instrumented; exact rental cost per run and frozen-inference wall time per SKU were not. Those numbers should not be reconstructed from memory.
+- **Inference cost unmeasured:** training-run GPU-time costs are computed from instrumented wall times and the $0.144/hr billing rate, but frozen-evaluation and validation generation wall times were not instrumented, so no per-SKU inference cost is claimed.
 - **Public-feed caveat:** merchant text was fetched from public endpoints, but redistribution and long-term reuse should be checked against each site's terms.
 - **Duration-ablation artifacts are not self-contained:** the continuous two-epoch attention and combined step-203/406 prediction files remain on the GPU box, and checkpoint-specific metrics JSON files have not yet been generated and committed. The prose tables are recoverable but cannot currently be reproduced from Git alone.
 
@@ -1379,6 +1405,8 @@ selection evidence remain unchanged.
 | `runs/sft-combined-2epoch/validation-metrics-checkpoint-203.json` | reproducible continuous combined epoch-1 metrics | missing; must be regenerated |
 | `runs/sft-combined-2epoch/validation-metrics-checkpoint-406.json` | reproducible continuous combined epoch-2 metrics | missing; must be regenerated |
 | `runs/sft-selection.json` | selected checkpoint, LoRA configuration, hashes, validation evidence, and post-lock result | tracked; summarizes selection but does not replace all raw ablation evidence |
+| `runs/sft-attention-2epoch/wandb-history-iwsrgsn2.csv` | exported W&B step history: train/eval loss, gradient norm, learning rate | exported 2026-08-02 via the W&B public API; eval losses match this brief |
+| `runs/sft-combined-2epoch/wandb-history-s0ar902g.csv` | exported W&B step history for the combined run | exported 2026-08-02; eval losses match this brief |
 | `runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl` | all 300 literal generated strings | tracked |
 | `runs/sft-combined-2epoch/frozen-eval-300-metrics.json` | headline, per-attribute, integrity, error, and bootstrap metrics | tracked |
 | `training/train_sft.py` | commented Unsloth and TRL configuration | tracked |
