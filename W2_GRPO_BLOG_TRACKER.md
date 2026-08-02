@@ -1269,24 +1269,103 @@ Remaining post-run breakdowns:
 
 ## 15. GRPO handoff tracker
 
-This section is deliberately future work. Do not write it as completed until the full difficulty artifacts exist.
+The dataset handoff is complete and independently checked. Reward design and
+training remain future work.
 
 ### Dataset handoff
 
-`load_grpo_prompts(pack, path=scored_path, require_pass_rate_band=True)` should:
+The handoff deliberately separates three sets:
 
-- Read the derived scored dataset.
-- Retain only rows where `0 < sft_pass_rate < 1`.
-- Return prompt-only chat messages.
-- Carry gold JSON as a hidden dataset column for reward functions.
-- Carry SKU for auditing.
-- Never include the SFT completion as the model’s answer.
+1. The 3,600-row scored source remains immutable.
+2. The 1,702-row eligible set remains fully recorded as difficulty evidence.
+3. The first GRPO run receives the deterministic 1,565-row cap-four active set.
+
+`training/build_grpo_pool.py` constructs the active set with the same selector
+used by the sampling-policy audit. It writes two new artifacts without modifying
+the scored source or audit report:
+
+```text
+data/train_weak_grpo_cap4.jsonl
+runs/sft-difficulty-k8/grpo-pool-cap4-manifest.json
+```
+
+| handoff artifact | bytes | SHA-256 |
+|---|---:|---|
+| cap-four active JSONL | 3,467,347 | `3e378187a8147923bae1e0753a750d6e252336e911fa8c91cd57a4a8ddc3a102` |
+| selection manifest | 88,568 | `d166325a0c4ef3d78023ba492881fb3971e290b1b3606ee4ac8cd6aa733175e0` |
+
+Selection identities:
+
+| set | rows | SKU-set SHA-256 |
+|---|---:|---|
+| eligible mixed-outcome rows | 1,702 | `e8e318a46b8c11e9898e9bfdd6f8df2c821129002ac12279eae6dda7e8aab3e7` |
+| active cap-four rows | 1,565 | `77d926c88447e3cda5852f015629a4eae8bb9c7e32a00a67694abd985fb75c76` |
+| capped but still eligible rows | 137 | `23b0e276e463cb052da754bf2199ce872d31fcd42b3737b37243a30bfcb6047a` |
+
+The manifest embeds all 1,565 active SKU IDs and all 137 capped SKU IDs in
+source order. These lists are disjoint and their union exactly reproduces the
+eligible SKU set. The output JSONL also preserves source order and every active
+row is byte-for-structure identical to its row in
+`data/train_weak_sft_scored.jsonl`; only row membership changes.
+
+Active composition:
+
+| measurement | result |
+|---|---:|
+| represented families | all 1,150 eligible families |
+| maximum rows per family | 4 |
+| families with 1 / 2 / 3 / 4 active rows | 910 / 125 / 55 / 60 |
+| mean scorable fields | 8.70 |
+| mean substantive labeled fields | 5.58 |
+| rows with at most two scorable fields | 6 |
+| pass-rate 0.125 / 0.250 / 0.375 | 379 / 240 / 168 |
+| pass-rate 0.500 / 0.625 / 0.750 / 0.875 | 176 / 150 / 192 / 260 |
+
+All 14 stores remain in the active dataset. The selection manifest records the
+full category, store, source, family-size, pass-rate and gold-density counts so
+downstream training can prove it consumed the intended pool.
+
+The builder records the exact implementation-file SHA-256
+`8c373bfe2d58bbf2b2ed3f82cb3445cc1a1feca26361e38d0567c1d182821ba0`.
+It also records parent commit `6120ad6` and `tracked_worktree_dirty: true`
+because the handoff code and this tracker were intentionally generated and
+reviewed before their own commit. The implementation hash, tests, output hashes
+and eventual scoped commit together provide the exact provenance; the dirty flag
+is retained rather than rewritten after the fact.
+
+Independent validation proved:
+
+- all active rows satisfy `0 < sft_pass_rate < 1`;
+- active and capped lists are disjoint and cover all eligible rows;
+- every eligible family remains represented;
+- no active family exceeds four rows;
+- output membership, order and row contents match the manifest;
+- the active SKU-set hash matches the prior policy audit;
+- `load_grpo_prompts(pack, path=active_path,
+  require_pass_rate_band=True)` returns exactly 1,565 examples;
+- each loaded example contains system/user prompts, hidden gold JSON and SKU,
+  but no SFT completion.
+
+The builder refuses existing output paths unless `--overwrite` is explicit.
+Six focused handoff/audit tests and the full **210-test** project suite pass.
+No GRPO model, reward function or GPU training process was started in this step.
+
+`load_grpo_prompts()` now has a proven handoff contract. It:
+
+- reads the derived scored dataset;
+- retains only rows where `0 < sft_pass_rate < 1` when required;
+- returns prompt-only chat messages;
+- carries gold JSON as a hidden dataset column for reward functions;
+- carries SKU for auditing;
+- never includes the SFT completion as the model’s answer.
 
 ### Questions to answer before the first GRPO run
 
-- What fraction of 3,600 rows survives the difficulty filter?
-- Is the retained pool diverse across categories and sources?
-- Does strict whole-record correctness produce enough mixed groups?
+- [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
+- [x] Is the pool diverse? All major categories, all 14 stores and all 1,150
+  eligible families are represented; measured skews are documented.
+- [x] Are there enough mixed groups? Yes: 1,565 active prompts, each selected
+  from the predeclared mixed-outcome band.
 - Should the first GRPO reward remain binary or use multiple reward components?
 - How will gold-unknown fields be handled consistently in the reward function?
 - What checkpoint frequency fits the remaining disk budget?
@@ -1455,6 +1534,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Scorable-density bias audit of the retained pool.
 - [x] Retained-pool category/store/family and gold-density audit.
 - [x] Row-uniform, family-cap and family-uniform sampling comparison.
+- [x] Deterministic cap-four active dataset and complete SKU selection manifest.
 - [ ] Second-seed sensitivity sample.
 - [ ] GRPO reward specification.
 - [ ] GRPO smoke and gradient evidence.

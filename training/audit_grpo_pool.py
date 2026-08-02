@@ -184,6 +184,26 @@ def _total_variation(first: Counter, second: Counter) -> float:
     return 0.5 * sum(abs(first[key] - second[key]) for key in keys)
 
 
+def select_deterministic_family_cap(rows, *, cap: int, seed: int):
+    """Keep at most ``cap`` rows per canonical family, preserving source order."""
+    if cap <= 0:
+        raise ValueError("family cap must be positive")
+    families = defaultdict(list)
+    for row in rows:
+        families[group_key(row)].append(row)
+
+    selected_ids = set()
+    for key in sorted(families):
+        members = sorted(
+            families[key],
+            key=lambda row: hashlib.sha256(
+                f"{seed}\0{row.sku_id}".encode("utf-8")
+            ).hexdigest(),
+        )
+        selected_ids.update(row.sku_id for row in members[:cap])
+    return [row for row in rows if row.sku_id in selected_ids]
+
+
 def _sampling_policy_comparison(rows, retained, *, cap_seed: int = 42) -> dict:
     families = defaultdict(list)
     for row in retained:
@@ -256,15 +276,9 @@ def _sampling_policy_comparison(rows, retained, *, cap_seed: int = 42) -> dict:
     )
 
     for cap in (2, 4, 8):
-        selected = []
-        for key in sorted(families):
-            members = sorted(
-                families[key],
-                key=lambda row: hashlib.sha256(
-                    f"{cap_seed}\0{row.sku_id}".encode("utf-8")
-                ).hexdigest(),
-            )
-            selected.extend(members[:cap])
+        selected = select_deterministic_family_cap(
+            retained, cap=cap, seed=cap_seed
+        )
         probability = 1 / len(selected)
         scenarios.append(
             scenario(
