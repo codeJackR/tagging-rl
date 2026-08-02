@@ -1,0 +1,161 @@
+{
+  "provenance": {
+    "run": "sft-attention-2epoch",
+    "checkpoint": "runs/sft-attention-2epoch/checkpoint-406",
+    "predictions": "runs/sft-attention-2epoch/validation-predictions.jsonl",
+    "predictions_sha256": "42cef2b683dbff92b41bcbc8795b56f51c25c58cf3d8f5a5f8a5820695006f9d",
+    "gold_source": "data/train_weak.jsonl",
+    "gold_source_sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b",
+    "split_manifest": "data/splits/sft-v1.json",
+    "split_manifest_sha256": "4d14d46fa4f7df95a24658c741940db64093e7798b5ccd1558f4faa29bbe9a3b",
+    "split_name": "validation",
+    "verifier_pack": "packs/vastraa_taste_v1",
+    "decoding": "greedy, unconstrained, batch 8, 640 input / 170 new tokens",
+    "regenerated_at_commit": "61eb04f476a0a8b6adfadb1eae037a8d1717d0a5",
+    "note": "Regenerated from the raw predictions retrieved from the GPU host. These are the reports behind the duration-ablation tables in W2_BLOG_BRIEF.md."
+  },
+  "metrics": {
+    "macro_f1": 0.7509511218263504,
+    "selective_macro_f1": 0.7771088200302931,
+    "trusted_macro_f1": 0.7285575044722757,
+    "coverage": 0.9714378448555664,
+    "schema_validity": 0.9972222222222222,
+    "vocab_validity": 0.8997214484679665,
+    "rule_violations": 15,
+    "rule_histogram": {
+      "athletic_material_subset": 2,
+      "dress_needs_length_and_neckline": 2,
+      "solid_is_not_multicolour": 5,
+      "auto:applies_to:neckline": 1,
+      "auto:applies_to:sleeve_length": 2,
+      "auto:applies_to:collar_type": 1,
+      "auto:applies_to:garment_length": 1,
+      "auto:applies_to:waistline": 1
+    },
+    "n_gold": 360,
+    "n_missing": 1,
+    "freeze_ok": true,
+    "attributes": {
+      "garment_category": {
+        "n_scorable": 359,
+        "n_gold_unknown": 0,
+        "coverage": 1.0,
+        "exact_match": 0.8969359331476323,
+        "macro_f1": 0.8684696300475646,
+        "selective_macro_f1": 0.8684696300475646
+      },
+      "silhouette": {
+        "n_scorable": 109,
+        "n_gold_unknown": 250,
+        "coverage": 0.908256880733945,
+        "exact_match": 0.8807339449541285,
+        "macro_f1": 0.6098989898989899,
+        "selective_macro_f1": 0.6846153846153846
+      },
+      "fit": {
+        "n_scorable": 184,
+        "n_gold_unknown": 175,
+        "coverage": 0.9510869565217391,
+        "exact_match": 0.9293478260869565,
+        "macro_f1": 0.9042521355039609,
+        "selective_macro_f1": 0.9395462531510198
+      },
+      "garment_length": {
+        "n_scorable": 120,
+        "n_gold_unknown": 239,
+        "coverage": 0.975,
+        "exact_match": 0.9583333333333334,
+        "macro_f1": 0.7986693861693862,
+        "selective_macro_f1": 0.8155555555555556
+      },
+      "sleeve_length": {
+        "n_scorable": 250,
+        "n_gold_unknown": 109,
+        "coverage": 0.98,
+        "exact_match": 0.96,
+        "macro_f1": 0.8702018197632329,
+        "selective_macro_f1": 0.897913077913078
+      },
+      "sleeve_style": {
+        "n_scorable": 127,
+        "n_gold_unknown": 232,
+        "coverage": 0.9606299212598425,
+        "exact_match": 0.952755905511811,
+        "macro_f1": 0.6595744680851063,
+        "selective_macro_f1": 0.6666666666666666
+      },
+      "neckline": {
+        "n_scorable": 187,
+        "n_gold_unknown": 172,
+        "coverage": 0.9786096256684492,
+        "exact_match": 0.9732620320855615,
+        "macro_f1": 0.9877770611575946,
+        "selective_macro_f1": 0.9900267799427463
+      },
+      "collar_type": {
+        "n_scorable": 271,
+        "n_gold_unknown": 88,
+        "coverage": 0.981549815498155,
+        "exact_match": 0.9003690036900369,
+        "macro_f1": 0.7270337488416585,
+        "selective_macro_f1": 0.8800050357677476
+      },
+      "waistline": {
+        "n_scorable": 283,
+        "n_gold_unknown": 76,
+        "coverage": 0.9681978798586572,
+        "exact_match": 0.9575971731448764,
+        "macro_f1": 0.5183250631148254,
+        "selective_macro_f1": 0.5238095238095238
+      },
+      "closure": {
+        "n_scorable": 160,
+        "n_gold_unknown": 199,
+        "coverage": 0.91875,
+        "exact_match": 0.68125,
+        "macro_f1": 0.5492400238784038,
+        "selective_macro_f1": 0.5592005746397939
+      },
+      "pattern": {
+        "n_scorable": 99,
+        "n_gold_unknown": 260,
+        "coverage": 0.9494949494949495,
+        "exact_match": 0.9090909090909091,
+        "macro_f1": 0.9191760037348272,
+        "selective_macro_f1": 0.9310131195335277
+      },
+      "details": {
+        "n_scorable": 229,
+        "n_gold_unknown": 130,
+        "coverage": 0.9606986899563319,
+        "exact_match": 0.7816593886462883,
+        "macro_f1": 0.5961268037185425,
+        "selective_macro_f1": 0.6076345265030785
+      },
+      "material": {
+        "n_scorable": 263,
+        "n_gold_unknown": 96,
+        "coverage": 0.9885931558935361,
+        "exact_match": 0.9429657794676806,
+        "macro_f1": 0.8266386191849499,
+        "selective_macro_f1": 0.8347194272657579
+      },
+      "colour_primary": {
+        "n_scorable": 235,
+        "n_gold_unknown": 124,
+        "coverage": 0.9829787234042553,
+        "exact_match": 0.8638297872340426,
+        "macro_f1": 0.8203531942146082,
+        "selective_macro_f1": 0.8262511279998964
+      },
+      "occasion": {
+        "n_scorable": 205,
+        "n_gold_unknown": 154,
+        "coverage": 0.9804878048780488,
+        "exact_match": 0.9170731707317074,
+        "macro_f1": 0.6085298800816041,
+        "selective_macro_f1": 0.6312056170430554
+      }
+    }
+  }
+}

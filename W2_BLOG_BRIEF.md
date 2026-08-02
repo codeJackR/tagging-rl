@@ -27,19 +27,26 @@ The result is a strong controlled improvement, not a production-accuracy claim. 
 
 ### Reproducibility status note
 
-The locked checkpoint and frozen-evaluation claims are backed by committed
-prediction and metrics artifacts. The earlier duration-ablation tables are not
-yet backed to the same standard. As of 2026-08-02, the four raw validation
-prediction files for the continuous two-epoch attention and combined runs remain
-only on the GPU box, and no standalone checkpoint-203/checkpoint-406 validation
-metrics JSON files have been materialized. The numbers below were recorded during
-the experiment and their raw predictions remain recoverable, but a fresh clone of
-the repository cannot currently reproduce every step-203-versus-step-406 table.
+Every claim in this brief is now backed by committed artifacts. The locked
+checkpoint and frozen evaluation were self-contained from the start. The
+duration-ablation tables initially were not: their four raw validation
+prediction files lived only on the GPU box, and no checkpoint-level metrics
+reports existed, so the step-203-versus-step-406 numbers had been transcribed
+from an analysis session rather than regenerated from tracked evidence.
 
-This is an audit-trail gap, not evidence that the frozen result is missing. It is
-called out beside the affected tables, in Limitations, and in the artifact
-inventory near the end of this brief. The gap should be closed before publishing
-the duration-ablation claims as fully reproducible.
+That gap was closed on 2026-08-02. The four prediction files and two run
+summaries were retrieved from the GPU host and verified byte-for-byte against
+the SHA-256 inventory recorded here before the transfer, the evaluation harness
+was re-run against the checksum-verified 360-row validation split for each arm
+and checkpoint, and four `validation-metrics-checkpoint-*.json` reports were
+written beside the raw predictions with full provenance.
+
+The regenerated reports reproduce every duration and arm-selection table in this
+brief exactly, including all nine named per-attribute deltas, the count of 12 of
+15 attributes improving across the attention epoch boundary, the four combined
+attributes that regressed, and the 15-of-15 improvement of combined over
+attention. A fresh clone can now recompute those tables without contacting the
+GPU host.
 
 ## Why this project exists
 
@@ -676,12 +683,15 @@ sampling disabled, and checksum-verified validation manifest.
 | macro-F1 | 0.708 | 0.751 | +0.043 |
 | selective macro-F1 | 0.728 | 0.777 | +0.049 |
 
-**Artifact-status caveat:** this attention duration table is not reproducible
-from Git alone as of 2026-08-02. Its two raw prediction files still exist on the
-GPU box, but neither they nor checkpoint-specific metrics reports are committed.
-The tracked standalone one-epoch attention artifacts are not a substitute:
-that run used a different cosine-schedule horizon, which is exactly why the
-continuous checkpoint-203-versus-checkpoint-406 comparison was performed.
+**Artifact status:** reproducible from Git as of 2026-08-02. Both raw prediction
+files and their regenerated reports are tracked as
+`runs/sft-attention-2epoch/validation-predictions-checkpoint-203.jsonl`,
+`validation-predictions.jsonl`, and the matching
+`validation-metrics-checkpoint-203.json` and
+`validation-metrics-checkpoint-406.json`. Note that the tracked standalone
+one-epoch attention artifacts are not a substitute for checkpoint 203: that run
+used a different cosine-schedule horizon, which is exactly why the continuous
+checkpoint-203-versus-checkpoint-406 comparison was performed.
 
 This is the load-bearing comparison. The second pass did not merely lower token
 loss: it produced more useful answers, obeyed the closed vocabulary much more
@@ -915,12 +925,11 @@ validation SKUs with greedy decoding and the same input and output limits.
 | macro-F1 | 0.814 | 0.854 | +0.040 |
 | selective macro-F1 | 0.833 | 0.868 | +0.034 |
 
-**Artifact-status caveat:** this combined duration table has the same repository
-gap. The step-203 and step-406 raw validation predictions remain recoverable from
-the GPU box, and the final step-406 prediction hash is also recorded in the
-selection manifest, but the pair of prediction files and their checkpoint-level
-metrics reports are not both committed. The table therefore cannot yet be
-recomputed from a clean clone without retrieving remote evidence.
+**Artifact status:** reproducible from Git as of 2026-08-02. The step-203 and
+step-406 raw validation predictions and both regenerated metrics reports are
+tracked under `runs/sft-combined-2epoch/`. The step-406 prediction hash
+`f46b90be…2023a4` also appears in the selection manifest, so the file backing
+this table is the same one the arm selection was made from.
 
 The second epoch earned selection. Its improvement was smaller than the second
 attention-only pass because combined checkpoint 203 was already strong, but all
@@ -960,54 +969,72 @@ garment length. These are plausible beneficiaries of MLP adaptation: MLP blocks
 help transform and store feature combinations after attention has gathered
 relevant title and description tokens.
 
-### Reproducibility gap in the duration ablation
+### Closing the duration-ablation reproducibility gap
 
-The generated-output duration and arm-selection tables above currently have a
-weaker audit trail than the final frozen evaluation. The following four raw
-prediction files exist on the GPU server but are not tracked in Git:
+The generated-output duration and arm-selection tables above initially had a
+weaker audit trail than the frozen evaluation. Their four raw prediction files
+lived only on the GPU host, no checkpoint-level metrics reports existed, and the
+tables had been transcribed from an interactive analysis session. A claim such
+as attention-only whole-record vocabulary validity improving from `78.0%` to
+`90.0%` was therefore recoverable but not repository-reproducible.
 
-| remote-only prediction artifact | bytes | SHA-256 |
+The gap was closed on 2026-08-02 by the same procedure used for the frozen
+evaluation. SHA-256 hashes were recorded in this brief *before* the transfer, so
+the copy could be checked against a commitment made in advance rather than
+against itself:
+
+| retrieved artifact | bytes | SHA-256 (recorded pre-transfer, verified after) |
 |---|---:|---|
 | `runs/sft-attention-2epoch/validation-predictions-checkpoint-203.jsonl` | 169,738 | `2f3265d15fd384e6c559ad18a49b9088c31ba09466557060095efe5943ceb327` |
 | `runs/sft-attention-2epoch/validation-predictions.jsonl` | 169,260 | `42cef2b683dbff92b41bcbc8795b56f51c25c58cf3d8f5a5f8a5820695006f9d` |
 | `runs/sft-combined-2epoch/validation-predictions-checkpoint-203.jsonl` | 169,451 | `c4e5b848e5b9b3f17fd70757af8ff8a68b83de6172db83daed948ae7f847ab1e` |
 | `runs/sft-combined-2epoch/validation-predictions.jsonl` | 168,916 | `f46b90becab16487b8403776b8de9d085e95c3c07a50f9f76b2b93916b2023a4` |
-
-The two small continuous-run summaries also remain remote-only:
-
-| remote-only run summary | bytes | SHA-256 |
-|---|---:|---|
 | `runs/sft-attention-2epoch/run-summary.json` | 938 | `86f8068d131d6bc4278c0e4a2bdd13ff2d6bb27b300ed6c22a1e11af9c0d06cd` |
 | `runs/sft-combined-2epoch/run-summary.json` | 984 | `d7b84613052a2bcfb39df6fe3f9a698c74813eb94f4a857dd50358b78a0a52ee` |
 
-No checkpoint-specific metrics files presently exist for these four prediction
-artifacts. The tables were computed during analysis and copied into this brief,
-but the derived reports were not saved alongside the raw outputs. In particular,
-claims such as attention-only whole-record vocabulary validity improving from
-`78.0%` to `90.0%` should not be described as repository-reproducible until the
-backing predictions and regenerated metrics are committed.
+All six matched on both sides of the copy. The evaluation harness was then re-run
+against the checksum-verified 360-row validation split for each arm and
+checkpoint, producing four tracked reports:
 
-The remediation should follow the same pattern already used for the frozen
-evaluation:
+```text
+runs/sft-attention-2epoch/validation-metrics-checkpoint-203.json
+runs/sft-attention-2epoch/validation-metrics-checkpoint-406.json
+runs/sft-combined-2epoch/validation-metrics-checkpoint-203.json
+runs/sft-combined-2epoch/validation-metrics-checkpoint-406.json
+```
 
-1. Copy the four raw prediction JSONL files and two run summaries from the GPU
-   box without modifying them.
-2. Verify their byte counts and SHA-256 hashes against the inventory above.
-3. Re-run the current evaluation harness against the checksum-verified 360-row
-   validation split for each arm and checkpoint.
-4. Save four checkpoint-specific metrics JSON files containing checkpoint,
-   prediction, source, split-manifest, and verifier-pack provenance.
-5. Confirm that the regenerated headline, per-attribute, validity, coverage, and
-   rule metrics match every table in this brief.
-6. Commit the small predictions, summaries, and metrics reports. The large
-   adapter checkpoints do not need to be added merely to preserve evaluation
-   evidence; their identities and hashes should be referenced instead.
-7. Extend `runs/sft-selection.json` or a dedicated duration-ablation manifest
-   with the artifact hashes, then update this section from “remote-only” to the
-   commit containing the evidence.
+Each report carries its own provenance block: the checkpoint it describes, the
+prediction file and that file's hash, the gold source and its hash, the split
+manifest and its hash, the split name, the verifier pack, the decoding settings,
+and the repository commit at regeneration time.
 
-Until those steps are complete, the duration ablation is a documented and
-recoverable experiment, but not a fully self-contained repository artifact.
+The regenerated numbers reproduce this brief exactly:
+
+| regenerated report | macro-F1 | selective | vocabulary | schema | coverage | rules |
+|---|---:|---:|---:|---:|---:|---:|
+| attention checkpoint-203 | 0.7078 | 0.7282 | 78.0% | 99.7% | 95.2% | 19 |
+| attention checkpoint-406 | 0.7510 | 0.7771 | 90.0% | 99.7% | 97.1% | 15 |
+| combined checkpoint-203 | 0.8136 | 0.8333 | 92.5% | 99.7% | 97.0% | 15 |
+| combined checkpoint-406 | 0.8537 | 0.8676 | 94.4% | 99.7% | 97.7% | 10 |
+
+Per-attribute claims were checked as well, not only the headlines. All nine named
+attention deltas matched to three decimals, including closure `0.285 → 0.549` and
+the small regressions in garment category and occasion. The count of 12 of 15
+attributes improving across the attention epoch boundary was confirmed. For the
+combined arm, exactly the four named attributes regressed—sleeve length, details,
+pattern, and fit—with sleeve length the largest at `0.943 → 0.897`. Combined
+checkpoint 406 improved on attention checkpoint 406 in all 15 attributes, with
+`fit` the smallest gain, matching the brief's description of it as tiny.
+
+The large adapter checkpoints were deliberately not committed. Preserving
+evaluation evidence does not require shipping weights; the checkpoints are
+referenced by path and hash instead, and `runs/sft-selection.json` already
+records the selected adapter's SHA-256.
+
+Two properties of this procedure are worth separating. Committing the raw
+predictions makes the tables *auditable*—a reader can recompute them. Recording
+the hashes in advance makes the retrieval *trustworthy*—a silently altered file
+would have failed the check rather than quietly becoming the new evidence.
 
 The trade-off is storage, not feasibility. Combined LoRA uses about four times
 as many adapter parameters and produces a roughly four-times-larger weight file.
@@ -1386,7 +1413,7 @@ selection evidence remain unchanged.
 - **No constrained decoding:** this was deliberate so format learning could be measured, but a production deployment might choose grammar-constrained decoding and obtain a different quality/latency trade-off.
 - **Inference cost unmeasured:** training-run GPU-time costs are computed from instrumented wall times and the $0.144/hr billing rate, but frozen-evaluation and validation generation wall times were not instrumented, so no per-SKU inference cost is claimed.
 - **Public-feed caveat:** merchant text was fetched from public endpoints, but redistribution and long-term reuse should be checked against each site's terms.
-- **Duration-ablation artifacts are not self-contained:** the continuous two-epoch attention and combined step-203/406 prediction files remain on the GPU box, and checkpoint-specific metrics JSON files have not yet been generated and committed. The prose tables are recoverable but cannot currently be reproduced from Git alone.
+- **Duration-ablation reports are regenerated, not original:** the four checkpoint-level metrics JSON files were produced on 2026-08-02 from raw predictions retrieved from the GPU host, verified against SHA-256 hashes recorded before the transfer. They reproduce every table in this brief exactly, but they are a later recomputation over preserved outputs rather than reports saved at training time.
 
 ## Audit trail and artifacts
 
@@ -1396,15 +1423,17 @@ selection evidence remain unchanged.
 | `data/eval_300/eval.jsonl.frozen.json` | frozen-set checksum, row count, and correction metadata | tracked |
 | `runs/sft-attention/validation-predictions.jsonl` | standalone one-epoch attention validation generations | tracked; not a substitute for continuous checkpoint 203 |
 | `runs/sft-attention/validation-metrics.json` | standalone one-epoch attention metrics | tracked; different cosine horizon |
-| `runs/sft-attention-2epoch/validation-predictions-checkpoint-203.jsonl` | continuous attention epoch-1 generations behind the duration table | remote-only; SHA recorded above |
-| `runs/sft-attention-2epoch/validation-predictions.jsonl` | continuous attention epoch-2 generations behind the duration table | remote-only; SHA recorded above |
-| `runs/sft-attention-2epoch/validation-metrics-checkpoint-203.json` | reproducible continuous attention epoch-1 metrics | missing; must be regenerated |
-| `runs/sft-attention-2epoch/validation-metrics-checkpoint-406.json` | reproducible continuous attention epoch-2 metrics | missing; must be regenerated |
-| `runs/sft-combined-2epoch/validation-predictions-checkpoint-203.jsonl` | continuous combined epoch-1 generations behind the duration table | remote-only; SHA recorded above |
-| `runs/sft-combined-2epoch/validation-predictions.jsonl` | continuous combined epoch-2 generations behind duration and arm selection | remote-only; final SHA also appears in selection manifest |
-| `runs/sft-combined-2epoch/validation-metrics-checkpoint-203.json` | reproducible continuous combined epoch-1 metrics | missing; must be regenerated |
-| `runs/sft-combined-2epoch/validation-metrics-checkpoint-406.json` | reproducible continuous combined epoch-2 metrics | missing; must be regenerated |
-| `runs/sft-selection.json` | selected checkpoint, LoRA configuration, hashes, validation evidence, and post-lock result | tracked; summarizes selection but does not replace all raw ablation evidence |
+| `runs/sft-attention-2epoch/validation-predictions-checkpoint-203.jsonl` | continuous attention epoch-1 generations behind the duration table | tracked; hash-verified on retrieval |
+| `runs/sft-attention-2epoch/validation-predictions.jsonl` | continuous attention epoch-2 generations behind the duration table | tracked; hash-verified on retrieval |
+| `runs/sft-attention-2epoch/validation-metrics-checkpoint-203.json` | reproducible continuous attention epoch-1 metrics | tracked; regenerated 2026-08-02 with provenance |
+| `runs/sft-attention-2epoch/validation-metrics-checkpoint-406.json` | reproducible continuous attention epoch-2 metrics | tracked; regenerated 2026-08-02 with provenance |
+| `runs/sft-combined-2epoch/validation-predictions-checkpoint-203.jsonl` | continuous combined epoch-1 generations behind the duration table | tracked; hash-verified on retrieval |
+| `runs/sft-combined-2epoch/validation-predictions.jsonl` | continuous combined epoch-2 generations behind duration and arm selection | tracked; hash also appears in selection manifest |
+| `runs/sft-combined-2epoch/validation-metrics-checkpoint-203.json` | reproducible continuous combined epoch-1 metrics | tracked; regenerated 2026-08-02 with provenance |
+| `runs/sft-combined-2epoch/validation-metrics-checkpoint-406.json` | reproducible continuous combined epoch-2 metrics | tracked; regenerated 2026-08-02 with provenance |
+| `runs/sft-selection.json` | selected checkpoint, LoRA configuration, hashes, validation evidence, and post-lock result | tracked |
+| `runs/sft-attention-2epoch/run-summary.json` | attention continuous-run timing, memory, and loss summary | tracked; hash-verified on retrieval |
+| `runs/sft-combined-2epoch/run-summary.json` | combined continuous-run timing, memory, and loss summary | tracked; hash-verified on retrieval |
 | `runs/sft-attention-2epoch/wandb-history-iwsrgsn2.csv` | exported W&B step history: train/eval loss, gradient norm, learning rate | exported 2026-08-02 via the W&B public API; eval losses match this brief |
 | `runs/sft-combined-2epoch/wandb-history-s0ar902g.csv` | exported W&B step history for the combined run | exported 2026-08-02; eval losses match this brief |
 | `runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl` | all 300 literal generated strings | tracked |
