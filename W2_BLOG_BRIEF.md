@@ -25,6 +25,22 @@ We trained two controlled LoRA variants of the same Qwen2.5-1.5B-Instruct model:
 
 The result is a strong controlled improvement, not a production-accuracy claim. Only 78 individual evaluation cells received explicit human review, so most frozen labels still reflect the weak-labeling model.
 
+### Reproducibility status note
+
+The locked checkpoint and frozen-evaluation claims are backed by committed
+prediction and metrics artifacts. The earlier duration-ablation tables are not
+yet backed to the same standard. As of 2026-08-02, the four raw validation
+prediction files for the continuous two-epoch attention and combined runs remain
+only on the GPU box, and no standalone checkpoint-203/checkpoint-406 validation
+metrics JSON files have been materialized. The numbers below were recorded during
+the experiment and their raw predictions remain recoverable, but a fresh clone of
+the repository cannot currently reproduce every step-203-versus-step-406 table.
+
+This is an audit-trail gap, not evidence that the frozen result is missing. It is
+called out beside the affected tables, in Limitations, and in the artifact
+inventory near the end of this brief. The gap should be closed before publishing
+the duration-ablation claims as fully reproducible.
+
 ## Why this project exists
 
 The project is a controlled catalog-tagging task for apparel listings. Given text from a product page—title, brand, category, description, and merchant tags—the model must emit one JSON object with 15 controlled fields, such as garment category, material, fit, pattern, closure, and occasion.
@@ -634,6 +650,13 @@ sampling disabled, and checksum-verified validation manifest.
 | macro-F1 | 0.708 | 0.751 | +0.043 |
 | selective macro-F1 | 0.728 | 0.777 | +0.049 |
 
+**Artifact-status caveat:** this attention duration table is not reproducible
+from Git alone as of 2026-08-02. Its two raw prediction files still exist on the
+GPU box, but neither they nor checkpoint-specific metrics reports are committed.
+The tracked standalone one-epoch attention artifacts are not a substitute:
+that run used a different cosine-schedule horizon, which is exactly why the
+continuous checkpoint-203-versus-checkpoint-406 comparison was performed.
+
 This is the load-bearing comparison. The second pass did not merely lower token
 loss: it produced more useful answers, obeyed the closed vocabulary much more
 often, broke fewer cross-field rules, and raised both headline and selective
@@ -866,6 +889,13 @@ validation SKUs with greedy decoding and the same input and output limits.
 | macro-F1 | 0.814 | 0.854 | +0.040 |
 | selective macro-F1 | 0.833 | 0.868 | +0.034 |
 
+**Artifact-status caveat:** this combined duration table has the same repository
+gap. The step-203 and step-406 raw validation predictions remain recoverable from
+the GPU box, and the final step-406 prediction hash is also recorded in the
+selection manifest, but the pair of prediction files and their checkpoint-level
+metrics reports are not both committed. The table therefore cannot yet be
+recomputed from a clean clone without retrieving remote evidence.
+
 The second epoch earned selection. Its improvement was smaller than the second
 attention-only pass because combined checkpoint 203 was already strong, but all
 four operational quality measures moved in the desired direction: more valid
@@ -903,6 +933,55 @@ largest gains appeared in silhouette, sleeve style, waistline, occasion, and
 garment length. These are plausible beneficiaries of MLP adaptation: MLP blocks
 help transform and store feature combinations after attention has gathered
 relevant title and description tokens.
+
+### Reproducibility gap in the duration ablation
+
+The generated-output duration and arm-selection tables above currently have a
+weaker audit trail than the final frozen evaluation. The following four raw
+prediction files exist on the GPU server but are not tracked in Git:
+
+| remote-only prediction artifact | bytes | SHA-256 |
+|---|---:|---|
+| `runs/sft-attention-2epoch/validation-predictions-checkpoint-203.jsonl` | 169,738 | `2f3265d15fd384e6c559ad18a49b9088c31ba09466557060095efe5943ceb327` |
+| `runs/sft-attention-2epoch/validation-predictions.jsonl` | 169,260 | `42cef2b683dbff92b41bcbc8795b56f51c25c58cf3d8f5a5f8a5820695006f9d` |
+| `runs/sft-combined-2epoch/validation-predictions-checkpoint-203.jsonl` | 169,451 | `c4e5b848e5b9b3f17fd70757af8ff8a68b83de6172db83daed948ae7f847ab1e` |
+| `runs/sft-combined-2epoch/validation-predictions.jsonl` | 168,916 | `f46b90becab16487b8403776b8de9d085e95c3c07a50f9f76b2b93916b2023a4` |
+
+The two small continuous-run summaries also remain remote-only:
+
+| remote-only run summary | bytes | SHA-256 |
+|---|---:|---|
+| `runs/sft-attention-2epoch/run-summary.json` | 938 | `86f8068d131d6bc4278c0e4a2bdd13ff2d6bb27b300ed6c22a1e11af9c0d06cd` |
+| `runs/sft-combined-2epoch/run-summary.json` | 984 | `d7b84613052a2bcfb39df6fe3f9a698c74813eb94f4a857dd50358b78a0a52ee` |
+
+No checkpoint-specific metrics files presently exist for these four prediction
+artifacts. The tables were computed during analysis and copied into this brief,
+but the derived reports were not saved alongside the raw outputs. In particular,
+claims such as attention-only whole-record vocabulary validity improving from
+`78.0%` to `90.0%` should not be described as repository-reproducible until the
+backing predictions and regenerated metrics are committed.
+
+The remediation should follow the same pattern already used for the frozen
+evaluation:
+
+1. Copy the four raw prediction JSONL files and two run summaries from the GPU
+   box without modifying them.
+2. Verify their byte counts and SHA-256 hashes against the inventory above.
+3. Re-run the current evaluation harness against the checksum-verified 360-row
+   validation split for each arm and checkpoint.
+4. Save four checkpoint-specific metrics JSON files containing checkpoint,
+   prediction, source, split-manifest, and verifier-pack provenance.
+5. Confirm that the regenerated headline, per-attribute, validity, coverage, and
+   rule metrics match every table in this brief.
+6. Commit the small predictions, summaries, and metrics reports. The large
+   adapter checkpoints do not need to be added merely to preserve evaluation
+   evidence; their identities and hashes should be referenced instead.
+7. Extend `runs/sft-selection.json` or a dedicated duration-ablation manifest
+   with the artifact hashes, then update this section from “remote-only” to the
+   commit containing the evidence.
+
+Until those steps are complete, the duration ablation is a documented and
+recoverable experiment, but not a fully self-contained repository artifact.
 
 The trade-off is storage, not feasibility. Combined LoRA uses about four times
 as many adapter parameters and produces a roughly four-times-larger weight file.
@@ -1281,26 +1360,39 @@ selection evidence remain unchanged.
 - **No constrained decoding:** this was deliberate so format learning could be measured, but a production deployment might choose grammar-constrained decoding and obtain a different quality/latency trade-off.
 - **Cost measurement incomplete:** training wall time and GPU memory were instrumented; exact rental cost per run and frozen-inference wall time per SKU were not. Those numbers should not be reconstructed from memory.
 - **Public-feed caveat:** merchant text was fetched from public endpoints, but redistribution and long-term reuse should be checked against each site's terms.
+- **Duration-ablation artifacts are not self-contained:** the continuous two-epoch attention and combined step-203/406 prediction files remain on the GPU box, and checkpoint-specific metrics JSON files have not yet been generated and committed. The prose tables are recoverable but cannot currently be reproduced from Git alone.
 
 ## Audit trail and artifacts
 
-| artifact | purpose |
-|---|---|
-| `data/splits/sft-v1.json` | immutable family-grouped train/validation assignments and source checksum |
-| `data/eval_300/eval.jsonl.frozen.json` | frozen-set checksum, row count, and correction metadata |
-| `runs/sft-selection.json` | selected checkpoint, LoRA configuration, hashes, validation evidence, and post-lock result |
-| `runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl` | all 300 literal generated strings |
-| `runs/sft-combined-2epoch/frozen-eval-300-metrics.json` | headline, per-attribute, integrity, error, and bootstrap metrics |
-| `training/train_sft.py` | commented Unsloth and TRL configuration |
-| `training/predict.py` | raw, greedy, unconstrained inference path |
-| `evalharness/metrics.py` | metric definitions and abstention handling |
-| `verifier/` | schema, vocabulary, and cross-field-rule implementation |
+| artifact | purpose | repository status as of 2026-08-02 |
+|---|---|---|
+| `data/splits/sft-v1.json` | immutable family-grouped train/validation assignments and source checksum | tracked |
+| `data/eval_300/eval.jsonl.frozen.json` | frozen-set checksum, row count, and correction metadata | tracked |
+| `runs/sft-attention/validation-predictions.jsonl` | standalone one-epoch attention validation generations | tracked; not a substitute for continuous checkpoint 203 |
+| `runs/sft-attention/validation-metrics.json` | standalone one-epoch attention metrics | tracked; different cosine horizon |
+| `runs/sft-attention-2epoch/validation-predictions-checkpoint-203.jsonl` | continuous attention epoch-1 generations behind the duration table | remote-only; SHA recorded above |
+| `runs/sft-attention-2epoch/validation-predictions.jsonl` | continuous attention epoch-2 generations behind the duration table | remote-only; SHA recorded above |
+| `runs/sft-attention-2epoch/validation-metrics-checkpoint-203.json` | reproducible continuous attention epoch-1 metrics | missing; must be regenerated |
+| `runs/sft-attention-2epoch/validation-metrics-checkpoint-406.json` | reproducible continuous attention epoch-2 metrics | missing; must be regenerated |
+| `runs/sft-combined-2epoch/validation-predictions-checkpoint-203.jsonl` | continuous combined epoch-1 generations behind the duration table | remote-only; SHA recorded above |
+| `runs/sft-combined-2epoch/validation-predictions.jsonl` | continuous combined epoch-2 generations behind duration and arm selection | remote-only; final SHA also appears in selection manifest |
+| `runs/sft-combined-2epoch/validation-metrics-checkpoint-203.json` | reproducible continuous combined epoch-1 metrics | missing; must be regenerated |
+| `runs/sft-combined-2epoch/validation-metrics-checkpoint-406.json` | reproducible continuous combined epoch-2 metrics | missing; must be regenerated |
+| `runs/sft-selection.json` | selected checkpoint, LoRA configuration, hashes, validation evidence, and post-lock result | tracked; summarizes selection but does not replace all raw ablation evidence |
+| `runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl` | all 300 literal generated strings | tracked |
+| `runs/sft-combined-2epoch/frozen-eval-300-metrics.json` | headline, per-attribute, integrity, error, and bootstrap metrics | tracked |
+| `training/train_sft.py` | commented Unsloth and TRL configuration | tracked |
+| `training/predict.py` | raw, greedy, unconstrained inference path | tracked |
+| `evalharness/metrics.py` | metric definitions and abstention handling | tracked |
+| `verifier/` | schema, vocabulary, and cross-field-rule implementation | tracked |
 
 The pre-evaluation lock was commit `8bff4c6`; the frozen result was recorded in
 commit `4c3e986`. The selected adapter SHA-256 is
 `00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`,
 and the saved prediction file SHA-256 is
 `cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b`.
+Those hashes close the final frozen-evaluation trail; they do not by themselves
+close the four-checkpoint duration-ablation gap documented above.
 
 ## Conclusion
 
