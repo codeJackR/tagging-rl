@@ -15,12 +15,13 @@ import json
 import os
 import subprocess
 from collections import Counter, defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Sequence
 
-from labeling.records import read_jsonl, write_jsonl
+from evalharness.metrics import score_attribute
+from labeling.records import LabelStatus, read_jsonl, write_jsonl
 from training.dataset import SYSTEM
 from training.predict import prompt_messages
 from verifier import Pack, load_pack, verify
@@ -138,6 +139,10 @@ class CompletionScore:
     scorable_labels: int
     incorrect_labels: list[str]
     excluded_gold_unknown_labels: list[str]
+    correct_abstention_labels: list[str]
+    missed_abstention_labels: list[str]
+    false_abstention_labels: list[str]
+    unknown_aware_passed: bool
 
 
 @dataclass(frozen=True)
@@ -158,6 +163,12 @@ class RolloutRecord:
     excluded_gold_unknown_labels: list[str]
     generation_seed: int
     completion_tokens: int
+    # Defaults preserve read compatibility with the first smoke artifact. Its raw
+    # outputs are re-scored into populated v2 records before the full run.
+    correct_abstention_labels: list[str] = field(default_factory=list)
+    missed_abstention_labels: list[str] = field(default_factory=list)
+    false_abstention_labels: list[str] = field(default_factory=list)
+    unknown_aware_passed: bool = False
 
     def __post_init__(self) -> None:
         if not self.sku_id:
@@ -197,18 +208,37 @@ def score_completion(raw_output: str, gold: dict, pack: Pack) -> CompletionScore
     scorable = 0
     incorrect_labels: list[str] = []
     excluded_gold_unknown_labels: list[str] = []
+    correct_abstention_labels: list[str] = []
+    missed_abstention_labels: list[str] = []
+    false_abstention_labels: list[str] = []
 
     for name, spec in pack.specs.items():
         gold_value = gold.get(name, pack.unknown_token)
-        if _is_unknown_gold(
+        multi = spec.kind == "multi"
+        gold_unknown = _is_unknown_gold(
             gold_value,
-            multi=spec.kind == "multi",
+            multi=multi,
             unknown_token=pack.unknown_token,
-        ):
+        )
+        prediction_present = parsed is not None and name in parsed
+        predicted_value = parsed.get(name) if prediction_present else None
+        predicted_unknown = prediction_present and _is_unknown_gold(
+            predicted_value,
+            multi=multi,
+            unknown_token=pack.unknown_token,
+        )
+
+        if gold_unknown:
             excluded_gold_unknown_labels.append(name)
+            if predicted_unknown:
+                correct_abstention_labels.append(name)
+            else:
+                missed_abstention_labels.append(name)
             continue
         scorable += 1
-        if parsed is not None and _labels_match(gold_value, parsed.get(name)):
+        if predicted_unknown:
+            false_abstention_labels.append(name)
+        if parsed is not None and _labels_match(gold_value, predicted_value):
             correct += 1
         else:
             incorrect_labels.append(name)
@@ -218,6 +248,7 @@ def score_completion(raw_output: str, gold: dict, pack: Pack) -> CompletionScore
         and scorable > 0
         and correct == scorable
     )
+    unknown_aware_passed = passed and not missed_abstention_labels
     return CompletionScore(
         passed=passed,
         schema_valid=verification.schema_valid,
@@ -228,6 +259,10 @@ def score_completion(raw_output: str, gold: dict, pack: Pack) -> CompletionScore
         scorable_labels=scorable,
         incorrect_labels=incorrect_labels,
         excluded_gold_unknown_labels=excluded_gold_unknown_labels,
+        correct_abstention_labels=correct_abstention_labels,
+        missed_abstention_labels=missed_abstention_labels,
+        false_abstention_labels=false_abstention_labels,
+        unknown_aware_passed=unknown_aware_passed,
     )
 
 
@@ -267,7 +302,163 @@ def build_rollout_record(
         excluded_gold_unknown_labels=list(score.excluded_gold_unknown_labels),
         generation_seed=generation_seed,
         completion_tokens=completion_tokens,
+        correct_abstention_labels=list(score.correct_abstention_labels),
+        missed_abstention_labels=list(score.missed_abstention_labels),
+        false_abstention_labels=list(score.false_abstention_labels),
+        unknown_aware_passed=score.unknown_aware_passed,
     )
+
+
+def rescore_rollout_records(
+    records: Sequence[RolloutRecord], rows, pack: Pack
+) -> list[RolloutRecord]:
+    """Re-grade saved raw outputs without performing model generation."""
+    rows_by_sku = {row.sku_id: row for row in rows}
+    if set(rows_by_sku) != {record.sku_id for record in records}:
+        raise ValueError("rollout and source SKU sets disagree during re-scoring")
+    rescored = []
+    for record in records:
+        gold = rows_by_sku[record.sku_id].to_verifier_record(pack)
+        score = score_completion(record.raw_output, gold, pack)
+        rescored.append(
+            build_rollout_record(
+                sku_id=record.sku_id,
+                rollout_index=record.rollout_index,
+                raw_output=record.raw_output,
+                score=score,
+                generation_seed=record.generation_seed,
+                completion_tokens=record.completion_tokens,
+            )
+        )
+    _validate_rollout_groups(rescored)
+    return rescored
+
+
+def _safe_ratio(numerator: int, denominator: int) -> float:
+    return numerator / denominator if denominator else 0.0
+
+
+def _binary_f1(tp: int, fp: int, fn: int) -> tuple[float, float, float]:
+    precision = _safe_ratio(tp, tp + fp)
+    recall = _safe_ratio(tp, tp + fn)
+    f1 = _safe_ratio(2 * precision * recall, precision + recall)
+    return precision, recall, f1
+
+
+def summarize_rollout_metrics(
+    records: Sequence[RolloutRecord], rows, pack: Pack
+) -> dict:
+    """Aggregate semantic label quality and the separate abstention decision."""
+    rows_by_sku = {row.sku_id: row for row in rows}
+    if set(rows_by_sku) != {record.sku_id for record in records}:
+        raise ValueError("rollout and source SKU sets disagree during metric summary")
+
+    semantic_pairs = {name: [] for name in pack.specs}
+    abstention_by_attr = {
+        name: {"tp": 0, "fp": 0, "fn": 0, "tn": 0} for name in pack.specs
+    }
+    correct_cells = 0
+    scorable_cells = 0
+    unknown_aware_passed = 0
+
+    for record in records:
+        row = rows_by_sku[record.sku_id]
+        verification = verify(record.raw_output, pack)
+        parsed = verification.parsed
+        gold_record = row.to_verifier_record(pack)
+        completion_score = score_completion(record.raw_output, gold_record, pack)
+        correct_cells += completion_score.correct_labels
+        scorable_cells += completion_score.scorable_labels
+        unknown_aware_passed += completion_score.unknown_aware_passed
+
+        for name, spec in pack.specs.items():
+            gold_label = row.labels[name]
+            prediction_present = parsed is not None and name in parsed
+            predicted_value = parsed.get(name) if prediction_present else pack.unknown_token
+            semantic_pairs[name].append((gold_label, predicted_value))
+
+            gold_unknown = gold_label.status is LabelStatus.UNKNOWN
+            predicted_unknown = prediction_present and _is_unknown_gold(
+                predicted_value,
+                multi=spec.kind == "multi",
+                unknown_token=pack.unknown_token,
+            )
+            key = (
+                "tp" if gold_unknown and predicted_unknown
+                else "fn" if gold_unknown
+                else "fp" if predicted_unknown
+                else "tn"
+            )
+            abstention_by_attr[name][key] += 1
+
+    semantic_attributes = {}
+    semantic_f1s = []
+    for name, pairs in semantic_pairs.items():
+        score = score_attribute(name, pairs, pack.unknown_token)
+        if score.n_scorable:
+            semantic_f1s.append(score.macro_f1)
+        semantic_attributes[name] = {
+            "macro_f1": score.macro_f1,
+            "exact_match": score.exact_match,
+            "scorable_cells": score.n_scorable,
+            "gold_unknown_cells": score.n_gold_unknown,
+        }
+
+    abstention_attributes = {}
+    supported_f1s = []
+    total_tp = total_fp = total_fn = total_tn = 0
+    for name, counts in abstention_by_attr.items():
+        precision, recall, f1 = _binary_f1(
+            counts["tp"], counts["fp"], counts["fn"]
+        )
+        support = counts["tp"] + counts["fn"]
+        if support:
+            supported_f1s.append(f1)
+        abstention_attributes[name] = {
+            **counts,
+            "gold_unknown_support": support,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+        }
+        total_tp += counts["tp"]
+        total_fp += counts["fp"]
+        total_fn += counts["fn"]
+        total_tn += counts["tn"]
+
+    micro_precision, micro_recall, micro_f1 = _binary_f1(
+        total_tp, total_fp, total_fn
+    )
+    return {
+        "semantic_known_gold": {
+            "macro_f1": _safe_ratio(sum(semantic_f1s), len(semantic_f1s)),
+            "cell_exact_accuracy": _safe_ratio(correct_cells, scorable_cells),
+            "correct_cells": correct_cells,
+            "scorable_cells": scorable_cells,
+            "attributes": semantic_attributes,
+        },
+        "abstention": {
+            "positive_definition": "gold unknown; prediction is explicit unknown",
+            "tp": total_tp,
+            "fp": total_fp,
+            "fn": total_fn,
+            "tn": total_tn,
+            "micro_precision": micro_precision,
+            "micro_recall": micro_recall,
+            "micro_f1": micro_f1,
+            "macro_f1_supported_attributes": _safe_ratio(
+                sum(supported_f1s), len(supported_f1s)
+            ),
+            "attributes": abstention_attributes,
+        },
+        "unknown_aware_pass": {
+            "definition": (
+                "semantic pass plus explicit unknown on every gold-unknown field"
+            ),
+            "passed_rollouts": unknown_aware_passed,
+            "pass_rate": _safe_ratio(unknown_aware_passed, len(records)),
+        },
+    }
 
 
 def generate_rollouts(
@@ -759,13 +950,14 @@ def build_difficulty_manifest(
 
     histogram = Counter(f"{rate:.3f}" for rate in pass_rates.values())
     passed_rollouts = sum(record.passed for record in rollout_records)
+    rollout_metrics = summarize_rollout_metrics(rollout_records, source_rows, pack)
     generation = dict(generation_config)
     generation["rollouts_per_product"] = ROLLOUTS_PER_PROMPT
 
     vocab_path = pack.path / "vocab.yaml"
     rules_path = pack.path / "rules.yaml"
     return {
-        "version": "sft-difficulty-v1",
+        "version": "sft-difficulty-v2",
         "created_at_utc": created_at_utc,
         "model": {
             "base_model": base_model,
@@ -798,6 +990,12 @@ def build_difficulty_manifest(
                 "verifier-clean and every scorable gold label matches exactly"
             ),
             "gold_unknown_policy": "excluded",
+            "abstention_metric_policy": (
+                "reported separately as binary unknown precision/recall/F1"
+            ),
+            "unknown_aware_pass_policy": (
+                "exploratory only; does not replace sft_pass_rate"
+            ),
             "multi_value_comparison": "order-insensitive exact set match",
             "all_same_group_policy": "exclude pass rates 0.0 and 1.0 from GRPO",
         },
@@ -806,6 +1004,7 @@ def build_difficulty_manifest(
             "rollouts_sha256": _sha256_file(rollout_path),
             "rollout_records": len(rollout_records),
         },
+        "metrics": rollout_metrics,
         "summary": {
             "products_scored": len(source_rows),
             "total_rollouts": len(rollout_records),
@@ -815,6 +1014,9 @@ def build_difficulty_manifest(
             "always_failed": sum(rate == 0.0 for rate in pass_rates.values()),
             "always_passed": sum(rate == 1.0 for rate in pass_rates.values()),
             "pass_rate_histogram": dict(sorted(histogram.items())),
+            "unknown_aware_passed_rollouts": rollout_metrics[
+                "unknown_aware_pass"
+            ]["passed_rollouts"],
         },
     }
 

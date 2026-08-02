@@ -27,6 +27,7 @@ from training.score_difficulty import (
     parse_cli_args,
     run_difficulty,
     score_completion,
+    summarize_rollout_metrics,
     write_difficulty_manifest,
     write_rollout_records,
     write_scored_dataset,
@@ -71,6 +72,8 @@ def test_exact_valid_completion_passes_and_gold_unknowns_are_ignored(pack, rows)
     assert result.correct_labels == result.scorable_labels
     assert unknown_field in result.excluded_gold_unknown_labels
     assert result.incorrect_labels == []
+    assert unknown_field in result.missed_abstention_labels
+    assert not result.unknown_aware_passed
 
 
 def test_valid_but_wrong_label_does_not_pass(pack, rows):
@@ -87,6 +90,53 @@ def test_valid_but_wrong_label_does_not_pass(pack, rows):
     assert result.vocab_valid
     assert result.correct_labels == result.scorable_labels - 1
     assert result.incorrect_labels == ["material"]
+
+
+def test_unknown_on_known_gold_is_a_false_abstention(pack, rows):
+    gold = rows[0].to_verifier_record(pack)
+    prediction = dict(gold)
+    prediction["material"] = pack.unknown_token
+
+    result = score_completion(json.dumps(prediction), gold, pack)
+
+    assert not result.passed
+    assert result.false_abstention_labels == ["material"]
+    assert "material" in result.incorrect_labels
+
+
+def test_semantic_and_abstention_metrics_are_reported_separately(pack, rows):
+    row = rows[0]
+    gold = row.to_verifier_record(pack)
+    prediction = dict(gold)
+    unknown_field = next(
+        name for name, label in row.labels.items() if label.status.value == "unknown"
+    )
+    prediction[unknown_field] = next(
+        value for value in pack.specs[unknown_field].values
+        if value != pack.unknown_token
+    )
+    raw = json.dumps(prediction)
+    score = score_completion(raw, gold, pack)
+    records = [
+        build_rollout_record(
+            sku_id=row.sku_id,
+            rollout_index=index,
+            raw_output=raw,
+            score=score,
+            generation_seed=42,
+            completion_tokens=10,
+        )
+        for index in range(8)
+    ]
+
+    metrics = summarize_rollout_metrics(records, [row], pack)
+
+    assert metrics["semantic_known_gold"]["macro_f1"] == 1.0
+    assert metrics["semantic_known_gold"]["cell_exact_accuracy"] == 1.0
+    assert metrics["abstention"]["micro_precision"] == 1.0
+    assert metrics["abstention"]["micro_recall"] < 1.0
+    assert metrics["abstention"]["micro_f1"] < 1.0
+    assert metrics["unknown_aware_pass"]["passed_rollouts"] == 0
 
 
 def test_multi_value_label_order_does_not_matter(pack, rows):
@@ -146,6 +196,10 @@ def fake_score(passed: bool, *, errors=()) -> CompletionScore:
         scorable_labels=10,
         incorrect_labels=[] if passed else ["material"],
         excluded_gold_unknown_labels=["colour_primary"],
+        correct_abstention_labels=["colour_primary"],
+        missed_abstention_labels=[],
+        false_abstention_labels=[],
+        unknown_aware_passed=passed,
     )
 
 
@@ -180,6 +234,7 @@ def test_rollout_record_keeps_raw_evidence_and_failure_reason():
     assert record.errors == ["schema: not valid JSON"]
     assert record.incorrect_labels == ["material"]
     assert record.excluded_gold_unknown_labels == ["colour_primary"]
+    assert record.correct_abstention_labels == ["colour_primary"]
     assert not record.passed
 
 
@@ -241,7 +296,7 @@ def test_manifest_hashes_artifacts_and_summarizes_selection(pack, rows, tmp_path
     write_difficulty_manifest(manifest, manifest_path)
 
     saved = json.loads(manifest_path.read_text())
-    assert saved["version"] == "sft-difficulty-v1"
+    assert saved["version"] == "sft-difficulty-v2"
     assert saved["model"]["adapter_sha256"] == manifest["model"]["adapter_sha256"]
     assert saved["data"]["source_rows"] == 2
     assert saved["generation"]["rollouts_per_product"] == 8
@@ -252,6 +307,9 @@ def test_manifest_hashes_artifacts_and_summarizes_selection(pack, rows, tmp_path
     assert len(saved["artifacts"]["rollouts_sha256"]) == 64
     assert len(saved["prompt"]["sha256"]) == 64
     assert saved["scoring"]["gold_unknown_policy"] == "excluded"
+    assert "semantic_known_gold" in saved["metrics"]
+    assert "abstention" in saved["metrics"]
+    assert "unknown_aware_pass" in saved["metrics"]
 
 
 def test_manifest_rejects_rates_that_disagree_with_scored_dataset(pack, rows, tmp_path):
