@@ -10,6 +10,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -21,6 +22,7 @@ from training.score_difficulty import (
     build_difficulty_manifest,
     build_rollout_record,
     calculate_pass_rate,
+    create_vllm_backend,
     generate_rollouts,
     parse_cli_args,
     run_difficulty,
@@ -381,6 +383,55 @@ def test_generation_loop_rejects_incomplete_vllm_group(pack, rows):
             batch_size=1,
             generation_seed=42,
         )
+
+
+def test_vllm_uses_supported_native_sampler_when_flashinfer_is_absent(
+    monkeypatch, tmp_path
+):
+    class FakeVLLM:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def get_tokenizer(self):
+            return "tokenizer"
+
+    class FakeSamplingParams:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    class FakeLoRARequest:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    import sys
+
+    monkeypatch.setattr("importlib.util.find_spec", lambda name: None)
+    monkeypatch.delenv("VLLM_USE_FLASHINFER_SAMPLER", raising=False)
+    monkeypatch.setitem(
+        sys.modules,
+        "vllm",
+        SimpleNamespace(LLM=FakeVLLM, SamplingParams=FakeSamplingParams),
+    )
+    monkeypatch.setitem(sys.modules, "vllm.lora", SimpleNamespace())
+    monkeypatch.setitem(
+        sys.modules,
+        "vllm.lora.request",
+        SimpleNamespace(LoRARequest=FakeLoRARequest),
+    )
+    args = SimpleNamespace(
+        model="qwen",
+        adapter=tmp_path,
+        seed=42,
+        gpu_memory_utilization=0.65,
+        temperature=0.7,
+        top_p=0.95,
+        max_new_tokens=170,
+    )
+
+    create_vllm_backend(args)
+
+    assert os.environ["VLLM_USE_FLASHINFER_SAMPLER"] == "0"
+    assert args.sampler_backend == "native"
 
 
 def test_guarded_smoke_orchestration_writes_cross_checked_artifacts(

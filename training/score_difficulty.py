@@ -10,7 +10,9 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import importlib.util
 import json
+import os
 import subprocess
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
@@ -344,6 +346,15 @@ def generate_rollouts(
 
 def create_vllm_backend(args):
     """Load the locked base model, LoRA adapter, and stochastic sampling config."""
+    # vLLM's CUDA requirements normally install FlashInfer, but this prebuilt RL
+    # environment omits it. vLLM 0.23 has a supported native top-p fallback; the
+    # environment variable must be set before vLLM imports its environment config.
+    if importlib.util.find_spec("flashinfer") is None:
+        os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
+        args.sampler_backend = "native"
+    else:
+        args.sampler_backend = "flashinfer"
+
     from vllm import LLM, SamplingParams
     from vllm.lora.request import LoRARequest
 
@@ -510,6 +521,7 @@ def run_difficulty(args, *, backend_factory=create_vllm_backend) -> dict:
         "batch_size": args.batch_size,
         "gpu_memory_utilization": args.gpu_memory_utilization,
         "structured_outputs": False,
+        "sampler_backend": getattr(args, "sampler_backend", "backend-defined"),
     }
     manifest = build_difficulty_manifest(
         created_at_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
