@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke fixture
-**Current status:** the deterministic 1,565-row cap-four training pool, three-component reward contract and locked five-row smoke fixture are ready; the five-step trainer entry point has not been implemented or run
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight
+**Current status:** the deterministic pool, reward contract, five-row smoke fixture and CPU-only fail-closed preflight are implemented; the preflight has not yet run against the real remote adapter, and the five-step training path remains intentionally unavailable
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -1739,6 +1739,59 @@ The launcher should abort before model loading if free disk is below **3 GB**.
 Full-run checkpoint frequency and retention will be locked only after this smoke
 measures the actual GRPO adapter/output footprint.
 
+##### Implemented CPU-only fail-closed preflight
+
+`training/train_grpo.py` now implements only the read-only preflight boundary.
+Calling it without `--preflight-only` exits with “training is intentionally
+unavailable.” The module imports no Torch, Transformers, TRL, PEFT, Unsloth or
+vLLM code, so all checks complete before any CUDA-capable library can initialize.
+A structural AST test enforces that forbidden-import boundary.
+
+| implementation artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/train_grpo.py` | 15,071 | `4e84320143902a112bf2572d599efb45b4ff89c388e8ecffbfdd4b35e22db279` |
+| `tests/test_grpo_preflight.py` | 6,176 | `fda4e7db8d0c740419876fe5170890fa1b9b873293744647fd483407f9b75453` |
+
+The preflight resolves and reports, without writing a run directory:
+
+1. exact Git commit, clean tracked worktree and clean index; untracked remote
+   checkpoints are allowed because they are expected run assets;
+2. optional caller-supplied expected commit, which must equal `HEAD`;
+3. locked fixture JSONL hash, fixture-manifest hash and six manifest invariants;
+4. exactly five training rows in the declared SKU/optimizer-step order, all at
+   prior pass rate 0.5, plus the ordered-SKU checksum;
+5. locked SFT-selection-manifest hash and `locked_before_frozen_eval` status;
+6. exact checkpoint path, base model, adapter byte count and SHA-256;
+7. adapter-config rank 16, alpha 16, zero dropout, no bias and all seven combined
+   attention-plus-MLP target modules;
+8. locked expectation of 18,464,768 trainable LoRA parameters;
+9. absence of the proposed `runs/grpo-first-smoke` output path; and
+10. at least 3 GiB free on the nearest existing output filesystem.
+
+The parameter-count wording is deliberately precise. A CPU preflight can prove
+that the SFT lock expects 18,464,768 trainable parameters and that the adapter
+configuration agrees. It cannot prove the loaded model's actual `requires_grad`
+count without loading Qwen. The returned report therefore sets
+`runtime_trainable_parameter_assertion_required: true`; the later model-load
+stage must measure that count before constructing the trainer.
+
+On success, the function returns a JSON-serializable report with Git, fixture,
+SFT lock, adapter, disk and output evidence, while explicitly recording
+`cuda_imports_performed: false`, `model_loaded: false` and
+`trainer_constructed: false`. Output collision, dirty Git, unexpected commit,
+fixture drift, adapter drift, LoRA-config drift or low disk each raises before
+the function can report success.
+
+Six focused tests use a tiny synthetic adapter to cover the successful report
+and every fail-closed branch above. The first negative-test run produced two
+passes and three failures because the test helper did not create a nested
+temporary parent directory; changing the helper to `mkdir(parents=True)` fixed
+the fixture, with no production-preflight change. The final focused result is
+**6 passed**, the reward/fixture/preflight group is **19 passed**, and the full
+CPU suite is **229 passed**. The real 73.9 MB locked adapter is available only
+on Vast, so passing this preflight against the real bytes remains the next
+remote check rather than a claim made from synthetic local tests.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -1964,6 +2017,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] GRPO reward specification and CPU-only callback tests.
 - [x] Remote reward callback and patched TRL import integration probe.
 - [x] Deterministic five-row smoke fixture, manifest and rebuild proof.
+- [x] CPU-only fail-closed GRPO preflight and synthetic negative tests.
 - [ ] GRPO smoke and gradient evidence.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
