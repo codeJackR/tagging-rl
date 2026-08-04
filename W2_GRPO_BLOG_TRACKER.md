@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation
-**Current status:** full 3,600-product difficulty run completed and independently audited; the deterministic 1,565-row cap-four training pool is ready, and the three-component first-run reward contract is implemented with CPU-only behavioral tests; no GRPO model has been trained yet
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke design
+**Current status:** the deterministic 1,565-row cap-four training pool and three-component reward contract are ready; the minimal five-step GRPO smoke configuration is specified below but its trainer entry point has not been implemented or run
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -1538,6 +1538,190 @@ also recorded **53°C**. The remote tracked worktree remained clean at the exact
 commit above. This is callback/import integration evidence, not GRPO smoke or
 gradient evidence.
 
+#### Planned minimal GRPO training smoke
+
+**Status:** configuration design only. No trainer was instantiated and no model
+was loaded while choosing these values.
+
+The smoke has one narrow purpose: prove that the locked SFT adapter can continue
+training through the real GRPO path with reward variance, finite nonzero
+gradients, bounded memory and an auditable saved adapter. It is not long enough
+to establish a quality trend or compare against the frozen evaluation.
+
+##### Deterministic smoke prompts
+
+The smoke will use exactly five prompts. With one GPU,
+`per_device_train_batch_size=8`, `num_generations=8` and one generation step per
+optimizer step, each optimizer step represents **one product and eight sampled
+answers**. Five optimizer steps therefore produce **40 rollouts across five
+products**, not 40 different products.
+
+To maximize the chance of observing within-group reward differences without
+cherry-picking individual raw outputs, the fixtures are selected mechanically:
+
+1. Start from the committed 1,565-row cap-four active dataset.
+2. Keep the 176 rows whose measured SFT pass rate is exactly `0.5`.
+3. Sort by SHA-256 of `"42\0<sku_id>"`.
+4. Keep only the first row from each canonical product family.
+5. Take the first five rows.
+
+The `0.5` band was measured from only eight earlier samples and is not treated
+as permanent model confidence. It is useful here only because four passes and
+four failures under the locked difficulty sampler indicate a practical policy
+boundary. The one-row-per-family rule prevents near-duplicate variants from
+occupying multiple smoke steps.
+
+Planned fixtures, all from distinct canonical families:
+
+| step order | SKU | store/brand | title | prior pass rate |
+|---:|---|---|---|---:|
+| 1 | `shopify:www.tentree.com:8106124673210` | tentree | Seaforestation Print T-Shirt | 0.5 |
+| 2 | `shopify:fahertybrand.com:8164246683717` | Faherty | NY Knicks Sunwashed Regenerative Tee - Antilles Blue | 0.5 |
+| 3 | `shopify:fahertybrand.com:7552625803333` | Faherty | Surf Ghana Short-Sleeve Flag Graphic Tee - White | 0.5 |
+| 4 | `shopify:www.rothys.com:7543272243294` | Rothy's | The Wrap Sandal | 0.5 |
+| 5 | `shopify:www.outdoorvoices.com:7686276677710` | Outdoor Voices | SuperForm Crop Top | 0.5 |
+
+Dataset shuffling will be disabled for this five-row fixture so the step-to-SKU
+mapping is reproducible. The later full run will return to the complete active
+pool and seeded shuffling; smoke prompt selection must never be reported as a
+representative training or evaluation sample.
+
+##### Model and adapter loading contract
+
+| setting | planned smoke value | reason |
+|---|---|---|
+| starting model path | `runs/sft-combined-2epoch/checkpoint-406` | load the cryptographically locked SFT policy, not a fresh adapter |
+| base model resolved by adapter | `unsloth/Qwen2.5-1.5B-Instruct` | recorded in `adapter_config.json` and already cached |
+| local files only | `True` | prevent an accidental network download or model revision |
+| precision | bf16 base, `load_in_4bit=False` | match SFT and fit the RTX 3090 without changing quantization |
+| sequence ceiling | `896` | preserve the measured SFT ceiling; prompt plus completion budgets fit below it |
+| LoRA rank / alpha | `16 / 16` | continue the selected adapter unchanged |
+| LoRA modules | q/k/v/o plus gate/up/down projections | continue all 18,464,768 selected trainable parameters |
+| gradient checkpointing | Unsloth mode | bound activation memory |
+| fast inference / colocated vLLM | disabled | use the already-proven W0 Transformers-generation path for the first trainer smoke |
+
+Unsloth's installed loader recognizes the checkpoint as PEFT, resolves its base
+model and calls `PeftModel.from_pretrained(..., is_trainable=True)`. The smoke
+must not call `get_peft_model()` again, because that would attach a new randomly
+initialized LoRA instead of continuing the locked SFT adapter. Before training,
+the entry point must assert the starting adapter SHA-256, rank, alpha, target
+modules and exact **18,464,768** trainable-parameter count. It must verify again
+afterward that the source checkpoint bytes were not modified.
+
+##### Planned `GRPOConfig`
+
+| parameter | smoke value | reasoning |
+|---|---:|---|
+| `max_prompt_length` | `600` | measured maximum is 585 tokens; left truncation should be zero |
+| `max_completion_length` | `170` | measured rollout maximum was 120; keeps 50 tokens of headroom |
+| `num_generations` | `8` | matches difficulty scoring and gives one comparison group per prompt |
+| `per_device_train_batch_size` | `8` | one prompt repeated into its eight completions on one GPU |
+| `gradient_accumulation_steps` | `1` | one group per optimizer update; simplest gradient diagnosis |
+| `steps_per_generation` | `1` | make the generation/update relationship explicit |
+| `max_steps` | `5` | one update for each deterministic smoke prompt |
+| `shuffle_dataset` | `False` | preserve the declared SKU-to-step mapping |
+| `remove_unused_columns` | `False` | retain hidden `gold` and `sku_id` callback columns |
+| `temperature` | `0.7` | match the difficulty run that selected these prompts |
+| `top_p` | `0.95` | match the difficulty run |
+| `repetition_penalty` | `1.0` | avoid introducing an unmeasured decoding intervention |
+| `use_vllm` | `False` | isolate trainer/reward correctness before testing colocated acceleration |
+| `learning_rate` | `5e-6` | conservative LoRA-RL rate already proven by the W0 rig |
+| `warmup_ratio` | `0.1` | preserve the W0 optimization recipe; one short warmup step in the smoke |
+| `lr_scheduler_type` | `cosine` | preserve the W0 recipe |
+| `optim` | `adamw_8bit` | reduce optimizer memory; already exercised by W0 |
+| `beta` | `0.0` | avoid a reference-model path in the smallest smoke and match TRL's memory-saving default |
+| `num_iterations` | `1` | one policy update per generated batch |
+| `epsilon` | `0.2` | installed TRL default clipping range |
+| `epsilon_high` | `0.28` | make Unsloth's DAPO upper-bound patch explicit rather than relying on an implicit override |
+| `scale_rewards` | `"group"` | normalize advantages within each eight-completion group |
+| `loss_type` | `"dapo"` | installed default avoids the original GRPO length bias |
+| `mask_truncated_completions` | `True` | exclude any unexpected cap-hit completion from the policy loss |
+| `reward_weights` | `[1.0, 1.0, 2.0]` | locked format/compliance/agreement contract |
+| `bf16` / `fp16` | `True / False` | use the 3090's bf16 path without conflicting precision modes |
+| `seed` / `data_seed` | `42 / 42` | deterministic model-side and data ordering where supported |
+| `logging_steps` | `1` | capture every smoke update |
+| `logging_first_step` | `True` | preserve the first observed gradient/reward state |
+| `log_completions` | `True` | retain prompt/completion/reward evidence every step |
+| `num_completions_to_print` | `8` | expose the complete comparison group during smoke debugging |
+| `report_to` | `"none"` | keep the integration smoke local; reserve W&B for the real run |
+| `save_strategy` | `"no"` | write no intermediate trainer checkpoint or optimizer state |
+| `save_only_model` | `True` | defensive if save behavior changes; never retain smoke optimizer state |
+
+The exact reward callbacks remain, in order,
+`format_validity_reward`, `vocab_rule_compliance_reward` and
+`golden_agreement_reward`. Decoding remains unconstrained: no JSON schema,
+guided regex, output repair or markdown stripping is permitted.
+
+The exact table above was instantiated as `UnslothGRPOConfig` under the remote
+TRL 0.24.0 / Unsloth 2026.7.5 environment without constructing a trainer. TRL
+computed `generation_batch_size=8` and accepted eight generations, batch eight,
+one accumulation step and one step per generation. It normalized
+`report_to="none"` to an empty reporter list. Unsloth announced that DAPO sets
+`epsilon_high=0.28`; that value is therefore declared explicitly above. The
+probe created no output directory, loaded no model and left GPU memory at 428
+MiB. This validates configuration syntax and arithmetic only, not model memory
+or a training step.
+
+`beta=0.0` is a smoke simplification, not a claim that KL regularization is
+unnecessary for the full experiment. It avoids introducing a reference-policy
+memory/logic branch before basic updates are proven. The full-run value must be
+locked separately after the smoke, and any change from zero must receive its
+own memory preflight.
+
+##### Output and disk contract
+
+The smoke will refuse to overwrite an existing output directory. It will write
+to a new path such as `runs/grpo-first-smoke/` and retain:
+
+- the five-row smoke-source JSONL and deterministic selection manifest;
+- all 40 raw completions with SKU, step, rollout index, three component rewards,
+  weighted total, completion length and truncation status;
+- trainer log history and a run manifest containing code/input/model hashes and
+  every configuration value;
+- stdout/stderr plus periodic GPU, temperature and disk samples;
+- one final model-only adapter, saved outside the immutable SFT checkpoint.
+
+There will be **no intermediate checkpoint** and **no optimizer state**. The
+existing selected adapter directory is 86 MB; one similarly sized smoke adapter
+plus text/JSON logs is small against the currently measured **4.7 GB free**.
+The launcher should abort before model loading if free disk is below **3 GB**.
+Full-run checkpoint frequency and retention will be locked only after this smoke
+measures the actual GRPO adapter/output footprint.
+
+##### Smoke acceptance gates
+
+The smoke passes only if all of the following hold:
+
+1. The code commit, active-dataset hash, smoke-selection hash and locked SFT
+   adapter hash match before CUDA initialization.
+2. Exactly five optimizer steps and 40 rollout records complete with exit code
+   zero.
+3. The trainable parameter count is exactly 18,464,768 and only LoRA parameters
+   require gradients.
+4. At least one of the five groups has nonzero weighted reward standard
+   deviation, so at least one relative advantage is nonzero.
+5. At least one finite, nonzero gradient norm is logged; loss, rewards,
+   advantages and gradient norms contain no NaN or infinity.
+6. Each step records all three reward-component means/standard deviations,
+   weighted reward, reward standard deviation, zero-variance fraction,
+   completion lengths and clipping ratio.
+7. Every raw completion is recoverable and re-scores to its stored component
+   rewards using the committed CPU reward functions.
+8. No OOM occurs; measured peak allocated/reserved VRAM, final idle VRAM and GPU
+   temperature are written to the manifest.
+9. The starting checkpoint hash remains unchanged, while the saved smoke adapter
+   differs from the starting adapter if any nonzero-gradient update occurred.
+10. Disk remains above 3 GB and only the declared output paths are created.
+
+Uniform rewards across all five groups, all-zero gradients, malformed hidden
+gold, incomplete rollout logging, a cap-hit ratio above zero, parameter-count
+drift, an OOM or a source-checkpoint hash change is a failed smoke. The response
+is diagnosis and a new tracked smoke attempt, not continuation into a full run.
+
+Even a passing smoke does **not** show that GRPO improves the tagger. It proves
+only that the selected SFT policy, prompt pool, rewards and installed trainer can
+perform real policy updates safely enough to justify designing the longer run.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
@@ -1551,9 +1735,16 @@ gradient evidence.
 - [x] How will gold-unknown fields be handled consistently in the reward
   function? Exclude them from golden agreement, retain the existing abstention
   telemetry and report the stricter unknown-aware metric separately.
-- What checkpoint frequency fits the remaining disk budget?
-- What is the smallest GRPO smoke that proves reward variance, nonzero gradients and stable memory?
-- Which frozen metrics determine whether GRPO beats or harms SFT?
+- What checkpoint frequency fits the remaining disk budget? Smoke policy is
+  locked to no intermediate checkpoint and one final model-only adapter; the
+  full-run interval remains pending measured smoke footprint and runtime.
+- [x] What is the smallest GRPO smoke that proves reward variance, nonzero
+  gradients and stable memory? Five deterministic prompts, eight completions per
+  prompt and five optimizer steps, with the ten acceptance gates above.
+- [x] Which frozen metrics determine whether GRPO beats or harms SFT? The locked
+  comparison below uses macro-F1 as the primary quality result plus selective
+  macro-F1, coverage, schema/vocabulary validity, rule violations and missing
+  predictions as safety and behavior constraints.
 
 ### Required GRPO comparison
 
