@@ -1,0 +1,143 @@
+{
+  "code": {
+    "git_commit": "1155785c6504e3c91647cd13d96893c1c9c329cd",
+    "implementation_file": "training/build_grpo_smoke.py",
+    "implementation_file_sha256": "55e08782c123e623546ae53dd04d665730046dde55a7cd303d021e162c68882d",
+    "tracked_worktree_dirty": true
+  },
+  "composition": {
+    "category_counts": {
+      "shirt_blouse": 2,
+      "shoe": 1,
+      "top": 2
+    },
+    "gold_density": {
+      "maximum_scorable": 10,
+      "mean_scorable": 8.2,
+      "mean_substantive_labeled": 5.6,
+      "minimum_scorable": 5
+    },
+    "store_counts": {
+      "fahertybrand.com": 2,
+      "www.outdoorvoices.com": 1,
+      "www.rothys.com": 1,
+      "www.tentree.com": 1
+    }
+  },
+  "created_at_utc": "2026-08-04T15:22:32+00:00",
+  "inputs": {
+    "active_dataset": "data/train_weak_grpo_cap4.jsonl",
+    "active_dataset_rows": 1565,
+    "active_dataset_sha256": "3e378187a8147923bae1e0753a750d6e252336e911fa8c91cd57a4a8ddc3a102",
+    "active_sku_set_sha256": "77d926c88447e3cda5852f015629a4eae8bb9c7e32a00a67694abd985fb75c76",
+    "cap_four_pool_manifest": "runs/sft-difficulty-k8/grpo-pool-cap4-manifest.json",
+    "cap_four_pool_manifest_sha256": "d166325a0c4ef3d78023ba492881fb3971e290b1b3606ee4ac8cd6aa733175e0",
+    "cap_four_pool_manifest_version": "grpo-pool-cap4-v1"
+  },
+  "invariants": {
+    "all_families_distinct": true,
+    "all_pass_rates_equal_target": true,
+    "all_rows_are_training_rows": true,
+    "all_rows_come_from_active_dataset": true,
+    "all_skus_distinct": true,
+    "output_matches_selection_order_and_contents": true
+  },
+  "output": {
+    "smoke_dataset": "data/train_weak_grpo_smoke_v1.jsonl",
+    "smoke_dataset_bytes": 11090,
+    "smoke_dataset_rows": 5,
+    "smoke_dataset_sha256": "268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084"
+  },
+  "policy": {
+    "candidate_order": "SHA-256 of '42\\0<sku_id>', ascending",
+    "family_grouping": "training.split_sft.group_key: normalized brand + title before spaced variant separator",
+    "maximum_rows_per_family": 1,
+    "output_order": "selection order; one product group per smoke step",
+    "requested_rows": 5,
+    "selection_seed": 42,
+    "target_sft_pass_rate": 0.5
+  },
+  "selection": {
+    "candidate_families": 160,
+    "candidate_rows": 176,
+    "records_in_step_order": [
+      {
+        "active_source_position_zero_based": 1397,
+        "brand": "tentree",
+        "family_key": "tentree::seaforestation print t shirt",
+        "family_title": "seaforestation print t shirt",
+        "garment_category": "shirt_blouse",
+        "selection_sha256": "0040e17491c7deedf7743271b19796c8d32a749cdf597e7a65505375d9b64ba8",
+        "sft_pass_rate": 0.5,
+        "sku_id": "shopify:www.tentree.com:8106124673210",
+        "step": 1,
+        "store": "www.tentree.com",
+        "title": "Seaforestation Print T-Shirt"
+      },
+      {
+        "active_source_position_zero_based": 1387,
+        "brand": "Faherty",
+        "family_key": "faherty::ny knicks sunwashed regenerative tee",
+        "family_title": "ny knicks sunwashed regenerative tee",
+        "garment_category": "shirt_blouse",
+        "selection_sha256": "00ffa9724fbd2393c5fdd2a3a4b3ead6d735a66faafec55ed0d9642bc36ade02",
+        "sft_pass_rate": 0.5,
+        "sku_id": "shopify:fahertybrand.com:8164246683717",
+        "step": 2,
+        "store": "fahertybrand.com",
+        "title": "NY Knicks Sunwashed Regenerative Tee - Antilles Blue"
+      },
+      {
+        "active_source_position_zero_based": 1034,
+        "brand": "Faherty",
+        "family_key": "faherty::surf ghana short sleeve flag graphic tee",
+        "family_title": "surf ghana short sleeve flag graphic tee",
+        "garment_category": "top",
+        "selection_sha256": "034125e9de0d083601096cd955b38eddbebc19007e482a31016faaa8332ddfca",
+        "sft_pass_rate": 0.5,
+        "sku_id": "shopify:fahertybrand.com:7552625803333",
+        "step": 3,
+        "store": "fahertybrand.com",
+        "title": "Surf Ghana Short-Sleeve Flag Graphic Tee - White"
+      },
+      {
+        "active_source_position_zero_based": 305,
+        "brand": "Rothy's",
+        "family_key": "rothy s::the wrap sandal",
+        "family_title": "the wrap sandal",
+        "garment_category": "shoe",
+        "selection_sha256": "08611afe1a56338e7db5d4323a6fab05c9e96bbab5e33ab0915cf5109ac34aa3",
+        "sft_pass_rate": 0.5,
+        "sku_id": "shopify:www.rothys.com:7543272243294",
+        "step": 4,
+        "store": "www.rothys.com",
+        "title": "The Wrap Sandal"
+      },
+      {
+        "active_source_position_zero_based": 747,
+        "brand": "Outdoor Voices",
+        "family_key": "outdoor voices::superform crop top",
+        "family_title": "superform crop top",
+        "garment_category": "top",
+        "selection_sha256": "0d63c8993f73b19b7c2ff489badaa55b0f308552441ad293078e41d69779cae2",
+        "sft_pass_rate": 0.5,
+        "sku_id": "shopify:www.outdoorvoices.com:7686276677710",
+        "step": 5,
+        "store": "www.outdoorvoices.com",
+        "title": "SuperForm Crop Top"
+      }
+    ],
+    "selected_families": 5,
+    "selected_rows": 5,
+    "selected_sku_order_sha256": "99820aef9777190af82b999d587a260198e65ef9c420c0ca5d6befde06fe7af0",
+    "selected_sku_set_sha256": "9f461b93c522f36211c6947e824820f76e5bbdf1ef3d54538005088dcd5e6643",
+    "selected_skus_in_step_order": [
+      "shopify:www.tentree.com:8106124673210",
+      "shopify:fahertybrand.com:8164246683717",
+      "shopify:fahertybrand.com:7552625803333",
+      "shopify:www.rothys.com:7543272243294",
+      "shopify:www.outdoorvoices.com:7686276677710"
+    ]
+  },
+  "version": "grpo-smoke-v1"
+}

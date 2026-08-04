@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke design
-**Current status:** the deterministic 1,565-row cap-four training pool and three-component reward contract are ready; the minimal five-step GRPO smoke configuration is specified below but its trainer entry point has not been implemented or run
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke fixture
+**Current status:** the deterministic 1,565-row cap-four training pool, three-component reward contract and locked five-row smoke fixture are ready; the five-step trainer entry point has not been implemented or run
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -1586,6 +1586,57 @@ mapping is reproducible. The later full run will return to the complete active
 pool and seeded shuffling; smoke prompt selection must never be reported as a
 representative training or evaluation sample.
 
+##### Implemented fixture handoff
+
+The deterministic fixture layer is now implemented independently of the
+trainer. `training/build_grpo_smoke.py` verifies the parent cap-four dataset
+against its committed selection manifest before applying the five-step policy.
+It refuses duplicate SKUs, wrong parent hashes or row counts, invalid target
+rates, insufficient distinct families and existing output paths unless
+`--overwrite` is explicit.
+
+The builder writes committed inputs for the future trainer rather than creating
+the eventual `runs/grpo-first-smoke/` output directory:
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `data/train_weak_grpo_smoke_v1.jsonl` | 11,090 | `268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084` |
+| `data/splits/grpo-smoke-v1.json` | 5,619 | `e898510534d967b9a35367e0aba5a564e6cb564e2c326d45804d0319d528dd05` |
+| `training/build_grpo_smoke.py` | 12,980 | `55e08782c123e623546ae53dd04d665730046dde55a7cd303d021e162c68882d` |
+
+The separation matters: fixture files can be versioned and reviewed before the
+GPU run, while the trainer can still require that its run-output directory does
+not exist. At launch, their hashes will be copied into the run manifest rather
+than regenerated or silently replaced.
+
+The selection manifest records:
+
+- parent active-data hash
+  `3e378187a8147923bae1e0753a750d6e252336e911fa8c91cd57a4a8ddc3a102`;
+- parent cap-four manifest hash
+  `d166325a0c4ef3d78023ba492881fb3971e290b1b3606ee4ac8cd6aa733175e0`;
+- 176 target-rate candidates across 160 canonical families;
+- all five selected SKUs in optimizer-step order;
+- ordered-SKU hash
+  `99820aef9777190af82b999d587a260198e65ef9c420c0ca5d6befde06fe7af0`;
+- each row's source position, selection hash, family key, store, brand, title,
+  category and prior pass rate;
+- output byte count/hash, category/store composition and gold density;
+- six explicit invariants, all true.
+
+The five fixtures span four stores and three categories: two `shirt_blouse`, two
+`top` and one `shoe`. Their mean scorable-field count is 8.2, ranging from 5 to
+10, and mean substantive labeled fields is 5.6. This composition is descriptive
+smoke evidence, not a claim of representativeness.
+
+Five focused CPU tests prove deterministic selection, exact expected SKUs,
+family uniqueness, parent-handoff verification, locked artifact hashes, prompt
+loader compatibility, output-collision refusal and invalid-request rejection.
+An independent temporary rebuild reproduced the JSONL byte for byte and matched
+the manifest's selection, policy, composition, invariants, inputs and
+implementation hash. The complete local suite now passes with **223 tests**.
+No TRL, Unsloth, model, trainer or GPU was used in this fixture step.
+
 ##### Model and adapter loading contract
 
 | setting | planned smoke value | reason |
@@ -1912,6 +1963,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [ ] Second-seed sensitivity sample.
 - [x] GRPO reward specification and CPU-only callback tests.
 - [x] Remote reward callback and patched TRL import integration probe.
+- [x] Deterministic five-row smoke fixture, manifest and rebuild proof.
 - [ ] GRPO smoke and gradient evidence.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
