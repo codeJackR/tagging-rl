@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection
-**Current status:** full 3,600-product difficulty run completed and independently audited; 1,702 mixed-outcome products are eligible for the predeclared GRPO band
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation
+**Current status:** full 3,600-product difficulty run completed and independently audited; the deterministic 1,565-row cap-four training pool is ready, and the three-component first-run reward contract is implemented with CPU-only behavioral tests; no GRPO model has been trained yet
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -1350,6 +1350,14 @@ The builder refuses existing output paths unless `--overwrite` is explicit.
 Six focused handoff/audit tests and the full **210-test** project suite pass.
 No GRPO model, reward function or GPU training process was started in this step.
 
+The handoff package was committed as `009c9df` and fast-forwarded into
+`/workspace/tagging-rl` on Vast.ai. Fresh remote SHA-256 checks reproduced the
+active dataset, selection manifest and audit-report hashes above. The six
+focused audit/handoff tests passed under `/venv/rl` in 5.71 seconds, the tracked
+remote worktree remained clean, and GPU state stayed at 428 MiB used, 23,699 MiB
+free and 0% utilization. This validates the same handoff on the eventual
+training environment without loading the model.
+
 `load_grpo_prompts()` now has a proven handoff contract. It:
 
 - reads the derived scored dataset;
@@ -1359,6 +1367,132 @@ No GRPO model, reward function or GPU training process was started in this step.
 - carries SKU for auditing;
 - never includes the SFT completion as the model’s answer.
 
+### First-run reward-contract audit
+
+Before implementing a trainer, we mapped the existing verifier and difficulty
+scorer onto the exact reward callback used by the installed training stack. The
+plain reward functions were then implemented and tested without importing TRL,
+loading a model or using the GPU.
+
+The proposed first unconstrained run uses three binary reward components:
+
+1. **Format validity:** `1` when `verify(raw_output, pack).schema_valid` is true,
+   otherwise `0`. This requires literal JSON with the schema's allowed keys and
+   value shapes; the verifier does not repair prose, markdown fences or malformed
+   JSON.
+2. **Vocabulary/rule compliance:** `1` when
+   `verify(raw_output, pack).ok` is true, otherwise `0`. `ok` requires schema
+   validity, controlled-vocabulary validity and zero rule violations.
+3. **Golden agreement:** `1` when
+   `score_completion(raw_output, gold, pack).passed` is true, otherwise `0`.
+   This requires verifier-clean output and exact agreement on every scorable
+   known-gold field. Gold fields labeled `unknown` remain excluded because they
+   do not provide a trustworthy answer key.
+
+TRL will combine the raw components with `reward_weights=[1.0, 1.0, 2.0]`.
+Keeping each callback binary makes its individual mean and standard deviation
+easy to interpret in TRL/W&B logs; the separate weights make exact agreement
+worth twice either validity component. The resulting ladder, confirmed with
+real rows from the cap-four dataset, is:
+
+| example completion | format | compliance | agreement ×2 | total |
+|---|---:|---:|---:|---:|
+| invalid prose | 0 | 0 | 0 | 0 |
+| schema-valid JSON containing an out-of-vocabulary value | 1 | 0 | 0 | 1 |
+| empty JSON object | 1 | 1 | 0 | 2 |
+| verifier-clean but gold-wrong record | 1 | 1 | 0 | 2 |
+| verifier-clean exact answer on all scorable known-gold fields | 1 | 1 | 2 | 4 |
+
+#### Why the initial weights are `1:1:2`
+
+These weights are a transparent starting hypothesis, not values derived by an
+optimizer or proven optimal in an ablation. Format and compliance each receive
+one point because they are necessary intermediate behaviors: first emit the
+required structure, then stay inside the vocabulary and rules. Golden agreement
+receives two points because semantic correctness is the real task objective; an
+exact answer should gain as much semantic credit as format and compliance
+combined.
+
+Equal `1:1:1` weights were rejected for this first run because a fully correct
+answer would total `3`, only one point above empty or verifier-clean but wrong
+JSON at `2`. That gives the final semantic step the same value as either
+prerequisite even though correctness is what the model will ultimately be
+evaluated on. Conversely, an overwhelmingly large agreement weight was also
+rejected. Whole-record exact agreement is binary and sparse; when a group has no
+exact completion, format and compliance should still distinguish some outputs
+and provide an intermediate learning signal.
+
+TRL computes the weighted total and then turns reward differences within each
+prompt's completion group into advantages. Because GRPO normalizes within the
+group, multiplying every weight by the same constant would have little effect;
+the important choice is the relative spacing. `1:1:2` produces the intended
+ladder `0 → 1 → 2 → 4` without allowing semantic correctness to erase
+the earlier signals. We will keep this ratio fixed for the first auditable run
+and change it only in a separately tracked experiment after rollout evidence
+reveals a concrete failure mode.
+
+This table exposes an intentional weakness in the first contract: under the
+current optional-field schema, `{}` is schema-valid, vocabulary-valid and
+rule-clean, so it earns the same two points as a complete but semantically wrong
+record. We are not hiding or prematurely fixing that loophole. W2's first GRPO
+run is deliberately unconstrained so that empty-but-valid JSON, safe-tag
+conservatism and other verifier gaming can be observed and preserved as
+evidence. The later shaped run can make validity a gate and add per-attribute or
+class-balanced credit after the actual failure modes are measured.
+
+The installed TRL 0.24.0 callback flow is:
+
+```text
+cap-four dataset row
+  └─ prompt + hidden gold JSON + SKU
+       └─ TRL generates G completions and repeats hidden columns G times
+            ├─ format reward(completions, ...)
+            ├─ compliance reward(completions, ...)
+            └─ agreement reward(completions, gold, ...)
+                 └─ weighted sum → within-prompt group advantage
+```
+
+For this conversational dataset, each completion normally arrives as an
+assistant message list such as
+`[{"role": "assistant", "content": "..."}]`. Each callback must return one
+numeric reward per completion. TRL also passes every non-prompt dataset column
+as a same-length keyword argument, which is how the agreement callback receives
+the repeated hidden `gold` values. `sku_id` is available for audit logging but
+must not influence reward.
+
+The environment audit also found a dependency-order constraint. Importing
+`GRPOTrainer` directly fails because TRL 0.24.0 imports a vLLM symbol that is no
+longer present in installed vLLM 0.23.0. Importing Unsloth first applies its
+compatibility patches, after which `GRPOConfig` and `GRPOTrainer` import
+successfully. The existing W0 proof-of-rig already documents and follows this
+order:
+
+```python
+from unsloth import FastLanguageModel  # must precede transformers/trl imports
+from trl import GRPOConfig, GRPOTrainer
+```
+
+No dependency was changed during this audit. The eventual training entry point
+must preserve this ordering, and a CPU-level reward test should remain separate
+from a minimal trainer-import/integration smoke on the Vast environment.
+
+Implementation evidence:
+
+- `training/rewards.py` contains the three plain callbacks, the ordered function
+  tuple and the aligned `(1.0, 1.0, 2.0)` weight tuple. It imports no trainer,
+  model, tokenizer, Torch, Unsloth or vLLM code.
+- `tests/test_rewards.py` exercises the installed TRL conversational completion
+  shape, plain-text completions, literal schema validity, combined vocabulary
+  and rule compliance, exact known-gold agreement, gold-unknown exclusion,
+  extra callback keyword arguments and default-pack loading.
+- Malformed model text receives ordinary zero rewards. Malformed callback
+  containers, misaligned gold batches and corrupt hidden-gold JSON raise loudly
+  because they indicate integration or data corruption, not model quality.
+- The **8 focused reward tests** pass; the **42-test** combined
+  reward/scorer/dataset/handoff suite passes; the complete local suite passes
+  with **218 tests**. These are CPU-only tests and do not claim trainer or GPU
+  integration yet.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
@@ -1366,8 +1500,12 @@ No GRPO model, reward function or GPU training process was started in this step.
   eligible families are represented; measured skews are documented.
 - [x] Are there enough mixed groups? Yes: 1,565 active prompts, each selected
   from the predeclared mixed-outcome band.
-- Should the first GRPO reward remain binary or use multiple reward components?
-- How will gold-unknown fields be handled consistently in the reward function?
+- [x] Should the first GRPO reward remain binary or use multiple reward
+  components? Three separately logged binary components, weighted `1:1:2`, are
+  proposed for the first unconstrained run.
+- [x] How will gold-unknown fields be handled consistently in the reward
+  function? Exclude them from golden agreement, retain the existing abstention
+  telemetry and report the stricter unknown-aware metric separately.
 - What checkpoint frequency fits the remaining disk budget?
 - What is the smallest GRPO smoke that proves reward variance, nonzero gradients and stable memory?
 - Which frozen metrics determine whether GRPO beats or harms SFT?
@@ -1536,7 +1674,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Row-uniform, family-cap and family-uniform sampling comparison.
 - [x] Deterministic cap-four active dataset and complete SKU selection manifest.
 - [ ] Second-seed sensitivity sample.
-- [ ] GRPO reward specification.
+- [x] GRPO reward specification and CPU-only callback tests.
 - [ ] GRPO smoke and gradient evidence.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
