@@ -1493,6 +1493,51 @@ Implementation evidence:
   with **218 tests**. These are CPU-only tests and do not claim trainer or GPU
   integration yet.
 
+#### Remote reward and import integration probe
+
+On 2026-08-04, commit
+`8bca11354dd579b0a6a23e31e5853d1aa51c1337` was pushed to the Vast bare
+remote and `/workspace/tagging-rl` was fast-forwarded to that exact commit.
+Existing untracked checkpoints and run artifacts were preserved. The eight
+focused reward tests then passed under the remote `/venv/rl` environment in
+**0.67 seconds**. GPU state was unchanged at **428 MiB used, 23,699 MiB free and
+0% utilization** before and after those CPU tests.
+
+A separate no-training integration probe then imported the stack in the
+required order and called all three committed functions with the keyword shape
+TRL uses: conversational `completions`, `prompts`, `completion_ids`, hidden
+`gold`, `sku_id` and `trainer_state`. It used the first real cap-four row,
+`shopify:naadam.co:7696137453664`, rather than a synthetic record.
+
+Measured environment and import result:
+
+| check | observed result |
+|---|---|
+| Unsloth | `2026.7.5` |
+| TRL | `0.24.0` |
+| imported config class | `UnslothGRPOConfig` |
+| imported trainer class | `UnslothGRPOTrainer` |
+| reward function order | format, vocabulary/rule compliance, golden agreement |
+| reward weights | `[1.0, 1.0, 2.0]` |
+| exact-gold component outputs | `[1.0, 1.0, 1.0]` |
+| exact-gold weighted total | `4.0` |
+| empty-object component outputs | `[1.0, 1.0, 0.0]` |
+| empty-object weighted total | `2.0` |
+
+This reproduces the planned reward ladder through the actual installed import
+path. Unsloth successfully patched TRL before the GRPO classes were imported.
+The import still emitted the known Transformers-v4/vLLM deprecation warning;
+no dependency was changed in response because the patched classes and callback
+execution succeeded.
+
+The probe did **not** instantiate `GRPOTrainer`, load Qwen or the SFT adapter,
+create an optimizer, generate a rollout or execute a training step. GPU memory
+remained **428 MiB**. Utilization was sampled at **12%** immediately after the
+imports, then settled to **0%** on the follow-up reading; the settled reading
+also recorded **53°C**. The remote tracked worktree remained clean at the exact
+commit above. This is callback/import integration evidence, not GRPO smoke or
+gradient evidence.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
@@ -1675,6 +1720,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Deterministic cap-four active dataset and complete SKU selection manifest.
 - [ ] Second-seed sensitivity sample.
 - [x] GRPO reward specification and CPU-only callback tests.
+- [x] Remote reward callback and patched TRL import integration probe.
 - [ ] GRPO smoke and gradient evidence.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
