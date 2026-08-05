@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate → one-group rollout/reward gate
-**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight, model-load gate, trainer-construction gate and one-group rollout gate are implemented; the real trainer generated and scored eight completions with useful reward variance and byte-identical LoRA weights, while loss, gradients, optimizer state and parameter updates remain intentionally unavailable
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate → one-group rollout/reward gate → one-group gradient-only gate
+**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight, model-load gate, trainer-construction gate, one-group rollout gate and gradient-only gate are implemented; the real trainer generated and scored eight completions, computed the GRPO loss and produced complete finite LoRA gradients, while optimizer state and parameter updates remain intentionally unavailable
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -12,7 +12,9 @@
 
 Before applying GRPO to a structured catalog tagger, we sampled eight answers from a locked SFT model for every training prompt and kept the prompts where the model sometimes succeeded and sometimes failed, creating the within-group reward variation that policy-gradient learning needs.
 
-This sentence is still provisional because the sampled difficulty run and GRPO experiment have not happened yet.
+The difficulty sampling and pre-update GRPO gates have now happened. This
+sentence remains provisional only because optimizer updates and the frozen
+SFT-versus-GRPO evaluation have not happened yet.
 
 ## 2. Candidate titles
 
@@ -2148,9 +2150,158 @@ directory was removed, `runs/grpo-first-smoke` remained absent, free disk before
 the persisted run was `4,989,554,688` bytes, and the settled external GPU state
 returned to **428 MiB used, 23,699 MiB free and 0% utilization**.
 
-The next narrow boundary is a **gradient-only gate**: reuse one prepared
+The next narrow boundary was a **gradient-only gate**: reuse one prepared
 eight-completion group, compute the policy loss and call backward, inspect
 finite/nonzero LoRA gradients and memory, but do not create or step an optimizer.
+
+##### Real one-group loss and gradient-only gate
+
+Commit `de16b440a4fb943b9e5de10daa3784387f22844f` added
+`--gradient-only`. This mode deliberately reuses the same real trainer and
+prepared rollout path as `--rollout-only`, then crosses exactly two new
+boundaries:
+
+1. `trainer.compute_loss(...)` computes the installed Unsloth/TRL GRPO loss for
+   the prepared eight-completion group.
+2. `trainer.accelerator.backward(loss)` differentiates that loss through the
+   policy into the trainable LoRA tensors.
+
+It does **not** call `trainer.train()`, construct an optimizer or scheduler, call
+`optimizer.step()`, save a checkpoint or advance `global_step`. This separation
+is useful because it answers “can the reward signal reach every trainable LoRA
+tensor?” before an optimizer is allowed to change anything.
+
+The implementation fails closed unless the runtime trainable footprint is
+exactly **392 LoRA tensors and 18,464,768 elements**, every tensor has a
+gradient, every gradient is finite, and at least one tensor and element are
+nonzero. It records aggregate and per-target-module norms, hashes the live LoRA
+weights immediately before and after backward, checks that optimization state
+is still absent, then clears all gradients and verifies that no gradient remains
+attached. CPU-only tests cover the passing contract plus missing-gradient,
+nonfinite-gradient and all-zero-gradient failures. The focused suite passed
+**14 tests** locally and remotely; the full local repository passed **237
+tests**.
+
+The exact GPU command was:
+
+```bash
+/venv/rl/bin/python -m training.train_grpo \
+  --gradient-only \
+  --report-file runs/grpo-gradient-gate-v1.json \
+  --expected-commit de16b440a4fb943b9e5de10daa3784387f22844f
+```
+
+Preflight on the same commit found `4,994,162,688` free bytes, a clean tracked
+worktree/index, an absent reserved output directory and the expected locked
+adapter SHA. The run produced this immutable evidence file:
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `runs/grpo-gradient-gate-v1.json` | 86,805 | `f6a19ce530e350bb73db4553ef5e3424822a04133ebc34ee21c6ad49bae67252` |
+
+The ordered raw-output SHA is again
+`029d63fd3391b1e35fa76668d1a6a2e4c8125dcf4ea61af044a8f44612408c4a`.
+Therefore this gate reused exactly the rollout observed by the earlier
+rollout-only artifact: reward totals `[2, 4, 2, 2, 4, 2, 4, 2]`, three positive
+advantages, five negative advantages, no truncation and useful within-group
+variance. Holding the sampled texts fixed makes the new evidence specifically
+about loss and backward behavior, rather than a lucky change in generation.
+
+Measured backward result:
+
+| measurement | observed value |
+|---|---:|
+| scalar GRPO loss | `-0.0062339865` |
+| forward + backward time | 88.854 seconds |
+| trainable LoRA tensors | 392 |
+| tensors with gradients | 392 |
+| tensors with a nonzero gradient | 392 |
+| trainable/gradient elements | 18,464,768 |
+| nonzero gradient elements | 18,464,227 |
+| exactly zero gradient elements | 541 |
+| NaN or infinite gradient elements | 0 |
+| global LoRA gradient L2 norm | 0.489256 |
+| largest absolute gradient element | 0.0230713 |
+| mean absolute gradient element | 0.0000397039 |
+| gradient dtype | float32 |
+| optimizer / scheduler constructed | no / no |
+| optimizer step performed | no |
+| `global_step` | 0 |
+| gradients remaining after cleanup | 0 |
+
+All **392 of 392** tensors had some nonzero signal. Only 541 of 18,464,768
+individual elements were exactly zero—about **0.0029%**—so approximately
+**99.9971%** of LoRA gradient elements were nonzero. More importantly, there
+were no missing, NaN or infinite gradients. The reward differences therefore
+survived the complete path from decoded outputs, through component rewards and
+group-relative advantages, through the policy loss, and into every configured
+attention and MLP LoRA target.
+
+The scalar loss being slightly negative is not a failure. A policy-gradient
+loss is an optimization objective, not an error percentage like supervised
+cross-entropy, and its absolute value can sit near zero after positive and
+negative group advantages balance. At this gate the decisive evidence is the
+finite nonzero gradient norm, not whether the loss is positive or large.
+
+Per-target gradient norms were:
+
+| LoRA target | tensors with nonzero gradient | elements | L2 norm | max absolute element |
+|---|---:|---:|---:|---:|
+| `gate_proj` | 56 / 56 | 4,702,208 | 0.352358 | 0.0209961 |
+| `up_proj` | 56 / 56 | 4,702,208 | 0.257834 | 0.0230713 |
+| `down_proj` | 56 / 56 | 4,702,208 | 0.149495 | 0.0016098 |
+| `o_proj` | 56 / 56 | 1,376,256 | 0.099865 | 0.0013809 |
+| `v_proj` | 56 / 56 | 802,816 | 0.093296 | 0.0043640 |
+| `q_proj` | 56 / 56 | 1,376,256 | 0.072514 | 0.0025177 |
+| `k_proj` | 56 / 56 | 802,816 | 0.049525 | 0.0043335 |
+
+`gate_proj` and `up_proj` had the largest aggregate norms in this one group,
+but that does not prove they are the most important modules: module groups have
+different element counts, and one prompt is not a stable importance estimate.
+The defensible inference is narrower—all seven intended target families and all
+28 model layers participated in backward.
+
+CUDA memory around backward was:
+
+| CUDA reading | bytes | approximate GiB |
+|---|---:|---:|
+| allocated before backward | 3,402,417,664 | 3.17 |
+| allocated after backward | 3,294,333,952 | 3.07 |
+| peak allocated during loss/backward | 3,788,344,832 | 3.53 |
+| peak reserved during loss/backward | 4,357,881,856 | 4.06 |
+| allocated after gradient clear | 3,212,697,088 | 2.99 |
+| allocated after full model/trainer release | 33,189,888 | 0.031 |
+| reserved after full release | 69,206,016 | 0.064 |
+
+The backward-specific peak allocation was lower than the earlier generation
+peak because Unsloth reported smart gradient offloading and the peak counter was
+reset after rollout preparation. These are phase-local measurements, so they
+should not be added together. The highest peak allocated anywhere in this
+combined gate remained the rollout's **4,250,522,112 bytes (3.96 GiB)**, while
+the highest reserved value was the backward phase's **4,357,881,856 bytes (4.06
+GiB)**. This still excludes optimizer state and an optimizer update, which are
+the next material memory boundary.
+
+The live LoRA fingerprint remained byte-identical across backward:
+
+```text
+1c9f10100bfc250323ad43c0e8b1b170a909d842fb2579903200f95a786e711e
+```
+
+The source adapter retained SHA-256
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`,
+`runs/grpo-first-smoke` remained absent, and settled external GPU use returned
+to the **428 MiB** idle ComfyUI process at 0% utilization. After writing the
+artifact, disk had `4,818,882,560` bytes free. Thus backward generated
+temporary gradient state, the audit measured it, cleanup erased it, and no
+persistent model state changed.
+
+This gate proves that the locked policy, real sampled completions, rewards and
+installed GRPO loss form a differentiable learning path with bounded memory. It
+does **not** prove that AdamW can be constructed within the remaining memory,
+that an update changes the adapter in the intended direction, that five steps
+are stable, or that GRPO improves frozen-evaluation quality. Those claims remain
+behind later gates.
 
 ##### Smoke acceptance gates
 
@@ -2322,6 +2473,19 @@ and the sampling parameters remained temperature 0.7 and top-p 0.95.
   adapter/source hashes, native sampler, unconstrained decoding and all sampling
   settings.
 
+### Gradient-gate launch attempt: package entrypoint
+
+The first gradient-gate command used
+`/venv/rl/bin/python training/train_grpo.py`. It exited before model loading
+with `ModuleNotFoundError: No module named 'training'` because executing the file
+path puts `training/`, rather than the repository root, first on Python's module
+search path while the entrypoint imports `training.dataset`. The pre-existing
+documented project convention is module execution. The corrected command used
+`/venv/rl/bin/python -m training.train_grpo` from the repository root. Before
+retrying, collision checks confirmed that neither the report artifact nor the
+reserved training output existed. The failed launch created no model, optimizer,
+checkpoint or evidence file.
+
 ### Future smoke/full failures
 
 Add timestamp, exact command, last progress line, traceback, GPU state, disk
@@ -2382,7 +2546,10 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Real locked-adapter model load and runtime trainability assertions.
 - [x] Real GRPO trainer construction with no optimizer, generation or training.
 - [x] One real eight-completion rollout with rewards, variance and unchanged LoRA.
-- [ ] GRPO smoke and gradient evidence.
+- [x] One-group real GRPO loss/backward evidence with complete finite gradients,
+  unchanged LoRA weights and no optimizer.
+- [ ] Five-step GRPO smoke with optimizer construction and real parameter
+  updates.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
 - [ ] SFT-versus-GRPO uncertainty estimate.
