@@ -121,6 +121,16 @@ def test_importing_entrypoint_is_cpu_only_and_training_is_unavailable():
         main([])
 
 
+def test_rollout_report_file_is_mode_locked_and_collision_safe(tmp_path):
+    report_path = tmp_path / "rollout.json"
+    with pytest.raises(SystemExit, match="valid only with --rollout-only"):
+        main(["--preflight-only", "--report-file", str(report_path)])
+
+    report_path.write_text("existing evidence", encoding="utf-8")
+    with pytest.raises(FileExistsError, match="rollout report already exists"):
+        main(["--rollout-only", "--report-file", str(report_path)])
+
+
 def test_rollout_evidence_preserves_components_weights_and_raw_outputs():
     reward_names = ["format", "compliance", "agreement"]
     component_rewards = {

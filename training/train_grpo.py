@@ -1041,6 +1041,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--minimum-free-gib", type=float, default=DEFAULT_MINIMUM_FREE_GIB)
     parser.add_argument("--expected-commit")
+    parser.add_argument(
+        "--report-file",
+        help="new JSON evidence file; valid only with --rollout-only",
+    )
     return parser.parse_args(argv)
 
 
@@ -1056,6 +1060,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             "training is intentionally unavailable; pass --preflight-only or "
             "--model-load-only or --trainer-construction-only or --rollout-only"
         )
+    report_path = None
+    if args.report_file is not None:
+        if not args.rollout_only:
+            raise SystemExit("--report-file is valid only with --rollout-only")
+        report_path = _resolve(Path(args.repo_root).resolve(), args.report_file)
+        if report_path.exists():
+            raise FileExistsError(f"rollout report already exists: {report_path}")
+        if not report_path.parent.is_dir():
+            raise FileNotFoundError(
+                f"rollout report parent does not exist: {report_path.parent}"
+            )
     report = run_preflight(
         repo_root=args.repo_root,
         fixture_data=args.fixture_data,
@@ -1102,7 +1117,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         report["training_steps"] = 0
         report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
         report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
-    print(json.dumps(report, indent=2, sort_keys=True))
+    if report_path is not None:
+        report["report_artifact"] = {
+            "path": str(report_path),
+            "created": True,
+            "overwrite_allowed": False,
+        }
+    serialized_report = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    if report_path is not None:
+        with report_path.open("x", encoding="utf-8") as handle:
+            handle.write(serialized_report)
+    print(serialized_report, end="")
     return 0
 
 
