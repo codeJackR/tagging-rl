@@ -3,7 +3,7 @@
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
 **Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight
-**Current status:** the deterministic pool, reward contract, five-row smoke fixture and CPU-only fail-closed preflight are implemented; the preflight has not yet run against the real remote adapter, and the five-step training path remains intentionally unavailable
+**Current status:** the deterministic pool, reward contract, five-row smoke fixture and fail-closed preflight are implemented; the preflight passed against the real locked adapter on Vast, while the five-step training path remains intentionally unavailable
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -1789,8 +1789,46 @@ temporary parent directory; changing the helper to `mkdir(parents=True)` fixed
 the fixture, with no production-preflight change. The final focused result is
 **6 passed**, the reward/fixture/preflight group is **19 passed**, and the full
 CPU suite is **229 passed**. The real 73.9 MB locked adapter is available only
-on Vast, so passing this preflight against the real bytes remains the next
-remote check rather than a claim made from synthetic local tests.
+on Vast, so synthetic tests alone were not treated as the final preflight gate.
+
+##### Real-adapter remote preflight
+
+Commit `6b288cdf2b0584fd11d6a64c9b631d40574e9a69` was pushed to the Vast bare
+remote and `/workspace/tagging-rl` was fast-forwarded to that exact commit. The
+tracked worktree and index were clean. The following read-only command then ran
+under `/venv/rl`:
+
+```bash
+python -m training.train_grpo \
+  --preflight-only \
+  --expected-commit 6b288cdf2b0584fd11d6a64c9b631d40574e9a69
+```
+
+The returned `grpo-smoke-preflight-v1` report had `status: passed` and reproduced:
+
+| real remote check | observed value |
+|---|---|
+| Git commit | `6b288cdf2b0584fd11d6a64c9b631d40574e9a69` |
+| tracked worktree / index dirty | `false / false` |
+| fixture rows | `5` |
+| fixture data SHA-256 | `268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084` |
+| fixture manifest SHA-256 | `e898510534d967b9a35367e0aba5a564e6cb564e2c326d45804d0319d528dd05` |
+| ordered-SKU SHA-256 | `99820aef9777190af82b999d587a260198e65ef9c420c0ca5d6befde06fe7af0` |
+| SFT selection-manifest SHA-256 | `e425635d323b3ffe9e7350fb61a2d9e1848345a95abab6b92032bf64d2718299` |
+| adapter bytes | `73,911,112` |
+| adapter SHA-256 | `00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af` |
+| LoRA rank / alpha | `16 / 16` |
+| expected trainable parameters | `18,464,768`; runtime assertion still required |
+| free disk / required minimum | `4,992,131,072 / 3,221,225,472` bytes |
+| proposed output collision | none |
+| output directory created | `false` |
+| CUDA imports / model loaded / trainer constructed | `false / false / false` |
+
+GPU state was **428 MiB used, 23,699 MiB free and 0% utilization** immediately
+before and after. `runs/grpo-first-smoke` remained absent, the tracked worktree
+remained clean and all existing untracked checkpoints were preserved. This is
+the first preflight using the real 73.9 MB adapter, but it is still not a model
+load, runtime trainable-parameter measurement or GRPO training smoke.
 
 ##### Smoke acceptance gates
 
@@ -2018,6 +2056,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Remote reward callback and patched TRL import integration probe.
 - [x] Deterministic five-row smoke fixture, manifest and rebuild proof.
 - [x] CPU-only fail-closed GRPO preflight and synthetic negative tests.
+- [x] Real-adapter GRPO preflight on the Vast training environment.
 - [ ] GRPO smoke and gradient evidence.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
