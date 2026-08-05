@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate
-**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight, model-load gate and trainer-construction gate are implemented; the real locked policy, dataset, rewards and exact GRPO configuration constructed successfully together on Vast, while generation and training remain intentionally unavailable
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate → one-group rollout/reward gate
+**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight, model-load gate, trainer-construction gate and one-group rollout gate are implemented; the real trainer generated and scored eight completions with useful reward variance and byte-identical LoRA weights, while loss, gradients, optimizer state and parameter updates remain intentionally unavailable
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -2012,6 +2012,139 @@ planned TRL configuration. It still does **not** prove generation, reward
 variance, optimizer creation, gradients or parameter updates. The next gate
 should cross only one of those boundaries at a time.
 
+##### Real one-group rollout and reward gate
+
+Commit `2e8b6792b0e9351e121f2824fac73abd24540944` added
+`--rollout-only`. It reuses the exact trainer-construction path, takes the first
+batch from the installed trainer's real `get_train_dataloader()`, and calls
+`_prepare_inputs()` once. In the installed Unsloth trainer, that is the method
+which invokes `_generate_and_score_completions()`, decodes model text, calls all
+three rewards, applies `[1, 1, 2]`, computes group-normalized advantages and
+returns prepared tensors. The gate never calls `compute_loss()`, `backward()`,
+`optimizer.step()` or `trainer.train()`.
+
+The installed repeat sampler was inspected before implementation. With
+`shuffle_dataset=False`, `generation_batch_size=8` and `num_generations=8`, its
+first batch is the first locked SKU repeated exactly eight times. Runtime
+assertions confirmed that exact batch and verified that hidden `gold` remained
+present before generation.
+
+The gate also hashes the names, dtype, shape and raw bytes of every trainable
+LoRA tensor immediately before and after rollout. This is stronger than merely
+checking `global_step=0`: it can detect an accidental in-memory weight mutation
+even if trainer state was not advanced.
+
+Two pure CPU tests validate rollout-evidence alignment, raw-output retention,
+component-to-weight ordering, exact weighted totals and rejection of NaN or
+misaligned arrays. A later collision-safe report-file addition brings the
+focused total to **13 tests** and the complete local suite to **236 tests**.
+The remote focused suite also passed before either GPU rollout.
+
+The first rollout ran at commit `2e8b679...` as terminal evidence. Commit
+`617306cb7549b40d477c9d8688c11fb5e4fc2776` then added an optional
+`--report-file` which is valid only for rollout mode, checks for collisions
+before CUDA import, refuses overwrite and requires an existing parent. The
+deterministic rollout was rerun to produce the versioned evidence artifact:
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `runs/grpo-rollout-gate-v1.json` | 81,578 | `84a01ab1840a430f0b5b066d48499b8b6d544c2feb224d8b459ff4ea9be5f8bc` |
+
+The ordered eight raw outputs inside that artifact have SHA-256
+`029d63fd3391b1e35fa76668d1a6a2e4c8125dcf4ea61af044a8f44612408c4a`.
+The persisted rerun reproduced the first run's reward totals, advantages and
+completion-token sequence.
+
+The product was the first declared smoke fixture,
+`shopify:www.tentree.com:8106124673210`, the Seaforestation Print T-Shirt. Its
+prior eight-sample SFT pass rate was `0.5`; this Transformers rollout produced
+three exact known-gold passes out of eight (`0.375`). A one-completion difference
+at this tiny sample size, and across the earlier vLLM versus current
+Transformers generation paths, is not evidence of policy drift.
+
+Measured reward result:
+
+| component/result | observed count |
+|---|---:|
+| structurally valid JSON | 8 / 8 |
+| vocabulary- and rule-compliant | 8 / 8 |
+| exact agreement on every scorable gold field | 3 / 8 |
+| weighted total `2.0` | 5 / 8 |
+| weighted total `4.0` | 3 / 8 |
+| nonzero normalized advantage | 8 / 8 |
+| truncated and masked | 0 / 8 |
+
+The exact weighted totals were:
+
+```text
+[2, 4, 2, 2, 4, 2, 4, 2]
+```
+
+The corresponding installed-TRL group-normalized advantages were:
+
+```text
+[-0.724499, 1.207498, -0.724499, -0.724499,
+  1.207498, -0.724499, 1.207498, -0.724499]
+```
+
+This is the first direct evidence that the chosen prompt can produce a GRPO
+learning signal. Format and compliance were constant at one for all eight
+samples, so they contributed the same two-point baseline and did not determine
+relative advantage in this group. Golden agreement was the discriminator: its
+two-point weight raised the three exact outputs from total two to total four.
+Those three received positive advantage; the other five received negative
+advantage. GRPO therefore has a clear local preference signal without needing
+an absolute hand-written score threshold.
+
+This also illustrates why the components remain separately logged. Saying
+“mean reward was 2.75” would hide the important fact that syntax and vocabulary
+were already saturated and the useful variation came entirely from semantic
+agreement. If future groups show all totals equal, their advantages will be
+zero and they will contribute no gradient regardless of their absolute score.
+
+The effective completion lengths were `[112, 113, 111, 111, 111, 110, 112,
+111]` tokens. All ended normally below the 170-token cap, so
+`mask_truncated_completions=True` discarded none. The prepared batch contained
+prompt IDs/masks, completion IDs/masks, advantages, maximum left padding and
+item count; aligned settings meant no old-policy or reference-policy log-prob
+tensor was required.
+
+The in-memory trainable-LoRA fingerprint was identical before and after:
+
+```text
+1c9f10100bfc250323ad43c0e8b1b170a909d842fb2579903200f95a786e711e
+```
+
+`global_step` stayed zero, no optimizer or scheduler existed, and the immutable
+source adapter retained SHA-256
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+This proves generation and reward calculation did not change either the live
+LoRA or its source checkpoint.
+
+The persisted rollout itself took **5.318 seconds**; model load, trainer setup,
+fingerprinting, rollout and reporting together took **10.532 seconds**. CUDA
+memory moved as follows:
+
+| CUDA reading | bytes | approximate GiB |
+|---|---:|---:|
+| allocated before rollout | 3,190,780,416 | 2.97 |
+| allocated after rollout preparation | 3,402,417,664 | 3.17 |
+| peak allocated | 4,250,522,112 | 3.96 |
+| peak reserved | 4,318,035,968 | 4.02 |
+| allocated after release | 13,762,560 | 0.013 |
+| reserved after release | 23,068,672 | 0.021 |
+
+The rollout increased peak allocation by about **0.918 GiB** over the earlier
+model-only peak. That comfortably fits the RTX 3090, but it still excludes loss
+activations, gradients, optimizer state and an update. The temporary trainer
+directory was removed, `runs/grpo-first-smoke` remained absent, free disk before
+the persisted run was `4,989,554,688` bytes, and the settled external GPU state
+returned to **428 MiB used, 23,699 MiB free and 0% utilization**.
+
+The next narrow boundary is a **gradient-only gate**: reuse one prepared
+eight-completion group, compute the policy loss and call backward, inspect
+finite/nonzero LoRA gradients and memory, but do not create or step an optimizer.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -2241,6 +2374,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Real-adapter GRPO preflight on the Vast training environment.
 - [x] Real locked-adapter model load and runtime trainability assertions.
 - [x] Real GRPO trainer construction with no optimizer, generation or training.
+- [x] One real eight-completion rollout with rewards, variance and unchanged LoRA.
 - [ ] GRPO smoke and gradient evidence.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
