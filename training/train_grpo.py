@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Guarded entry point for GRPO preflight, model loading and trainer construction.
+"""Guarded entry point for staged GRPO integration gates.
 
 Importing this module deliberately performs no Torch, Transformers, TRL, PEFT,
 Unsloth or vLLM import. GPU-capable modes import their stack only after
-``run_preflight`` succeeds. Generation and training remain unavailable.
+``run_preflight`` succeeds. Parameter updates remain intentionally unavailable.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ MODEL_LOAD_VERSION = "grpo-smoke-model-load-v1"
 TRAINER_CONSTRUCTION_VERSION = "grpo-smoke-trainer-construction-v1"
 ROLLOUT_GATE_VERSION = "grpo-smoke-rollout-gate-v1"
 GRADIENT_GATE_VERSION = "grpo-smoke-gradient-gate-v1"
+OPTIMIZER_CONSTRUCTION_VERSION = "grpo-smoke-optimizer-construction-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
 DEFAULT_SELECTION_MANIFEST = "runs/sft-selection.json"
@@ -375,6 +376,48 @@ def validate_gradient_evidence(stats: dict) -> dict:
     }
 
 
+def validate_optimizer_evidence(stats: dict) -> dict:
+    """Fail closed unless the fresh optimizer controls only the locked LoRA."""
+    if stats.get("optimizer_class") != "AdamW":
+        raise RuntimeError("configured optimizer is not bitsandbytes AdamW")
+    if not str(stats.get("optimizer_module", "")).startswith("bitsandbytes.optim"):
+        raise RuntimeError("configured optimizer did not come from bitsandbytes")
+    if stats.get("optimizer_bits") != 8:
+        raise RuntimeError("configured bitsandbytes AdamW is not using 8-bit state")
+    if stats.get("is_paged"):
+        raise RuntimeError("configured optimizer unexpectedly uses paged state")
+    if stats.get("trainable_model_tensors") != LOCKED_TRAINABLE_TENSORS:
+        raise RuntimeError("optimizer audit has an unexpected trainable tensor count")
+    if stats.get("trainable_model_elements") != LOCKED_TRAINABLE_PARAMETERS:
+        raise RuntimeError("optimizer audit has an unexpected trainable element count")
+    if stats.get("unique_optimizer_parameter_tensors") != LOCKED_TRAINABLE_TENSORS:
+        raise RuntimeError("optimizer does not control every trainable LoRA tensor")
+    if stats.get("unique_optimizer_parameter_elements") != LOCKED_TRAINABLE_PARAMETERS:
+        raise RuntimeError("optimizer does not control every trainable LoRA element")
+    if stats.get("missing_trainable_tensors") != 0:
+        raise RuntimeError("optimizer is missing at least one trainable LoRA tensor")
+    if stats.get("frozen_optimizer_tensors") != 0:
+        raise RuntimeError("optimizer controls at least one frozen tensor")
+    if stats.get("duplicate_optimizer_references") != 0:
+        raise RuntimeError("optimizer contains a duplicate parameter reference")
+    if stats.get("optimizer_state_entries") != 0:
+        raise RuntimeError("fresh optimizer unexpectedly initialized parameter state")
+    if stats.get("optimizer_state_tensor_count") != 0:
+        raise RuntimeError("fresh optimizer unexpectedly owns state tensors")
+    if stats.get("gradients_attached") != 0:
+        raise RuntimeError("optimizer-construction gate unexpectedly has gradients")
+    if not stats.get("trainable_lora_unchanged"):
+        raise RuntimeError("LoRA weights changed during optimizer construction")
+    if stats.get("global_step") != 0:
+        raise RuntimeError("optimizer construction advanced global_step")
+    return {
+        **stats,
+        "controls_exact_locked_lora": True,
+        "optimizer_state_is_lazy": True,
+        "no_parameter_update": True,
+    }
+
+
 def inspect_lora_gradients(model: object) -> dict:
     """Measure gradients on every trainable LoRA tensor after one backward pass."""
     trainable_tensors = 0
@@ -465,6 +508,109 @@ def inspect_lora_gradients(model: object) -> dict:
         "by_target_module": by_target,
     }
     return validate_gradient_evidence(stats)
+
+
+def inspect_fresh_optimizer(optimizer: object, model: object, global_step: int) -> dict:
+    """Audit a newly constructed optimizer before gradients or a first step."""
+    trainable_parameters = [
+        parameter for parameter in model.parameters() if parameter.requires_grad
+    ]
+    trainable_ids = {id(parameter) for parameter in trainable_parameters}
+    optimizer_parameters = []
+    parameter_groups = []
+    for index, group in enumerate(optimizer.param_groups):
+        parameters = list(group["params"])
+        optimizer_parameters.extend(parameters)
+        parameter_groups.append(
+            {
+                "index": index,
+                "parameter_tensors": len(parameters),
+                "parameter_elements": sum(
+                    int(parameter.numel()) for parameter in parameters
+                ),
+                "lr": float(group["lr"]),
+                "weight_decay": float(group["weight_decay"]),
+                "betas": [float(value) for value in group["betas"]],
+                "eps": float(group["eps"]),
+            }
+        )
+
+    optimizer_ids = [id(parameter) for parameter in optimizer_parameters]
+    unique_optimizer_by_id = {
+        id(parameter): parameter for parameter in optimizer_parameters
+    }
+    optimizer_id_set = set(optimizer_ids)
+
+    state_tensor_count = 0
+    state_tensor_bytes = 0
+    state_tensor_devices: set[str] = set()
+    state_tensor_dtypes: set[str] = set()
+    for parameter_state in optimizer.state.values():
+        if not isinstance(parameter_state, dict):
+            continue
+        for value in parameter_state.values():
+            if not hasattr(value, "numel") or not hasattr(value, "element_size"):
+                continue
+            state_tensor_count += 1
+            state_tensor_bytes += int(value.numel()) * int(value.element_size())
+            state_tensor_devices.add(str(value.device))
+            state_tensor_dtypes.add(str(value.dtype))
+
+    quantization_maps = []
+    for name, value in sorted(getattr(optimizer, "name2qmap", {}).items()):
+        quantization_maps.append(
+            {
+                "name": str(name),
+                "elements": int(value.numel()),
+                "bytes": int(value.numel()) * int(value.element_size()),
+                "dtype": str(value.dtype),
+                "device": str(value.device),
+            }
+        )
+
+    stats = {
+        "optimizer_class": type(optimizer).__name__,
+        "optimizer_module": type(optimizer).__module__,
+        "optimizer_bits": int(getattr(optimizer.args, "optim_bits")),
+        "is_paged": bool(getattr(optimizer, "is_paged", False)),
+        "optimizer_initialized_flag": bool(
+            getattr(optimizer, "initialized", False)
+        ),
+        "parameter_group_count": len(parameter_groups),
+        "parameter_groups": parameter_groups,
+        "optimizer_parameter_tensors": len(optimizer_parameters),
+        "optimizer_parameter_elements": sum(
+            int(parameter.numel()) for parameter in optimizer_parameters
+        ),
+        "unique_optimizer_parameter_tensors": len(unique_optimizer_by_id),
+        "unique_optimizer_parameter_elements": sum(
+            int(parameter.numel())
+            for parameter in unique_optimizer_by_id.values()
+        ),
+        "trainable_model_tensors": len(trainable_parameters),
+        "trainable_model_elements": sum(
+            int(parameter.numel()) for parameter in trainable_parameters
+        ),
+        "missing_trainable_tensors": len(trainable_ids - optimizer_id_set),
+        "frozen_optimizer_tensors": sum(
+            not parameter.requires_grad for parameter in optimizer_parameters
+        ),
+        "duplicate_optimizer_references": len(optimizer_ids)
+        - len(unique_optimizer_by_id),
+        "optimizer_state_entries": len(optimizer.state),
+        "optimizer_state_tensor_count": state_tensor_count,
+        "optimizer_state_tensor_bytes": state_tensor_bytes,
+        "optimizer_state_tensor_devices": sorted(state_tensor_devices),
+        "optimizer_state_tensor_dtypes": sorted(state_tensor_dtypes),
+        "quantization_maps": quantization_maps,
+        "quantization_map_bytes": sum(item["bytes"] for item in quantization_maps),
+        "gradients_attached": sum(
+            parameter.grad is not None for parameter in trainable_parameters
+        ),
+        "trainable_lora_unchanged": True,
+        "global_step": int(global_step),
+    }
+    return validate_optimizer_evidence(stats)
 
 
 def _sha256_file(path: str | Path) -> str:
@@ -874,11 +1020,14 @@ def _run_trainer_gate(
     expected_sku_ids: Sequence[str],
     perform_rollout: bool,
     perform_backward: bool,
+    construct_optimizer: bool,
     expected_adapter_sha256: str = LOCKED_ADAPTER_SHA256,
 ) -> dict:
-    """Construct the exact trainer and optionally execute one no-loss rollout."""
+    """Construct the exact trainer and cross one explicitly selected gate."""
     if perform_backward and not perform_rollout:
         raise ValueError("backward requires a prepared rollout")
+    if construct_optimizer and (perform_rollout or perform_backward):
+        raise ValueError("optimizer construction must remain an isolated gate")
     fixture_data_path = Path(fixture_data_path).resolve()
     adapter_path = Path(adapter_path).resolve()
     adapter_file = Path(adapter_file).resolve()
@@ -907,6 +1056,7 @@ def _run_trainer_gate(
     generation_batch = None
     prepared = None
     loss = None
+    optimizer = None
     report = None
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
@@ -1000,6 +1150,94 @@ def _run_trainer_gate(
 
             rollout_report = None
             gradient_report = None
+            optimizer_report = None
+            if construct_optimizer:
+                if any(
+                    parameter.grad is not None
+                    for parameter in trainer.model.parameters()
+                    if parameter.requires_grad
+                ):
+                    raise RuntimeError(
+                        "LoRA gradients existed before optimizer construction"
+                    )
+
+                from bitsandbytes.optim import GlobalOptimManager
+
+                global_optim_manager = GlobalOptimManager.get_instance()
+                overrides_before = len(
+                    global_optim_manager.module_weight_config_triple
+                )
+                lora_sha_before_optimizer = _trainable_parameter_sha256(
+                    trainer.model
+                )
+                torch.cuda.reset_peak_memory_stats()
+                cuda_before_optimizer = _cuda_memory_snapshot(torch)
+                optimizer_started = time.perf_counter()
+                optimizer = trainer.create_optimizer()
+                torch.cuda.synchronize()
+                optimizer_construction_seconds = (
+                    time.perf_counter() - optimizer_started
+                )
+                cuda_after_optimizer = _cuda_memory_snapshot(torch)
+                if optimizer is None or trainer.optimizer is not optimizer:
+                    raise RuntimeError("trainer did not retain the created optimizer")
+                lora_sha_after_optimizer = _trainable_parameter_sha256(
+                    trainer.model
+                )
+                if lora_sha_after_optimizer != lora_sha_before_optimizer:
+                    raise RuntimeError(
+                        "LoRA weights changed during optimizer construction"
+                    )
+                optimizer_stats = inspect_fresh_optimizer(
+                    optimizer,
+                    trainer.model,
+                    int(trainer.state.global_step),
+                )
+                if trainer.lr_scheduler is not None:
+                    raise RuntimeError(
+                        "optimizer construction unexpectedly created an LR scheduler"
+                    )
+                overrides_after = len(
+                    global_optim_manager.module_weight_config_triple
+                )
+
+                optimizer_report = {
+                    "status": "passed",
+                    "construction_seconds": optimizer_construction_seconds,
+                    "stats": optimizer_stats,
+                    "lora_sha256_before_optimizer": lora_sha_before_optimizer,
+                    "lora_sha256_after_optimizer": lora_sha_after_optimizer,
+                    "trainable_lora_unchanged": True,
+                    "cuda_before_optimizer": cuda_before_optimizer,
+                    "cuda_after_optimizer": cuda_after_optimizer,
+                    "global_optimizer_manager_overrides_before": overrides_before,
+                    "global_optimizer_manager_overrides_after": overrides_after,
+                    "global_optimizer_manager_overrides_added": (
+                        overrides_after - overrides_before
+                    ),
+                    "lr_scheduler_constructed": False,
+                    "optimizer_step_performed": False,
+                    "global_step": int(trainer.state.global_step),
+                }
+
+                optimizer.zero_grad(set_to_none=True)
+                trainer.optimizer = None
+                optimizer = None
+                del global_optim_manager.module_weight_config_triple[
+                    overrides_before:
+                ]
+                gc.collect()
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                optimizer_report["global_optimizer_manager_overrides_removed"] = (
+                    len(global_optim_manager.module_weight_config_triple)
+                    == overrides_before
+                )
+                optimizer_report["optimizer_released"] = True
+                optimizer_report["cuda_after_optimizer_release"] = (
+                    _cuda_memory_snapshot(torch)
+                )
+
             if perform_rollout:
                 generation_batch = next(iter(trainer.get_train_dataloader()))
                 if not isinstance(generation_batch, list) or len(generation_batch) != 8:
@@ -1151,7 +1389,9 @@ def _run_trainer_gate(
             after_construction = _cuda_memory_snapshot(torch)
             report = {
                 "version": (
-                    GRADIENT_GATE_VERSION
+                    OPTIMIZER_CONSTRUCTION_VERSION
+                    if construct_optimizer
+                    else GRADIENT_GATE_VERSION
                     if perform_backward
                     else ROLLOUT_GATE_VERSION
                     if perform_rollout
@@ -1184,7 +1424,7 @@ def _run_trainer_gate(
                 "source_adapter_unchanged": True,
                 "cuda_before_load": before,
                 "cuda_after_trainer_construction": after_construction,
-                "optimizer_constructed": False,
+                "optimizer_constructed": optimizer_report is not None,
                 "lr_scheduler_constructed": False,
                 "reference_model_constructed": False,
                 "generation_performed": perform_rollout,
@@ -1198,6 +1438,8 @@ def _run_trainer_gate(
                 report["rollout"] = rollout_report
             if gradient_report is not None:
                 report["gradient"] = gradient_report
+            if optimizer_report is not None:
+                report["optimizer"] = optimizer_report
 
             trainer = None
             config = None
@@ -1211,6 +1453,7 @@ def _run_trainer_gate(
         generation_batch = None
         prepared = None
         loss = None
+        optimizer = None
         model = None
         tokenizer = None
         gc.collect()
@@ -1222,6 +1465,7 @@ def _run_trainer_gate(
     report["cuda_after_release"] = _cuda_memory_snapshot(torch)
     report["trainer_retained"] = False
     report["model_retained"] = False
+    report["optimizer_retained"] = False
     return report
 
 
@@ -1230,6 +1474,7 @@ def run_trainer_construction_gate(**kwargs) -> dict:
     return _run_trainer_gate(
         perform_rollout=False,
         perform_backward=False,
+        construct_optimizer=False,
         **kwargs,
     )
 
@@ -1239,6 +1484,7 @@ def run_rollout_gate(**kwargs) -> dict:
     return _run_trainer_gate(
         perform_rollout=True,
         perform_backward=False,
+        construct_optimizer=False,
         **kwargs,
     )
 
@@ -1248,6 +1494,17 @@ def run_gradient_gate(**kwargs) -> dict:
     return _run_trainer_gate(
         perform_rollout=True,
         perform_backward=True,
+        construct_optimizer=False,
+        **kwargs,
+    )
+
+
+def run_optimizer_construction_gate(**kwargs) -> dict:
+    """Construct and audit 8-bit AdamW without gradients or an update."""
+    return _run_trainer_gate(
+        perform_rollout=False,
+        perform_backward=False,
+        construct_optimizer=True,
         **kwargs,
     )
 
@@ -1260,6 +1517,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--trainer-construction-only", action="store_true")
     mode.add_argument("--rollout-only", action="store_true")
     mode.add_argument("--gradient-only", action="store_true")
+    mode.add_argument("--optimizer-construction-only", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--fixture-data", default=DEFAULT_FIXTURE_DATA)
     parser.add_argument("--fixture-manifest", default=DEFAULT_FIXTURE_MANIFEST)
@@ -1270,7 +1528,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-commit")
     parser.add_argument(
         "--report-file",
-        help="new JSON evidence file; valid with rollout or gradient mode",
+        help="new JSON evidence file; valid with rollout, gradient or optimizer mode",
     )
     return parser.parse_args(argv)
 
@@ -1283,17 +1541,23 @@ def main(argv: Sequence[str] | None = None) -> int:
         or args.trainer_construction_only
         or args.rollout_only
         or args.gradient_only
+        or args.optimizer_construction_only
     ):
         raise SystemExit(
             "training is intentionally unavailable; pass --preflight-only or "
             "--model-load-only, --trainer-construction-only, --rollout-only, "
-            "or --gradient-only"
+            "--gradient-only, or --optimizer-construction-only"
         )
     report_path = None
     if args.report_file is not None:
-        if not (args.rollout_only or args.gradient_only):
+        if not (
+            args.rollout_only
+            or args.gradient_only
+            or args.optimizer_construction_only
+        ):
             raise SystemExit(
-                "--report-file is valid only with --rollout-only or --gradient-only"
+                "--report-file is valid only with --rollout-only, --gradient-only, "
+                "or --optimizer-construction-only"
             )
         report_path = _resolve(Path(args.repo_root).resolve(), args.report_file)
         if report_path.exists():
@@ -1362,6 +1626,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         report["loss_computed"] = True
         report["backward_performed"] = True
         report["optimizer_constructed"] = False
+        report["optimizer_step_performed"] = False
+        report["training_steps"] = 0
+        report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
+        report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
+    if args.optimizer_construction_only:
+        report["optimizer_construction_gate"] = run_optimizer_construction_gate(
+            fixture_data_path=report["fixture"]["data_path"],
+            adapter_path=report["sft_lock"]["adapter_path"],
+            adapter_file=report["sft_lock"]["adapter_file"],
+            expected_sku_ids=report["fixture"]["sku_ids_in_step_order"],
+        )
+        report["cuda_imports_performed"] = True
+        report["model_loaded"] = True
+        report["trainer_constructed"] = True
+        report["generation_performed"] = False
+        report["loss_computed"] = False
+        report["backward_performed"] = False
+        report["optimizer_constructed"] = True
+        report["optimizer_state_initialized"] = False
         report["optimizer_step_performed"] = False
         report["training_steps"] = 0
         report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False

@@ -21,6 +21,7 @@ from training.train_grpo import (
     main,
     parse_args,
     run_preflight,
+    validate_optimizer_evidence,
     validate_gradient_evidence,
 )
 
@@ -118,6 +119,9 @@ def test_importing_entrypoint_is_cpu_only_and_training_is_unavailable():
     assert parse_args(["--trainer-construction-only"]).trainer_construction_only
     assert parse_args(["--rollout-only"]).rollout_only
     assert parse_args(["--gradient-only"]).gradient_only
+    assert parse_args(
+        ["--optimizer-construction-only"]
+    ).optimizer_construction_only
     with pytest.raises(SystemExit):
         parse_args(["--preflight-only", "--model-load-only"])
     with pytest.raises(SystemExit, match="training is intentionally unavailable"):
@@ -205,6 +209,46 @@ def test_gradient_evidence_requires_complete_finite_nonzero_lora_gradients():
         validate_gradient_evidence({**stats, "nonfinite_gradient_elements": 1})
     with pytest.raises(RuntimeError, match="all LoRA gradient tensors are zero"):
         validate_gradient_evidence({**stats, "nonzero_gradient_tensors": 0})
+
+
+def test_optimizer_evidence_requires_exact_lora_scope_and_lazy_state():
+    stats = {
+        "optimizer_class": "AdamW",
+        "optimizer_module": "bitsandbytes.optim.adamw",
+        "optimizer_bits": 8,
+        "is_paged": False,
+        "trainable_model_tensors": LOCKED_TRAINABLE_TENSORS,
+        "trainable_model_elements": LOCKED_TRAINABLE_PARAMETERS,
+        "unique_optimizer_parameter_tensors": LOCKED_TRAINABLE_TENSORS,
+        "unique_optimizer_parameter_elements": LOCKED_TRAINABLE_PARAMETERS,
+        "missing_trainable_tensors": 0,
+        "frozen_optimizer_tensors": 0,
+        "duplicate_optimizer_references": 0,
+        "optimizer_state_entries": 0,
+        "optimizer_state_tensor_count": 0,
+        "gradients_attached": 0,
+        "trainable_lora_unchanged": True,
+        "global_step": 0,
+    }
+    report = validate_optimizer_evidence(stats)
+    assert report["controls_exact_locked_lora"]
+    assert report["optimizer_state_is_lazy"]
+    assert report["no_parameter_update"]
+
+    with pytest.raises(RuntimeError, match="does not control every"):
+        validate_optimizer_evidence(
+            {
+                **stats,
+                "unique_optimizer_parameter_tensors": LOCKED_TRAINABLE_TENSORS
+                - 1,
+            }
+        )
+    with pytest.raises(RuntimeError, match="frozen tensor"):
+        validate_optimizer_evidence({**stats, "frozen_optimizer_tensors": 1})
+    with pytest.raises(RuntimeError, match="initialized parameter state"):
+        validate_optimizer_evidence({**stats, "optimizer_state_entries": 1})
+    with pytest.raises(RuntimeError, match="LoRA weights changed"):
+        validate_optimizer_evidence({**stats, "trainable_lora_unchanged": False})
 
 
 def test_grpo_smoke_config_is_complete_and_one_prompt_group_per_step(tmp_path):
