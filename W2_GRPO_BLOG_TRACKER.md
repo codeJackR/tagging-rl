@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate → one-group rollout/reward gate → one-group gradient-only gate
-**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight, model-load gate, trainer-construction gate, one-group rollout gate and gradient-only gate are implemented; the real trainer generated and scored eight completions, computed the GRPO loss and produced complete finite LoRA gradients, while optimizer state and parameter updates remain intentionally unavailable
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate → one-group rollout/reward gate → one-group gradient-only gate → optimizer-construction-only gate
+**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight, model-load gate, trainer-construction gate, one-group rollout gate, gradient-only gate and optimizer-construction-only gate are implemented; the configured 8-bit AdamW controls exactly the locked LoRA tensors and changes no weights, while its large per-parameter state and all parameter updates remain intentionally unavailable until the first real step
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -2303,6 +2303,130 @@ that an update changes the adapter in the intended direction, that five steps
 are stable, or that GRPO improves frozen-evaluation quality. Those claims remain
 behind later gates.
 
+##### Real 8-bit AdamW construction-only gate
+
+The next isolated boundary was optimizer construction: connect the component
+that will eventually turn gradients into weight changes, but do not generate a
+rollout, compute a loss, backpropagate, initialize per-parameter moment state or
+call `optimizer.step()`.
+
+Commit `9693dc023249dafd4703974649649ae02bb2a42d` added
+`--optimizer-construction-only`. The gate calls the installed trainer's real
+`create_optimizer()` method and fails unless the result:
+
+- is bitsandbytes `AdamW` configured for 8-bit, non-paged state;
+- references every one of the 392 trainable LoRA tensors exactly once;
+- references all 18,464,768 trainable elements and no frozen parameter;
+- has no attached gradients or initialized parameter state;
+- leaves `global_step` at zero and creates no LR scheduler; and
+- leaves the in-memory LoRA fingerprint byte-identical.
+
+The first real construction probe passed those scope checks and revealed a
+valuable audit gap. Learning rate and optimizer name were explicit, but weight
+decay, Adam betas and epsilon still came from installed-library defaults. The
+probe observed `0.001`, `(0.9, 0.999)` and `1e-8`. Commit
+`93a560d69a680b0c6780f028faba6f63f42f327f` then made those same values explicit
+in `grpo_smoke_config_kwargs()` and added fail-closed runtime assertions. This
+did not deliberately change behavior; it changed hidden defaults into a
+versioned contract. The original probe remains recoverable on the GPU box as
+`/tmp/grpo-optimizer-construction-v1-9693dc0.json`.
+
+The publishable rerun used:
+
+```bash
+/venv/rl/bin/python -m training.train_grpo \
+  --optimizer-construction-only \
+  --report-file runs/grpo-optimizer-construction-v1.json \
+  --expected-commit 93a560d69a680b0c6780f028faba6f63f42f327f
+```
+
+The final artifact is:
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `runs/grpo-optimizer-construction-v1.json` | 76,373 | `bf602f55be70f93dc06b25fc90e22e712b7b172f6b698913ff21d710bccf9f05` |
+
+Focused tests passed **15/15** locally and remotely, and the complete local
+suite passed **238 tests**. Preflight on the final commit found
+`4,813,078,528` free bytes, a clean tracked worktree/index, an absent reserved
+training output and the expected source-adapter checksum.
+
+Measured optimizer wiring:
+
+| property | observed value |
+|---|---:|
+| implementation | `bitsandbytes.optim.adamw.AdamW` |
+| optimizer precision | 8-bit |
+| paged optimizer | no |
+| learning rate | `5e-6` |
+| weight decay | `0.001` |
+| Adam betas | `(0.9, 0.999)` |
+| Adam epsilon | `1e-8` |
+| parameter groups | 2 |
+| referenced trainable tensors | 392 |
+| unique referenced tensors | 392 |
+| referenced elements | 18,464,768 |
+| missing / duplicate / frozen references | 0 / 0 / 0 |
+| attached gradients | 0 |
+| optimizer state entries / tensors / bytes | 0 / 0 / 0 |
+| optimizer initialized flag | false |
+| scheduler constructed | no |
+| optimizer step / global step | no / 0 |
+
+Transformers created its standard decay and no-decay groups. All 392 LoRA
+matrix tensors were in the nonempty `weight_decay=0.001` group; the no-decay
+group existed but contained zero tensors. This is internally consistent for
+the current trainable scope because no bias or normalization parameter is
+trainable. It is a smoke-run choice, not evidence that `0.001` is the best
+weight decay for a longer experiment.
+
+Optimizer construction took **0.0337 seconds**. CUDA allocation was exactly
+`3,190,780,416` bytes immediately before and after construction, with the same
+`3,190,780,416`-byte phase peak; reserved CUDA memory likewise stayed at
+`3,202,351,104` bytes. The only newly measured optimizer-owned tensors were two
+shared float32 quantization lookup maps on CPU, 1,024 bytes each, or **2,048
+bytes total**.
+
+The reason this looks almost free is important: bitsandbytes AdamW is lazy. At
+construction it stores references to the LoRA parameters and basic settings.
+Its `state1` and `state2` moment buffers are created only when the first update
+is attempted. Therefore **zero CUDA growth here does not mean optimizer state
+will cost zero memory during training**.
+
+From the installed bitsandbytes state layout, a rough lower-bound estimate for
+18,464,768 fully 8-bit LoRA elements is two one-byte moment buffers plus two
+float32 block scales per 256 elements:
+
+```text
+2 × 18,464,768 bytes for moments
++ 2 × (18,464,768 / 256) × 4 bytes for scales
+= 37,506,560 bytes, about 35.77 MiB
+```
+
+That estimate excludes allocator rounding, metadata, temporary update buffers
+and any additional trainer allocations. The first real update—not this
+construction gate—must provide the authoritative peak.
+
+The live LoRA fingerprint stayed unchanged:
+
+```text
+1c9f10100bfc250323ad43c0e8b1b170a909d842fb2579903200f95a786e711e
+```
+
+The source adapter also retained SHA-256
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+The optimizer was detached and released, its one temporary global embedding
+override was removed, the temporary trainer directory disappeared, and
+`runs/grpo-first-smoke` remained absent. Final external GPU use returned to the
+**428 MiB** idle ComfyUI process at 0% utilization; disk had `4,812,922,880`
+bytes free after the evidence file was written.
+
+This proves the configured optimizer points at exactly the intended LoRA and
+that merely creating it is safe. It does **not** yet prove moment-state
+allocation, scheduler behavior, gradient clipping, a weight update, update
+magnitude or post-update model quality. Those begin at the one-real-update
+boundary.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -2548,6 +2672,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] One real eight-completion rollout with rewards, variance and unchanged LoRA.
 - [x] One-group real GRPO loss/backward evidence with complete finite gradients,
   unchanged LoRA weights and no optimizer.
+- [x] Real 8-bit AdamW construction with exact LoRA scope, explicit
+  hyperparameters, lazy-state proof and unchanged weights.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
