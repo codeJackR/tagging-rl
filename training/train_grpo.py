@@ -24,6 +24,7 @@ PREFLIGHT_VERSION = "grpo-smoke-preflight-v1"
 MODEL_LOAD_VERSION = "grpo-smoke-model-load-v1"
 TRAINER_CONSTRUCTION_VERSION = "grpo-smoke-trainer-construction-v1"
 ROLLOUT_GATE_VERSION = "grpo-smoke-rollout-gate-v1"
+GRADIENT_GATE_VERSION = "grpo-smoke-gradient-gate-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
 DEFAULT_SELECTION_MANIFEST = "runs/sft-selection.json"
@@ -47,6 +48,7 @@ LOCKED_ADAPTER_SHA256 = (
 )
 LOCKED_BASE_MODEL = "unsloth/Qwen2.5-1.5B-Instruct"
 LOCKED_TRAINABLE_PARAMETERS = 18_464_768
+LOCKED_TRAINABLE_TENSORS = 392
 LOCKED_LORA_RANK = 16
 LOCKED_LORA_ALPHA = 16
 LOCKED_TARGET_MODULES = {
@@ -345,6 +347,124 @@ def _trainable_parameter_sha256(model: object) -> str:
     if trainable_tensors == 0:
         raise RuntimeError("cannot fingerprint a model with no trainable tensors")
     return digest.hexdigest()
+
+
+def validate_gradient_evidence(stats: dict) -> dict:
+    """Fail closed unless backward produced complete, finite, nonzero LoRA gradients."""
+    if stats.get("trainable_tensors") != LOCKED_TRAINABLE_TENSORS:
+        raise RuntimeError("gradient evidence has an unexpected trainable tensor count")
+    if stats.get("gradient_elements") != LOCKED_TRAINABLE_PARAMETERS:
+        raise RuntimeError("gradient evidence has an unexpected element count")
+    if stats.get("tensors_with_gradient") != stats.get("trainable_tensors"):
+        raise RuntimeError("at least one trainable LoRA tensor has no gradient")
+    if stats.get("nonfinite_gradient_elements") != 0:
+        raise RuntimeError("gradient evidence contains NaN or infinity")
+    if stats.get("nonzero_gradient_tensors", 0) <= 0:
+        raise RuntimeError("all LoRA gradient tensors are zero")
+    if stats.get("nonzero_gradient_elements", 0) <= 0:
+        raise RuntimeError("all LoRA gradient elements are zero")
+    global_l2_norm = float(stats.get("global_l2_norm", float("nan")))
+    if not math.isfinite(global_l2_norm) or global_l2_norm <= 0:
+        raise RuntimeError("global LoRA gradient norm is not finite and positive")
+    return {
+        **stats,
+        "all_trainable_tensors_have_gradients": True,
+        "all_gradients_finite": True,
+        "has_nonzero_gradient": True,
+        "matches_locked_gradient_footprint": True,
+    }
+
+
+def inspect_lora_gradients(model: object) -> dict:
+    """Measure gradients on every trainable LoRA tensor after one backward pass."""
+    trainable_tensors = 0
+    tensors_with_gradient = 0
+    gradient_elements = 0
+    nonfinite_gradient_elements = 0
+    nonzero_gradient_tensors = 0
+    nonzero_gradient_elements = 0
+    global_squared_l2 = 0.0
+    global_max_abs = 0.0
+    global_sum_abs = 0.0
+    gradient_dtypes: set[str] = set()
+    by_target = {
+        target: {
+            "trainable_tensors": 0,
+            "tensors_with_gradient": 0,
+            "nonzero_gradient_tensors": 0,
+            "gradient_elements": 0,
+            "squared_l2": 0.0,
+            "max_abs": 0.0,
+        }
+        for target in sorted(LOCKED_TARGET_MODULES)
+    }
+
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        trainable_tensors += 1
+        matched_targets = [
+            target
+            for target in LOCKED_TARGET_MODULES
+            if f".{target}." in f".{name}."
+        ]
+        if len(matched_targets) != 1 or "lora_" not in name.lower():
+            raise RuntimeError(f"unexpected trainable tensor during gradient audit: {name}")
+        target_stats = by_target[matched_targets[0]]
+        target_stats["trainable_tensors"] += 1
+
+        gradient = parameter.grad
+        if gradient is None:
+            continue
+        gradient = gradient.detach()
+        tensors_with_gradient += 1
+        target_stats["tensors_with_gradient"] += 1
+        elements = int(gradient.numel())
+        gradient_elements += elements
+        target_stats["gradient_elements"] += elements
+        gradient_dtypes.add(str(gradient.dtype))
+
+        finite_mask = gradient.isfinite()
+        finite_count = int(finite_mask.sum().item())
+        nonfinite_gradient_elements += elements - finite_count
+        nonzero_elements = int(gradient.count_nonzero().item())
+        nonzero_gradient_elements += nonzero_elements
+        if nonzero_elements > 0:
+            nonzero_gradient_tensors += 1
+            target_stats["nonzero_gradient_tensors"] += 1
+
+        gradient_float = gradient.float()
+        gradient_abs = gradient_float.abs()
+        tensor_l2 = float(gradient_float.norm(2).item())
+        tensor_max_abs = float(gradient_abs.max().item())
+        tensor_sum_abs = float(gradient_abs.sum().item())
+        global_squared_l2 += tensor_l2**2
+        global_max_abs = max(global_max_abs, tensor_max_abs)
+        global_sum_abs += tensor_sum_abs
+        target_stats["squared_l2"] += tensor_l2**2
+        target_stats["max_abs"] = max(target_stats["max_abs"], tensor_max_abs)
+        del finite_mask, gradient_float, gradient_abs
+
+    for target_stats in by_target.values():
+        target_stats["l2_norm"] = math.sqrt(target_stats.pop("squared_l2"))
+
+    stats = {
+        "trainable_tensors": trainable_tensors,
+        "tensors_with_gradient": tensors_with_gradient,
+        "gradient_elements": gradient_elements,
+        "nonfinite_gradient_elements": nonfinite_gradient_elements,
+        "nonzero_gradient_tensors": nonzero_gradient_tensors,
+        "nonzero_gradient_elements": nonzero_gradient_elements,
+        "zero_gradient_elements": gradient_elements - nonzero_gradient_elements,
+        "global_l2_norm": math.sqrt(global_squared_l2),
+        "global_max_abs": global_max_abs,
+        "global_mean_abs": global_sum_abs / gradient_elements
+        if gradient_elements
+        else 0.0,
+        "gradient_dtypes": sorted(gradient_dtypes),
+        "by_target_module": by_target,
+    }
+    return validate_gradient_evidence(stats)
 
 
 def _sha256_file(path: str | Path) -> str:
@@ -753,9 +873,12 @@ def _run_trainer_gate(
     adapter_file: str | Path,
     expected_sku_ids: Sequence[str],
     perform_rollout: bool,
+    perform_backward: bool,
     expected_adapter_sha256: str = LOCKED_ADAPTER_SHA256,
 ) -> dict:
     """Construct the exact trainer and optionally execute one no-loss rollout."""
+    if perform_backward and not perform_rollout:
+        raise ValueError("backward requires a prepared rollout")
     fixture_data_path = Path(fixture_data_path).resolve()
     adapter_path = Path(adapter_path).resolve()
     adapter_file = Path(adapter_file).resolve()
@@ -783,6 +906,7 @@ def _run_trainer_gate(
     dataset = None
     generation_batch = None
     prepared = None
+    loss = None
     report = None
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
@@ -875,6 +999,7 @@ def _run_trainer_gate(
                 raise RuntimeError("trainer changed the deterministic SKU order")
 
             rollout_report = None
+            gradient_report = None
             if perform_rollout:
                 generation_batch = next(iter(trainer.get_train_dataloader()))
                 if not isinstance(generation_batch, list) or len(generation_batch) != 8:
@@ -944,15 +1069,94 @@ def _run_trainer_gate(
                     ),
                 }
 
+            if perform_backward:
+                if prepared is None or rollout_report is None:
+                    raise RuntimeError("gradient gate has no prepared rollout")
+                if any(
+                    parameter.grad is not None
+                    for parameter in trainer.model.parameters()
+                    if parameter.requires_grad
+                ):
+                    raise RuntimeError("LoRA gradients existed before gradient gate")
+
+                lora_sha_before_backward = _trainable_parameter_sha256(trainer.model)
+                torch.cuda.reset_peak_memory_stats()
+                cuda_before_backward = _cuda_memory_snapshot(torch)
+                backward_started = time.perf_counter()
+                loss = trainer.compute_loss(
+                    trainer.model,
+                    prepared,
+                    return_outputs=False,
+                )
+                if int(loss.numel()) != 1:
+                    raise RuntimeError("GRPO loss must be a scalar")
+                loss_value = float(loss.detach().item())
+                if not math.isfinite(loss_value):
+                    raise RuntimeError("GRPO loss is NaN or infinity")
+                trainer.accelerator.backward(loss)
+                torch.cuda.synchronize()
+                backward_seconds = time.perf_counter() - backward_started
+                cuda_after_backward = _cuda_memory_snapshot(torch)
+                gradient_stats = inspect_lora_gradients(trainer.model)
+                cuda_after_gradient_inspection = _cuda_memory_snapshot(torch)
+                lora_sha_after_backward = _trainable_parameter_sha256(trainer.model)
+                if lora_sha_after_backward != lora_sha_before_backward:
+                    raise RuntimeError("LoRA weights changed during gradient-only gate")
+                if trainer.optimizer is not None or trainer.lr_scheduler is not None:
+                    raise RuntimeError("gradient-only gate created optimization state")
+                if int(trainer.state.global_step) != 0:
+                    raise RuntimeError("gradient-only gate advanced global_step")
+
+                gradient_report = {
+                    "status": "passed",
+                    "loss": loss_value,
+                    "forward_and_backward_seconds": backward_seconds,
+                    "stats": gradient_stats,
+                    "lora_sha256_before_backward": lora_sha_before_backward,
+                    "lora_sha256_after_backward": lora_sha_after_backward,
+                    "trainable_lora_unchanged": True,
+                    "cuda_before_backward": cuda_before_backward,
+                    "cuda_after_backward": cuda_after_backward,
+                    "cuda_after_gradient_inspection": (
+                        cuda_after_gradient_inspection
+                    ),
+                    "optimizer_constructed": False,
+                    "lr_scheduler_constructed": False,
+                    "optimizer_step_performed": False,
+                    "global_step": int(trainer.state.global_step),
+                }
+
+                trainer.model.zero_grad(set_to_none=True)
+                loss = None
+                gc.collect()
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                gradients_remaining = sum(
+                    parameter.grad is not None
+                    for parameter in trainer.model.parameters()
+                    if parameter.requires_grad
+                )
+                if gradients_remaining != 0:
+                    raise RuntimeError("gradient cleanup left attached LoRA gradients")
+                gradient_report["gradients_remaining_after_clear"] = 0
+                gradient_report["gradients_cleared"] = True
+                gradient_report["cuda_after_gradient_clear"] = _cuda_memory_snapshot(
+                    torch
+                )
+
             trainability_after = inspect_model_trainability(trainer.model)
             adapter_sha_after = _sha256_file(adapter_file)
             if adapter_sha_after != expected_adapter_sha256:
                 raise RuntimeError("source adapter changed during trainer construction")
             after_construction = _cuda_memory_snapshot(torch)
             report = {
-                "version": ROLLOUT_GATE_VERSION
-                if perform_rollout
-                else TRAINER_CONSTRUCTION_VERSION,
+                "version": (
+                    GRADIENT_GATE_VERSION
+                    if perform_backward
+                    else ROLLOUT_GATE_VERSION
+                    if perform_rollout
+                    else TRAINER_CONSTRUCTION_VERSION
+                ),
                 "status": "passed",
                 "trainer_class": type(trainer).__name__,
                 "config_class": type(config).__name__,
@@ -984,12 +1188,16 @@ def _run_trainer_gate(
                 "lr_scheduler_constructed": False,
                 "reference_model_constructed": False,
                 "generation_performed": perform_rollout,
+                "loss_computed": perform_backward,
+                "backward_performed": perform_backward,
                 "training_steps": 0,
                 "global_step": int(trainer.state.global_step),
                 "temporary_output_path": str(temporary_output_path),
             }
             if rollout_report is not None:
                 report["rollout"] = rollout_report
+            if gradient_report is not None:
+                report["gradient"] = gradient_report
 
             trainer = None
             config = None
@@ -1002,6 +1210,7 @@ def _run_trainer_gate(
         dataset = None
         generation_batch = None
         prepared = None
+        loss = None
         model = None
         tokenizer = None
         gc.collect()
@@ -1018,12 +1227,29 @@ def _run_trainer_gate(
 
 def run_trainer_construction_gate(**kwargs) -> dict:
     """Construct and inspect the exact GRPO trainer without generating."""
-    return _run_trainer_gate(perform_rollout=False, **kwargs)
+    return _run_trainer_gate(
+        perform_rollout=False,
+        perform_backward=False,
+        **kwargs,
+    )
 
 
 def run_rollout_gate(**kwargs) -> dict:
     """Generate and reward one eight-completion group without computing a loss."""
-    return _run_trainer_gate(perform_rollout=True, **kwargs)
+    return _run_trainer_gate(
+        perform_rollout=True,
+        perform_backward=False,
+        **kwargs,
+    )
+
+
+def run_gradient_gate(**kwargs) -> dict:
+    """Generate, score and backpropagate one group without an optimizer update."""
+    return _run_trainer_gate(
+        perform_rollout=True,
+        perform_backward=True,
+        **kwargs,
+    )
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -1033,6 +1259,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--model-load-only", action="store_true")
     mode.add_argument("--trainer-construction-only", action="store_true")
     mode.add_argument("--rollout-only", action="store_true")
+    mode.add_argument("--gradient-only", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--fixture-data", default=DEFAULT_FIXTURE_DATA)
     parser.add_argument("--fixture-manifest", default=DEFAULT_FIXTURE_MANIFEST)
@@ -1043,7 +1270,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-commit")
     parser.add_argument(
         "--report-file",
-        help="new JSON evidence file; valid only with --rollout-only",
+        help="new JSON evidence file; valid with rollout or gradient mode",
     )
     return parser.parse_args(argv)
 
@@ -1055,15 +1282,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         or args.model_load_only
         or args.trainer_construction_only
         or args.rollout_only
+        or args.gradient_only
     ):
         raise SystemExit(
             "training is intentionally unavailable; pass --preflight-only or "
-            "--model-load-only or --trainer-construction-only or --rollout-only"
+            "--model-load-only, --trainer-construction-only, --rollout-only, "
+            "or --gradient-only"
         )
     report_path = None
     if args.report_file is not None:
-        if not args.rollout_only:
-            raise SystemExit("--report-file is valid only with --rollout-only")
+        if not (args.rollout_only or args.gradient_only):
+            raise SystemExit(
+                "--report-file is valid only with --rollout-only or --gradient-only"
+            )
         report_path = _resolve(Path(args.repo_root).resolve(), args.report_file)
         if report_path.exists():
             raise FileExistsError(f"rollout report already exists: {report_path}")
@@ -1114,6 +1345,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         report["trainer_constructed"] = True
         report["generation_performed"] = True
         report["optimizer_constructed"] = False
+        report["training_steps"] = 0
+        report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
+        report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
+    if args.gradient_only:
+        report["gradient_gate"] = run_gradient_gate(
+            fixture_data_path=report["fixture"]["data_path"],
+            adapter_path=report["sft_lock"]["adapter_path"],
+            adapter_file=report["sft_lock"]["adapter_file"],
+            expected_sku_ids=report["fixture"]["sku_ids_in_step_order"],
+        )
+        report["cuda_imports_performed"] = True
+        report["model_loaded"] = True
+        report["trainer_constructed"] = True
+        report["generation_performed"] = True
+        report["loss_computed"] = True
+        report["backward_performed"] = True
+        report["optimizer_constructed"] = False
+        report["optimizer_step_performed"] = False
         report["training_steps"] = 0
         report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
         report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
