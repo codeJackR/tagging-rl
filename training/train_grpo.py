@@ -26,6 +26,7 @@ TRAINER_CONSTRUCTION_VERSION = "grpo-smoke-trainer-construction-v1"
 ROLLOUT_GATE_VERSION = "grpo-smoke-rollout-gate-v1"
 GRADIENT_GATE_VERSION = "grpo-smoke-gradient-gate-v1"
 OPTIMIZER_CONSTRUCTION_VERSION = "grpo-smoke-optimizer-construction-v1"
+ONE_UPDATE_GATE_VERSION = "grpo-smoke-one-update-gate-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
 DEFAULT_SELECTION_MANIFEST = "runs/sft-selection.json"
@@ -40,6 +41,7 @@ LOCKED_WEIGHT_DECAY = 0.001
 LOCKED_ADAM_BETAS = (0.9, 0.999)
 LOCKED_ADAM_EPSILON = 1e-8
 LOCKED_WARMUP_RATIO = 0.0
+LOCKED_MAX_GRAD_NORM = 1.0
 
 LOCKED_FIXTURE_DATA_SHA256 = (
     "268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084"
@@ -90,6 +92,7 @@ def grpo_smoke_config_kwargs(
         "num_generations": 8,
         "per_device_train_batch_size": 8,
         "gradient_accumulation_steps": 1,
+        "max_grad_norm": LOCKED_MAX_GRAD_NORM,
         "steps_per_generation": 1,
         "max_steps": 5,
         "shuffle_dataset": False,
@@ -646,6 +649,333 @@ def inspect_fresh_optimizer(optimizer: object, model: object, global_step: int) 
     return validate_optimizer_evidence(stats)
 
 
+def build_logged_reward_evidence(
+    *,
+    sku_id: str,
+    completions: Sequence[str],
+    reward_names: Sequence[str],
+    component_rewards: dict[str, Sequence[float]],
+    reward_weights: Sequence[float],
+    advantages: Sequence[float],
+) -> dict:
+    """Preserve the trainer's post-step completion/reward log without retokenizing."""
+    expected = 8
+    if len(completions) != expected or len(advantages) != expected:
+        raise RuntimeError("one-update log must contain exactly eight completions")
+    if len(reward_names) != len(reward_weights):
+        raise RuntimeError("one-update reward names and weights are misaligned")
+    if set(component_rewards) != set(reward_names):
+        raise RuntimeError("one-update reward components are incomplete")
+    if any(len(component_rewards[name]) != expected for name in reward_names):
+        raise RuntimeError("one-update reward component lengths are misaligned")
+
+    weighted_totals = [
+        sum(
+            float(component_rewards[name][index]) * float(weight)
+            for name, weight in zip(reward_names, reward_weights)
+        )
+        for index in range(expected)
+    ]
+    normalized_advantages = [float(value) for value in advantages]
+    numeric_values = weighted_totals + normalized_advantages + [
+        float(value)
+        for name in reward_names
+        for value in component_rewards[name]
+    ]
+    if not all(math.isfinite(value) for value in numeric_values):
+        raise RuntimeError("one-update log contains a non-finite reward or advantage")
+
+    return {
+        "component_reward_names": list(reward_names),
+        "weighted_totals": weighted_totals,
+        "weighted_total_unique_count": len(set(weighted_totals)),
+        "weighted_total_has_variance": len(set(weighted_totals)) > 1,
+        "advantages": normalized_advantages,
+        "nonzero_advantage_count": sum(
+            not math.isclose(value, 0.0, abs_tol=1e-8)
+            for value in normalized_advantages
+        ),
+        "records": [
+            {
+                "sku_id": sku_id,
+                "rollout_index": index,
+                "raw_output": completion,
+                "component_rewards": {
+                    name: float(component_rewards[name][index])
+                    for name in reward_names
+                },
+                "weighted_total": weighted_totals[index],
+                "advantage": normalized_advantages[index],
+            }
+            for index, completion in enumerate(completions)
+        ],
+    }
+
+
+def snapshot_trainable_parameters(model: object) -> dict:
+    """Copy the live trainable LoRA to CPU for a one-update delta audit."""
+    snapshot = {
+        name: parameter.detach().cpu().clone()
+        for name, parameter in model.named_parameters()
+        if parameter.requires_grad
+    }
+    if len(snapshot) != LOCKED_TRAINABLE_TENSORS:
+        raise RuntimeError("one-update snapshot has an unexpected tensor count")
+    if sum(int(tensor.numel()) for tensor in snapshot.values()) != (
+        LOCKED_TRAINABLE_PARAMETERS
+    ):
+        raise RuntimeError("one-update snapshot has an unexpected element count")
+    return snapshot
+
+
+def validate_parameter_update_evidence(stats: dict) -> dict:
+    """Fail unless exactly one update made a finite change to the locked LoRA."""
+    if stats.get("trainable_tensors") != LOCKED_TRAINABLE_TENSORS:
+        raise RuntimeError("update evidence has an unexpected tensor count")
+    if stats.get("trainable_elements") != LOCKED_TRAINABLE_PARAMETERS:
+        raise RuntimeError("update evidence has an unexpected element count")
+    if stats.get("changed_tensors") != LOCKED_TRAINABLE_TENSORS:
+        raise RuntimeError("one update did not change every LoRA tensor")
+    if stats.get("changed_elements", 0) <= 0:
+        raise RuntimeError("one update changed no LoRA elements")
+    if stats.get("nonfinite_after_elements") != 0:
+        raise RuntimeError("one update produced a non-finite LoRA value")
+    if stats.get("nonfinite_delta_elements") != 0:
+        raise RuntimeError("one update produced a non-finite LoRA delta")
+    delta_l2 = float(stats.get("global_delta_l2_norm", float("nan")))
+    if not math.isfinite(delta_l2) or delta_l2 <= 0:
+        raise RuntimeError("one-update LoRA delta norm is not finite and positive")
+    return {
+        **stats,
+        "all_lora_tensors_changed": True,
+        "all_updated_weights_finite": True,
+        "has_finite_nonzero_update": True,
+    }
+
+
+def inspect_parameter_update(model: object, before: dict) -> dict:
+    """Measure the exact CPU delta between pre-step and post-step LoRA tensors."""
+    names_seen = set()
+    changed_tensors = 0
+    changed_elements = 0
+    nonfinite_after_elements = 0
+    nonfinite_delta_elements = 0
+    global_delta_squared_l2 = 0.0
+    global_before_squared_l2 = 0.0
+    global_max_abs_delta = 0.0
+    global_sum_abs_delta = 0.0
+    trainable_elements = 0
+    by_target = {
+        target: {
+            "trainable_tensors": 0,
+            "changed_tensors": 0,
+            "trainable_elements": 0,
+            "changed_elements": 0,
+            "squared_delta_l2": 0.0,
+            "max_abs_delta": 0.0,
+        }
+        for target in sorted(LOCKED_TARGET_MODULES)
+    }
+
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        names_seen.add(name)
+        if name not in before:
+            raise RuntimeError(f"post-update LoRA tensor was absent before step: {name}")
+        old = before[name]
+        current = parameter.detach().cpu()
+        if current.shape != old.shape or current.dtype != old.dtype:
+            raise RuntimeError(f"LoRA metadata changed during update: {name}")
+        matched_targets = [
+            target
+            for target in LOCKED_TARGET_MODULES
+            if f".{target}." in f".{name}."
+        ]
+        if len(matched_targets) != 1:
+            raise RuntimeError(f"updated LoRA tensor has an unknown target: {name}")
+        target_stats = by_target[matched_targets[0]]
+        elements = int(current.numel())
+        trainable_elements += elements
+        target_stats["trainable_tensors"] += 1
+        target_stats["trainable_elements"] += elements
+
+        old_float = old.float()
+        current_float = current.float()
+        delta = current_float - old_float
+        changed = int(delta.count_nonzero().item())
+        changed_elements += changed
+        target_stats["changed_elements"] += changed
+        if changed > 0:
+            changed_tensors += 1
+            target_stats["changed_tensors"] += 1
+        nonfinite_after_elements += elements - int(current.isfinite().sum().item())
+        nonfinite_delta_elements += elements - int(delta.isfinite().sum().item())
+        delta_l2 = float(delta.norm(2).item())
+        before_l2 = float(old_float.norm(2).item())
+        max_abs_delta = float(delta.abs().max().item())
+        sum_abs_delta = float(delta.abs().sum().item())
+        global_delta_squared_l2 += delta_l2**2
+        global_before_squared_l2 += before_l2**2
+        global_max_abs_delta = max(global_max_abs_delta, max_abs_delta)
+        global_sum_abs_delta += sum_abs_delta
+        target_stats["squared_delta_l2"] += delta_l2**2
+        target_stats["max_abs_delta"] = max(
+            target_stats["max_abs_delta"], max_abs_delta
+        )
+        del old_float, current_float, delta
+
+    if names_seen != set(before):
+        raise RuntimeError("one-update LoRA tensor names changed")
+    for target_stats in by_target.values():
+        target_stats["delta_l2_norm"] = math.sqrt(
+            target_stats.pop("squared_delta_l2")
+        )
+    global_delta_l2 = math.sqrt(global_delta_squared_l2)
+    global_before_l2 = math.sqrt(global_before_squared_l2)
+    stats = {
+        "trainable_tensors": len(names_seen),
+        "trainable_elements": trainable_elements,
+        "changed_tensors": changed_tensors,
+        "changed_elements": changed_elements,
+        "unchanged_elements": trainable_elements - changed_elements,
+        "nonfinite_after_elements": nonfinite_after_elements,
+        "nonfinite_delta_elements": nonfinite_delta_elements,
+        "global_delta_l2_norm": global_delta_l2,
+        "global_before_l2_norm": global_before_l2,
+        "relative_delta_l2": global_delta_l2 / global_before_l2,
+        "global_max_abs_delta": global_max_abs_delta,
+        "global_mean_abs_delta": global_sum_abs_delta / trainable_elements,
+        "by_target_module": by_target,
+    }
+    return validate_parameter_update_evidence(stats)
+
+
+def validate_initialized_optimizer_evidence(stats: dict) -> dict:
+    """Fail unless the first real step initialized complete finite 8-bit state."""
+    if stats.get("optimizer_class") != "AdamW":
+        raise RuntimeError("updated optimizer is not bitsandbytes AdamW")
+    if stats.get("optimizer_bits") != 8 or stats.get("is_paged"):
+        raise RuntimeError("updated optimizer is not non-paged 8-bit AdamW")
+    if not stats.get("optimizer_initialized_flag"):
+        raise RuntimeError("optimizer did not initialize during the first step")
+    if stats.get("state_parameter_entries") != LOCKED_TRAINABLE_TENSORS:
+        raise RuntimeError("optimizer state does not cover every LoRA tensor")
+    if stats.get("missing_trainable_state_entries") != 0:
+        raise RuntimeError("at least one trainable LoRA tensor has no optimizer state")
+    if stats.get("foreign_state_entries") != 0:
+        raise RuntimeError("optimizer state includes a frozen or foreign tensor")
+    if stats.get("state_step_values") != [1]:
+        raise RuntimeError("optimizer state is not exactly at step one")
+    if stats.get("state1_elements") != LOCKED_TRAINABLE_PARAMETERS:
+        raise RuntimeError("first-moment optimizer state has the wrong size")
+    if stats.get("state2_elements") != LOCKED_TRAINABLE_PARAMETERS:
+        raise RuntimeError("second-moment optimizer state has the wrong size")
+    if stats.get("state1_dtypes") != ["torch.uint8"]:
+        raise RuntimeError("first-moment optimizer state is not fully 8-bit")
+    if stats.get("state2_dtypes") != ["torch.uint8"]:
+        raise RuntimeError("second-moment optimizer state is not fully 8-bit")
+    if stats.get("absmax1_elements") != stats.get("expected_quantization_blocks"):
+        raise RuntimeError("first-moment quantization scales have the wrong size")
+    if stats.get("absmax2_elements") != stats.get("expected_quantization_blocks"):
+        raise RuntimeError("second-moment quantization scales have the wrong size")
+    if stats.get("nonfinite_state_elements") != 0:
+        raise RuntimeError("optimizer state contains NaN or infinity")
+    if stats.get("unique_state_tensor_bytes", 0) <= 0:
+        raise RuntimeError("optimizer state allocated no tensor storage")
+    return {
+        **stats,
+        "state_covers_exact_locked_lora": True,
+        "state_initialized_at_step_one": True,
+        "state_is_finite": True,
+    }
+
+
+def inspect_initialized_optimizer(optimizer: object, model: object) -> dict:
+    """Measure bitsandbytes state after exactly one real optimizer step."""
+    trainable_parameters = [
+        parameter for parameter in model.parameters() if parameter.requires_grad
+    ]
+    trainable_ids = {id(parameter) for parameter in trainable_parameters}
+    state_ids = {id(parameter) for parameter in optimizer.state}
+    state_key_counts: dict[str, int] = {}
+    state_step_values: set[int] = set()
+    unique_state_tensors = {}
+    state_tensor_references = 0
+    nonfinite_state_elements = 0
+    specialized_elements = {
+        "state1": 0,
+        "state2": 0,
+        "absmax1": 0,
+        "absmax2": 0,
+    }
+    specialized_dtypes = {"state1": set(), "state2": set()}
+
+    for parameter_state in optimizer.state.values():
+        for key, value in parameter_state.items():
+            state_key_counts[key] = state_key_counts.get(key, 0) + 1
+            if key == "step":
+                state_step_values.add(int(value))
+                continue
+            if not hasattr(value, "numel") or not hasattr(value, "element_size"):
+                continue
+            state_tensor_references += 1
+            unique_state_tensors[id(value)] = value
+            if key in specialized_elements:
+                specialized_elements[key] += int(value.numel())
+            if key in specialized_dtypes:
+                specialized_dtypes[key].add(str(value.dtype))
+            if value.is_floating_point():
+                nonfinite_state_elements += int(value.numel()) - int(
+                    value.isfinite().sum().item()
+                )
+
+    expected_blocks = sum(
+        (int(parameter.numel()) + 255) // 256
+        for parameter in trainable_parameters
+    )
+    stats = {
+        "optimizer_class": type(optimizer).__name__,
+        "optimizer_module": type(optimizer).__module__,
+        "optimizer_bits": int(getattr(optimizer.args, "optim_bits")),
+        "is_paged": bool(getattr(optimizer, "is_paged", False)),
+        "optimizer_initialized_flag": bool(
+            getattr(optimizer, "initialized", False)
+        ),
+        "state_parameter_entries": len(optimizer.state),
+        "missing_trainable_state_entries": len(trainable_ids - state_ids),
+        "foreign_state_entries": len(state_ids - trainable_ids),
+        "state_step_values": sorted(state_step_values),
+        "state_key_counts": dict(sorted(state_key_counts.items())),
+        "state_tensor_references": state_tensor_references,
+        "unique_state_tensors": len(unique_state_tensors),
+        "unique_state_tensor_bytes": sum(
+            int(value.numel()) * int(value.element_size())
+            for value in unique_state_tensors.values()
+        ),
+        "unique_state_tensor_devices": sorted(
+            {str(value.device) for value in unique_state_tensors.values()}
+        ),
+        "unique_state_tensor_dtypes": sorted(
+            {str(value.dtype) for value in unique_state_tensors.values()}
+        ),
+        "state1_elements": specialized_elements["state1"],
+        "state2_elements": specialized_elements["state2"],
+        "absmax1_elements": specialized_elements["absmax1"],
+        "absmax2_elements": specialized_elements["absmax2"],
+        "expected_quantization_blocks": expected_blocks,
+        "state1_dtypes": sorted(specialized_dtypes["state1"]),
+        "state2_dtypes": sorted(specialized_dtypes["state2"]),
+        "nonfinite_state_elements": nonfinite_state_elements,
+        "gradients_attached_after_step": sum(
+            parameter.grad is not None for parameter in trainable_parameters
+        ),
+    }
+    if stats["gradients_attached_after_step"] != 0:
+        raise RuntimeError("trainer left gradients attached after the first step")
+    return validate_initialized_optimizer_evidence(stats)
+
+
 def _sha256_file(path: str | Path) -> str:
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
@@ -1054,6 +1384,7 @@ def _run_trainer_gate(
     perform_rollout: bool,
     perform_backward: bool,
     construct_optimizer: bool,
+    perform_one_update: bool,
     expected_adapter_sha256: str = LOCKED_ADAPTER_SHA256,
 ) -> dict:
     """Construct the exact trainer and cross one explicitly selected gate."""
@@ -1061,6 +1392,10 @@ def _run_trainer_gate(
         raise ValueError("backward requires a prepared rollout")
     if construct_optimizer and (perform_rollout or perform_backward):
         raise ValueError("optimizer construction must remain an isolated gate")
+    if perform_one_update and (
+        perform_rollout or perform_backward or construct_optimizer
+    ):
+        raise ValueError("one-update training must remain an isolated gate")
     fixture_data_path = Path(fixture_data_path).resolve()
     adapter_path = Path(adapter_path).resolve()
     adapter_file = Path(adapter_file).resolve()
@@ -1090,6 +1425,8 @@ def _run_trainer_gate(
     prepared = None
     loss = None
     optimizer = None
+    parameter_snapshot = None
+    train_result = None
     report = None
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
@@ -1271,6 +1608,196 @@ def _run_trainer_gate(
                     _cuda_memory_snapshot(torch)
                 )
 
+            one_update_report = None
+            if perform_one_update:
+                from bitsandbytes.optim import GlobalOptimManager
+                from transformers import TrainerCallback
+
+                class StopAfterFirstUpdateCallback(TrainerCallback):
+                    def __init__(self):
+                        self.step_end_calls = []
+
+                    def on_step_end(self, args, state, control, **kwargs):
+                        self.step_end_calls.append(int(state.global_step))
+                        if int(state.global_step) >= 1:
+                            control.should_training_stop = True
+                        return control
+
+                if trainer.optimizer is not None or trainer.lr_scheduler is not None:
+                    raise RuntimeError(
+                        "one-update gate started with optimization state"
+                    )
+                if any(
+                    parameter.grad is not None
+                    for parameter in trainer.model.parameters()
+                    if parameter.requires_grad
+                ):
+                    raise RuntimeError("one-update gate started with LoRA gradients")
+
+                stop_callback = StopAfterFirstUpdateCallback()
+                trainer.add_callback(stop_callback)
+                global_optim_manager = GlobalOptimManager.get_instance()
+                overrides_before = len(
+                    global_optim_manager.module_weight_config_triple
+                )
+                lora_sha_before_update = _trainable_parameter_sha256(trainer.model)
+                parameter_snapshot = snapshot_trainable_parameters(trainer.model)
+                torch.cuda.reset_peak_memory_stats()
+                cuda_before_update = _cuda_memory_snapshot(torch)
+                update_started = time.perf_counter()
+                train_result = trainer.train()
+                torch.cuda.synchronize()
+                update_seconds = time.perf_counter() - update_started
+                cuda_after_update = _cuda_memory_snapshot(torch)
+
+                if stop_callback.step_end_calls != [1]:
+                    raise RuntimeError(
+                        "one-update callback did not stop after exactly one step"
+                    )
+                if int(trainer.state.global_step) != 1:
+                    raise RuntimeError("one-update gate did not finish at global_step 1")
+                if trainer.optimizer is None or trainer.lr_scheduler is None:
+                    raise RuntimeError(
+                        "one-update gate did not create optimizer and scheduler"
+                    )
+                wrapped_optimizer = trainer.optimizer
+                base_optimizer = getattr(
+                    wrapped_optimizer, "optimizer", wrapped_optimizer
+                )
+                optimizer_state = inspect_initialized_optimizer(
+                    base_optimizer, trainer.model
+                )
+                parameter_update = inspect_parameter_update(
+                    trainer.model, parameter_snapshot
+                )
+                lora_sha_after_update = _trainable_parameter_sha256(trainer.model)
+                if lora_sha_after_update == lora_sha_before_update:
+                    raise RuntimeError("one real optimizer step changed no LoRA bytes")
+
+                log_history = [dict(entry) for entry in trainer.state.log_history]
+                step_logs = [
+                    entry
+                    for entry in log_history
+                    if int(entry.get("step", -1)) == 1 and "loss" in entry
+                ]
+                if len(step_logs) != 1:
+                    raise RuntimeError("one-update gate has no unique step-one log")
+                step_log = step_logs[0]
+                train_loss = float(step_log.get("loss", float("nan")))
+                gradient_norm = float(step_log.get("grad_norm", float("nan")))
+                learning_rate_used = float(
+                    step_log.get("learning_rate", float("nan"))
+                )
+                if not math.isfinite(train_loss):
+                    raise RuntimeError("one-update training loss is not finite")
+                if not math.isfinite(gradient_norm) or gradient_norm <= 0:
+                    raise RuntimeError("one-update gradient norm is not finite and positive")
+                if learning_rate_used != LOCKED_LEARNING_RATE:
+                    raise RuntimeError("first optimizer step used the wrong learning rate")
+
+                next_learning_rates = [
+                    float(group["lr"]) for group in base_optimizer.param_groups
+                ]
+                expected_next_learning_rate = LOCKED_LEARNING_RATE * 0.5 * (
+                    1.0 + math.cos(math.pi / 5)
+                )
+                if any(
+                    not math.isclose(
+                        value,
+                        expected_next_learning_rate,
+                        rel_tol=1e-12,
+                        abs_tol=0.0,
+                    )
+                    for value in next_learning_rates
+                ):
+                    raise RuntimeError("cosine scheduler produced an unexpected next LR")
+
+                completions = list(trainer._logs["completion"])
+                advantages = [float(value) for value in trainer._logs["advantages"]]
+                component_rewards = {
+                    name: [float(value) for value in trainer._logs["rewards"][name]]
+                    for name in trainer.reward_func_names
+                }
+                reward_evidence = build_logged_reward_evidence(
+                    sku_id=expected_sku_ids[0],
+                    completions=completions,
+                    reward_names=trainer.reward_func_names,
+                    component_rewards=component_rewards,
+                    reward_weights=runtime_reward_weights,
+                    advantages=advantages,
+                )
+                if not reward_evidence["weighted_total_has_variance"]:
+                    raise RuntimeError("one-update rollout had no reward variance")
+
+                overrides_after = len(
+                    global_optim_manager.module_weight_config_triple
+                )
+                train_metrics = {
+                    key: float(value) if isinstance(value, (int, float)) else value
+                    for key, value in train_result.metrics.items()
+                }
+                one_update_report = {
+                    "status": "passed",
+                    "update_seconds": update_seconds,
+                    "callback_step_end_calls": stop_callback.step_end_calls,
+                    "global_step": int(trainer.state.global_step),
+                    "epoch": float(trainer.state.epoch),
+                    "train_loss": train_loss,
+                    "gradient_norm_before_clipping": gradient_norm,
+                    "max_gradient_norm": float(config.max_grad_norm),
+                    "learning_rate_used": learning_rate_used,
+                    "next_learning_rates": next_learning_rates,
+                    "expected_next_learning_rate": expected_next_learning_rate,
+                    "optimizer_wrapper_class": type(wrapped_optimizer).__name__,
+                    "optimizer_state": optimizer_state,
+                    "parameter_update": parameter_update,
+                    "reward_evidence": reward_evidence,
+                    "train_metrics": train_metrics,
+                    "trainer_log_history": log_history,
+                    "lora_sha256_before_update": lora_sha_before_update,
+                    "lora_sha256_after_update": lora_sha_after_update,
+                    "trainable_lora_changed": True,
+                    "optimizer_constructed": True,
+                    "optimizer_state_initialized": True,
+                    "lr_scheduler_constructed": True,
+                    "lr_scheduler_class": type(trainer.lr_scheduler).__name__,
+                    "optimizer_step_performed": True,
+                    "cuda_before_update": cuda_before_update,
+                    "cuda_after_update": cuda_after_update,
+                    "global_optimizer_manager_overrides_before": overrides_before,
+                    "global_optimizer_manager_overrides_after": overrides_after,
+                    "global_optimizer_manager_overrides_added": (
+                        overrides_after - overrides_before
+                    ),
+                }
+                one_update_report["cuda_after_update_audit"] = (
+                    _cuda_memory_snapshot(torch)
+                )
+
+                trainer.model.zero_grad(set_to_none=True)
+                trainer.optimizer = None
+                trainer.lr_scheduler = None
+                wrapped_optimizer = None
+                base_optimizer = None
+                parameter_snapshot = None
+                train_result = None
+                del global_optim_manager.module_weight_config_triple[
+                    overrides_before:
+                ]
+                gc.collect()
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                one_update_report["global_optimizer_manager_overrides_removed"] = (
+                    len(global_optim_manager.module_weight_config_triple)
+                    == overrides_before
+                )
+                one_update_report["optimizer_and_scheduler_detached_from_trainer"] = (
+                    True
+                )
+                one_update_report["cuda_after_optimizer_detach"] = (
+                    _cuda_memory_snapshot(torch)
+                )
+
             if perform_rollout:
                 generation_batch = next(iter(trainer.get_train_dataloader()))
                 if not isinstance(generation_batch, list) or len(generation_batch) != 8:
@@ -1422,7 +1949,9 @@ def _run_trainer_gate(
             after_construction = _cuda_memory_snapshot(torch)
             report = {
                 "version": (
-                    OPTIMIZER_CONSTRUCTION_VERSION
+                    ONE_UPDATE_GATE_VERSION
+                    if perform_one_update
+                    else OPTIMIZER_CONSTRUCTION_VERSION
                     if construct_optimizer
                     else GRADIENT_GATE_VERSION
                     if perform_backward
@@ -1457,13 +1986,15 @@ def _run_trainer_gate(
                 "source_adapter_unchanged": True,
                 "cuda_before_load": before,
                 "cuda_after_trainer_construction": after_construction,
-                "optimizer_constructed": optimizer_report is not None,
-                "lr_scheduler_constructed": False,
+                "optimizer_constructed": (
+                    optimizer_report is not None or one_update_report is not None
+                ),
+                "lr_scheduler_constructed": one_update_report is not None,
                 "reference_model_constructed": False,
-                "generation_performed": perform_rollout,
-                "loss_computed": perform_backward,
-                "backward_performed": perform_backward,
-                "training_steps": 0,
+                "generation_performed": perform_rollout or perform_one_update,
+                "loss_computed": perform_backward or perform_one_update,
+                "backward_performed": perform_backward or perform_one_update,
+                "training_steps": 1 if perform_one_update else 0,
                 "global_step": int(trainer.state.global_step),
                 "temporary_output_path": str(temporary_output_path),
             }
@@ -1473,6 +2004,8 @@ def _run_trainer_gate(
                 report["gradient"] = gradient_report
             if optimizer_report is not None:
                 report["optimizer"] = optimizer_report
+            if one_update_report is not None:
+                report["one_update"] = one_update_report
 
             trainer = None
             config = None
@@ -1487,6 +2020,8 @@ def _run_trainer_gate(
         prepared = None
         loss = None
         optimizer = None
+        parameter_snapshot = None
+        train_result = None
         model = None
         tokenizer = None
         gc.collect()
@@ -1508,6 +2043,7 @@ def run_trainer_construction_gate(**kwargs) -> dict:
         perform_rollout=False,
         perform_backward=False,
         construct_optimizer=False,
+        perform_one_update=False,
         **kwargs,
     )
 
@@ -1518,6 +2054,7 @@ def run_rollout_gate(**kwargs) -> dict:
         perform_rollout=True,
         perform_backward=False,
         construct_optimizer=False,
+        perform_one_update=False,
         **kwargs,
     )
 
@@ -1528,6 +2065,7 @@ def run_gradient_gate(**kwargs) -> dict:
         perform_rollout=True,
         perform_backward=True,
         construct_optimizer=False,
+        perform_one_update=False,
         **kwargs,
     )
 
@@ -1538,6 +2076,18 @@ def run_optimizer_construction_gate(**kwargs) -> dict:
         perform_rollout=False,
         perform_backward=False,
         construct_optimizer=True,
+        perform_one_update=False,
+        **kwargs,
+    )
+
+
+def run_one_update_gate(**kwargs) -> dict:
+    """Run the real trainer loop and stop after exactly one optimizer step."""
+    return _run_trainer_gate(
+        perform_rollout=False,
+        perform_backward=False,
+        construct_optimizer=False,
+        perform_one_update=True,
         **kwargs,
     )
 
@@ -1551,6 +2101,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--rollout-only", action="store_true")
     mode.add_argument("--gradient-only", action="store_true")
     mode.add_argument("--optimizer-construction-only", action="store_true")
+    mode.add_argument("--one-update-only", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--fixture-data", default=DEFAULT_FIXTURE_DATA)
     parser.add_argument("--fixture-manifest", default=DEFAULT_FIXTURE_MANIFEST)
@@ -1561,7 +2112,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-commit")
     parser.add_argument(
         "--report-file",
-        help="new JSON evidence file; valid with rollout, gradient or optimizer mode",
+        help="new JSON evidence file; valid with rollout, gradient, optimizer or one-update mode",
     )
     return parser.parse_args(argv)
 
@@ -1575,11 +2126,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         or args.rollout_only
         or args.gradient_only
         or args.optimizer_construction_only
+        or args.one_update_only
     ):
         raise SystemExit(
             "training is intentionally unavailable; pass --preflight-only or "
             "--model-load-only, --trainer-construction-only, --rollout-only, "
-            "--gradient-only, or --optimizer-construction-only"
+            "--gradient-only, --optimizer-construction-only, or --one-update-only"
         )
     report_path = None
     if args.report_file is not None:
@@ -1587,17 +2139,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.rollout_only
             or args.gradient_only
             or args.optimizer_construction_only
+            or args.one_update_only
         ):
             raise SystemExit(
                 "--report-file is valid only with --rollout-only, --gradient-only, "
-                "or --optimizer-construction-only"
+                "--optimizer-construction-only, or --one-update-only"
             )
         report_path = _resolve(Path(args.repo_root).resolve(), args.report_file)
         if report_path.exists():
-            raise FileExistsError(f"rollout report already exists: {report_path}")
+            raise FileExistsError(f"evidence report already exists: {report_path}")
         if not report_path.parent.is_dir():
             raise FileNotFoundError(
-                f"rollout report parent does not exist: {report_path.parent}"
+                f"evidence report parent does not exist: {report_path.parent}"
             )
     report = run_preflight(
         repo_root=args.repo_root,
@@ -1680,6 +2233,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         report["optimizer_state_initialized"] = False
         report["optimizer_step_performed"] = False
         report["training_steps"] = 0
+        report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
+        report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
+    if args.one_update_only:
+        report["one_update_gate"] = run_one_update_gate(
+            fixture_data_path=report["fixture"]["data_path"],
+            adapter_path=report["sft_lock"]["adapter_path"],
+            adapter_file=report["sft_lock"]["adapter_file"],
+            expected_sku_ids=report["fixture"]["sku_ids_in_step_order"],
+        )
+        report["cuda_imports_performed"] = True
+        report["model_loaded"] = True
+        report["trainer_constructed"] = True
+        report["generation_performed"] = True
+        report["loss_computed"] = True
+        report["backward_performed"] = True
+        report["optimizer_constructed"] = True
+        report["optimizer_state_initialized"] = True
+        report["lr_scheduler_constructed"] = True
+        report["optimizer_step_performed"] = True
+        report["training_steps"] = 1
         report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
         report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
     if report_path is not None:

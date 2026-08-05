@@ -13,6 +13,7 @@ from training.train_grpo import (
     LOCKED_ADAM_EPSILON,
     LOCKED_BASE_MODEL,
     LOCKED_LEARNING_RATE,
+    LOCKED_MAX_GRAD_NORM,
     LOCKED_REWARD_WEIGHTS,
     LOCKED_TARGET_MODULES,
     LOCKED_TRAINABLE_PARAMETERS,
@@ -20,6 +21,7 @@ from training.train_grpo import (
     LOCKED_WARMUP_RATIO,
     LOCKED_WEIGHT_DECAY,
     build_rollout_evidence,
+    build_logged_reward_evidence,
     grpo_smoke_config_kwargs,
     inspect_grpo_config,
     inspect_model_trainability,
@@ -28,6 +30,8 @@ from training.train_grpo import (
     run_preflight,
     validate_optimizer_evidence,
     validate_gradient_evidence,
+    validate_initialized_optimizer_evidence,
+    validate_parameter_update_evidence,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -127,6 +131,7 @@ def test_importing_entrypoint_is_cpu_only_and_training_is_unavailable():
     assert parse_args(
         ["--optimizer-construction-only"]
     ).optimizer_construction_only
+    assert parse_args(["--one-update-only"]).one_update_only
     with pytest.raises(SystemExit):
         parse_args(["--preflight-only", "--model-load-only"])
     with pytest.raises(SystemExit, match="training is intentionally unavailable"):
@@ -139,7 +144,7 @@ def test_rollout_report_file_is_mode_locked_and_collision_safe(tmp_path):
         main(["--preflight-only", "--report-file", str(report_path)])
 
     report_path.write_text("existing evidence", encoding="utf-8")
-    with pytest.raises(FileExistsError, match="rollout report already exists"):
+    with pytest.raises(FileExistsError, match="evidence report already exists"):
         main(["--rollout-only", "--report-file", str(report_path)])
 
 
@@ -188,6 +193,36 @@ def test_rollout_evidence_rejects_misalignment_and_nonfinite_values():
     bad_rewards["component_rewards"] = {"format": [float("nan")] * 8}
     with pytest.raises(RuntimeError, match="non-finite"):
         build_rollout_evidence(**bad_rewards)
+
+
+def test_logged_update_reward_evidence_preserves_raw_outputs_and_variance():
+    report = build_logged_reward_evidence(
+        sku_id="sku-1",
+        completions=[f"completion-{index}" for index in range(8)],
+        reward_names=["format", "compliance", "agreement"],
+        component_rewards={
+            "format": [1.0] * 8,
+            "compliance": [1.0] * 8,
+            "agreement": [0.0, 1.0] * 4,
+        },
+        reward_weights=LOCKED_REWARD_WEIGHTS,
+        advantages=[-1.0, 1.0] * 4,
+    )
+
+    assert report["weighted_totals"] == [2.0, 4.0] * 4
+    assert report["weighted_total_has_variance"]
+    assert report["nonzero_advantage_count"] == 8
+    assert report["records"][1]["raw_output"] == "completion-1"
+
+    with pytest.raises(RuntimeError, match="exactly eight completions"):
+        build_logged_reward_evidence(
+            sku_id="sku-1",
+            completions=["{}"] * 7,
+            reward_names=["format"],
+            component_rewards={"format": [1.0] * 8},
+            reward_weights=[1.0],
+            advantages=[0.0] * 8,
+        )
 
 
 def test_gradient_evidence_requires_complete_finite_nonzero_lora_gradients():
@@ -278,6 +313,72 @@ def test_optimizer_evidence_requires_exact_lora_scope_and_lazy_state():
         validate_optimizer_evidence({**stats, "trainable_lora_unchanged": False})
 
 
+def test_parameter_update_evidence_requires_complete_finite_lora_change():
+    stats = {
+        "trainable_tensors": LOCKED_TRAINABLE_TENSORS,
+        "trainable_elements": LOCKED_TRAINABLE_PARAMETERS,
+        "changed_tensors": LOCKED_TRAINABLE_TENSORS,
+        "changed_elements": 18_000_000,
+        "nonfinite_after_elements": 0,
+        "nonfinite_delta_elements": 0,
+        "global_delta_l2_norm": 0.01,
+    }
+    report = validate_parameter_update_evidence(stats)
+    assert report["all_lora_tensors_changed"]
+    assert report["all_updated_weights_finite"]
+    assert report["has_finite_nonzero_update"]
+
+    with pytest.raises(RuntimeError, match="did not change every"):
+        validate_parameter_update_evidence(
+            {**stats, "changed_tensors": LOCKED_TRAINABLE_TENSORS - 1}
+        )
+    with pytest.raises(RuntimeError, match="non-finite LoRA value"):
+        validate_parameter_update_evidence(
+            {**stats, "nonfinite_after_elements": 1}
+        )
+    with pytest.raises(RuntimeError, match="not finite and positive"):
+        validate_parameter_update_evidence(
+            {**stats, "global_delta_l2_norm": 0.0}
+        )
+
+
+def test_initialized_optimizer_evidence_requires_complete_step_one_state():
+    stats = {
+        "optimizer_class": "AdamW",
+        "optimizer_bits": 8,
+        "is_paged": False,
+        "optimizer_initialized_flag": True,
+        "state_parameter_entries": LOCKED_TRAINABLE_TENSORS,
+        "missing_trainable_state_entries": 0,
+        "foreign_state_entries": 0,
+        "state_step_values": [1],
+        "state1_elements": LOCKED_TRAINABLE_PARAMETERS,
+        "state2_elements": LOCKED_TRAINABLE_PARAMETERS,
+        "state1_dtypes": ["torch.uint8"],
+        "state2_dtypes": ["torch.uint8"],
+        "absmax1_elements": 72_128,
+        "absmax2_elements": 72_128,
+        "expected_quantization_blocks": 72_128,
+        "nonfinite_state_elements": 0,
+        "unique_state_tensor_bytes": 37_508_608,
+    }
+    report = validate_initialized_optimizer_evidence(stats)
+    assert report["state_covers_exact_locked_lora"]
+    assert report["state_initialized_at_step_one"]
+    assert report["state_is_finite"]
+
+    with pytest.raises(RuntimeError, match="exactly at step one"):
+        validate_initialized_optimizer_evidence({**stats, "state_step_values": [2]})
+    with pytest.raises(RuntimeError, match="not fully 8-bit"):
+        validate_initialized_optimizer_evidence(
+            {**stats, "state1_dtypes": ["torch.float32"]}
+        )
+    with pytest.raises(RuntimeError, match="NaN or infinity"):
+        validate_initialized_optimizer_evidence(
+            {**stats, "nonfinite_state_elements": 1}
+        )
+
+
 def test_grpo_smoke_config_is_complete_and_one_prompt_group_per_step(tmp_path):
     kwargs = grpo_smoke_config_kwargs(output_dir=tmp_path)
 
@@ -296,6 +397,7 @@ def test_grpo_smoke_config_is_complete_and_one_prompt_group_per_step(tmp_path):
     assert (kwargs["adam_beta1"], kwargs["adam_beta2"]) == LOCKED_ADAM_BETAS
     assert kwargs["adam_epsilon"] == LOCKED_ADAM_EPSILON
     assert kwargs["warmup_ratio"] == LOCKED_WARMUP_RATIO == 0.0
+    assert kwargs["max_grad_norm"] == LOCKED_MAX_GRAD_NORM == 1.0
 
     with pytest.raises(ValueError, match="reward weights must remain locked"):
         grpo_smoke_config_kwargs(output_dir=tmp_path, reward_weights=(1, 1, 1))
