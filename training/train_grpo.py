@@ -12,6 +12,7 @@ import argparse
 import gc
 import hashlib
 import json
+import math
 import shutil
 import subprocess
 import tempfile
@@ -22,6 +23,7 @@ from typing import Callable, Sequence
 PREFLIGHT_VERSION = "grpo-smoke-preflight-v1"
 MODEL_LOAD_VERSION = "grpo-smoke-model-load-v1"
 TRAINER_CONSTRUCTION_VERSION = "grpo-smoke-trainer-construction-v1"
+ROLLOUT_GATE_VERSION = "grpo-smoke-rollout-gate-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
 DEFAULT_SELECTION_MANIFEST = "runs/sft-selection.json"
@@ -149,6 +151,103 @@ def inspect_grpo_config(config: object) -> dict:
     }
 
 
+def build_rollout_evidence(
+    *,
+    sku_id: str,
+    completions: Sequence[str],
+    reward_names: Sequence[str],
+    component_rewards: dict[str, Sequence[float]],
+    reward_weights: Sequence[float],
+    advantages: Sequence[float],
+    effective_completion_tokens: Sequence[int],
+    truncated_and_masked: Sequence[bool],
+) -> dict:
+    """Validate and assemble one auditable eight-completion rollout group."""
+    expected = 8
+    aligned = {
+        "completions": len(completions),
+        "reward_names": len(reward_names),
+        "reward_weights": len(reward_weights),
+        "advantages": len(advantages),
+        "effective_completion_tokens": len(effective_completion_tokens),
+        "truncated_and_masked": len(truncated_and_masked),
+    }
+    if aligned["completions"] != expected:
+        raise RuntimeError(f"rollout must contain eight completions: {aligned}")
+    if aligned["reward_names"] != aligned["reward_weights"]:
+        raise RuntimeError(f"reward names and weights are misaligned: {aligned}")
+    if any(
+        aligned[key] != expected
+        for key in (
+            "advantages",
+            "effective_completion_tokens",
+            "truncated_and_masked",
+        )
+    ):
+        raise RuntimeError(f"rollout evidence arrays are misaligned: {aligned}")
+    if set(component_rewards) != set(reward_names):
+        raise RuntimeError("component reward names disagree with trainer order")
+    if any(len(component_rewards[name]) != expected for name in reward_names):
+        raise RuntimeError("component reward arrays must each contain eight values")
+    if any(not isinstance(completion, str) for completion in completions):
+        raise TypeError("every logged completion must be text")
+
+    weighted_totals = [
+        sum(
+            float(component_rewards[name][index]) * float(reward_weights[position])
+            for position, name in enumerate(reward_names)
+        )
+        for index in range(expected)
+    ]
+    normalized_advantages = [float(value) for value in advantages]
+    numeric_values = weighted_totals + normalized_advantages + [
+        float(value)
+        for name in reward_names
+        for value in component_rewards[name]
+    ]
+    if not all(math.isfinite(value) for value in numeric_values):
+        raise RuntimeError("rollout produced a non-finite reward or advantage")
+
+    records = []
+    for index, completion in enumerate(completions):
+        records.append(
+            {
+                "sku_id": sku_id,
+                "rollout_index": index,
+                "raw_output": completion,
+                "component_rewards": {
+                    name: float(component_rewards[name][index])
+                    for name in reward_names
+                },
+                "weighted_total": weighted_totals[index],
+                "advantage": normalized_advantages[index],
+                "effective_completion_tokens": int(
+                    effective_completion_tokens[index]
+                ),
+                "truncated_and_masked": bool(truncated_and_masked[index]),
+            }
+        )
+
+    return {
+        "component_reward_names": list(reward_names),
+        "weighted_totals": weighted_totals,
+        "weighted_total_unique_count": len(set(weighted_totals)),
+        "weighted_total_has_variance": len(set(weighted_totals)) > 1,
+        "advantages": normalized_advantages,
+        "nonzero_advantage_count": sum(
+            not math.isclose(value, 0.0, abs_tol=1e-8)
+            for value in normalized_advantages
+        ),
+        "effective_completion_tokens": [
+            int(value) for value in effective_completion_tokens
+        ],
+        "truncated_and_masked_count": sum(
+            bool(value) for value in truncated_and_masked
+        ),
+        "records": records,
+    }
+
+
 def inspect_model_trainability(
     model: object,
     *,
@@ -224,6 +323,28 @@ def inspect_model_trainability(
         "only_lora_parameters_trainable": True,
         "matches_locked_trainable_count": True,
     }
+
+
+def _trainable_parameter_sha256(model: object) -> str:
+    """Hash trainable tensor names, metadata and bytes without writing a checkpoint."""
+    digest = hashlib.sha256()
+    trainable_tensors = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        trainable_tensors += 1
+        digest.update(name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(str(parameter.dtype).encode("ascii"))
+        digest.update(b"\0")
+        digest.update(json.dumps(list(parameter.shape)).encode("ascii"))
+        digest.update(b"\0")
+        raw = parameter.detach().contiguous().cpu().numpy().tobytes()
+        digest.update(raw)
+        digest.update(b"\0")
+    if trainable_tensors == 0:
+        raise RuntimeError("cannot fingerprint a model with no trainable tensors")
+    return digest.hexdigest()
 
 
 def _sha256_file(path: str | Path) -> str:
@@ -625,15 +746,16 @@ def run_model_load_gate(
     return report
 
 
-def run_trainer_construction_gate(
+def _run_trainer_gate(
     *,
     fixture_data_path: str | Path,
     adapter_path: str | Path,
     adapter_file: str | Path,
     expected_sku_ids: Sequence[str],
+    perform_rollout: bool,
     expected_adapter_sha256: str = LOCKED_ADAPTER_SHA256,
 ) -> dict:
-    """Construct the exact GRPO trainer, inspect it, and exit before training."""
+    """Construct the exact trainer and optionally execute one no-loss rollout."""
     fixture_data_path = Path(fixture_data_path).resolve()
     adapter_path = Path(adapter_path).resolve()
     adapter_file = Path(adapter_file).resolve()
@@ -659,6 +781,8 @@ def run_trainer_construction_gate(
     tokenizer = None
     trainer = None
     dataset = None
+    generation_batch = None
+    prepared = None
     report = None
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats()
@@ -750,13 +874,85 @@ def run_trainer_construction_gate(
             if trainer_sku_ids != actual_sku_ids:
                 raise RuntimeError("trainer changed the deterministic SKU order")
 
+            rollout_report = None
+            if perform_rollout:
+                generation_batch = next(iter(trainer.get_train_dataloader()))
+                if not isinstance(generation_batch, list) or len(generation_batch) != 8:
+                    raise RuntimeError(
+                        "rollout generation batch must be a list of eight rows"
+                    )
+                generation_sku_ids = [row.get("sku_id") for row in generation_batch]
+                expected_first_sku = expected_sku_ids[0]
+                if generation_sku_ids != [expected_first_sku] * 8:
+                    raise RuntimeError(
+                        "first rollout batch must repeat the first locked SKU eight times"
+                    )
+                if any("gold" not in row for row in generation_batch):
+                    raise RuntimeError("rollout generation batch lost hidden gold")
+
+                trainer.model.train()
+                lora_sha_before_rollout = _trainable_parameter_sha256(trainer.model)
+                cuda_before_rollout = _cuda_memory_snapshot(torch)
+                rollout_started = time.perf_counter()
+                prepared = trainer._prepare_inputs(generation_batch)
+                torch.cuda.synchronize()
+                rollout_seconds = time.perf_counter() - rollout_started
+                cuda_after_rollout = _cuda_memory_snapshot(torch)
+                lora_sha_after_rollout = _trainable_parameter_sha256(trainer.model)
+                if lora_sha_after_rollout != lora_sha_before_rollout:
+                    raise RuntimeError("trainable LoRA changed during rollout-only gate")
+                if int(trainer.state.global_step) != 0:
+                    raise RuntimeError("rollout-only gate advanced global_step")
+                if trainer.optimizer is not None or trainer.lr_scheduler is not None:
+                    raise RuntimeError("rollout-only gate created optimization state")
+
+                completions = list(trainer._logs["completion"])
+                advantages = [float(value) for value in trainer._logs["advantages"]]
+                component_rewards = {
+                    name: [float(value) for value in trainer._logs["rewards"][name]]
+                    for name in trainer.reward_func_names
+                }
+                completion_mask = prepared["completion_mask"].detach().cpu()
+                effective_completion_tokens = [
+                    int(row.sum().item()) for row in completion_mask
+                ]
+                truncated = [length == 0 for length in effective_completion_tokens]
+                if int(prepared["completion_ids"].shape[0]) != 8:
+                    raise RuntimeError("prepared rollout tensor batch is not eight")
+
+                rollout_report = {
+                    "status": "passed",
+                    "sku_id": expected_first_sku,
+                    "generation_batch_rows": len(generation_batch),
+                    "unique_generation_batch_skus": sorted(set(generation_sku_ids)),
+                    "rollout_seconds": rollout_seconds,
+                    "prepared_tensor_keys": sorted(prepared),
+                    "lora_sha256_before_rollout": lora_sha_before_rollout,
+                    "lora_sha256_after_rollout": lora_sha_after_rollout,
+                    "trainable_lora_unchanged": True,
+                    "cuda_before_rollout": cuda_before_rollout,
+                    "cuda_after_rollout": cuda_after_rollout,
+                    **build_rollout_evidence(
+                        sku_id=expected_first_sku,
+                        completions=completions,
+                        reward_names=trainer.reward_func_names,
+                        component_rewards=component_rewards,
+                        reward_weights=runtime_reward_weights,
+                        advantages=advantages,
+                        effective_completion_tokens=effective_completion_tokens,
+                        truncated_and_masked=truncated,
+                    ),
+                }
+
             trainability_after = inspect_model_trainability(trainer.model)
             adapter_sha_after = _sha256_file(adapter_file)
             if adapter_sha_after != expected_adapter_sha256:
                 raise RuntimeError("source adapter changed during trainer construction")
             after_construction = _cuda_memory_snapshot(torch)
             report = {
-                "version": TRAINER_CONSTRUCTION_VERSION,
+                "version": ROLLOUT_GATE_VERSION
+                if perform_rollout
+                else TRAINER_CONSTRUCTION_VERSION,
                 "status": "passed",
                 "trainer_class": type(trainer).__name__,
                 "config_class": type(config).__name__,
@@ -787,11 +983,13 @@ def run_trainer_construction_gate(
                 "optimizer_constructed": False,
                 "lr_scheduler_constructed": False,
                 "reference_model_constructed": False,
-                "generation_performed": False,
+                "generation_performed": perform_rollout,
                 "training_steps": 0,
                 "global_step": int(trainer.state.global_step),
                 "temporary_output_path": str(temporary_output_path),
             }
+            if rollout_report is not None:
+                report["rollout"] = rollout_report
 
             trainer = None
             config = None
@@ -802,6 +1000,8 @@ def run_trainer_construction_gate(
     finally:
         trainer = None
         dataset = None
+        generation_batch = None
+        prepared = None
         model = None
         tokenizer = None
         gc.collect()
@@ -816,12 +1016,23 @@ def run_trainer_construction_gate(
     return report
 
 
+def run_trainer_construction_gate(**kwargs) -> dict:
+    """Construct and inspect the exact GRPO trainer without generating."""
+    return _run_trainer_gate(perform_rollout=False, **kwargs)
+
+
+def run_rollout_gate(**kwargs) -> dict:
+    """Generate and reward one eight-completion group without computing a loss."""
+    return _run_trainer_gate(perform_rollout=True, **kwargs)
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--preflight-only", action="store_true")
     mode.add_argument("--model-load-only", action="store_true")
     mode.add_argument("--trainer-construction-only", action="store_true")
+    mode.add_argument("--rollout-only", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--fixture-data", default=DEFAULT_FIXTURE_DATA)
     parser.add_argument("--fixture-manifest", default=DEFAULT_FIXTURE_MANIFEST)
@@ -839,10 +1050,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.preflight_only
         or args.model_load_only
         or args.trainer_construction_only
+        or args.rollout_only
     ):
         raise SystemExit(
             "training is intentionally unavailable; pass --preflight-only or "
-            "--model-load-only or --trainer-construction-only"
+            "--model-load-only or --trainer-construction-only or --rollout-only"
         )
     report = run_preflight(
         repo_root=args.repo_root,
@@ -873,6 +1085,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         report["cuda_imports_performed"] = True
         report["model_loaded"] = True
         report["trainer_constructed"] = True
+        report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
+        report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
+    if args.rollout_only:
+        report["rollout_gate"] = run_rollout_gate(
+            fixture_data_path=report["fixture"]["data_path"],
+            adapter_path=report["sft_lock"]["adapter_path"],
+            adapter_file=report["sft_lock"]["adapter_file"],
+            expected_sku_ids=report["fixture"]["sku_ids_in_step_order"],
+        )
+        report["cuda_imports_performed"] = True
+        report["model_loaded"] = True
+        report["trainer_constructed"] = True
+        report["generation_performed"] = True
+        report["optimizer_constructed"] = False
+        report["training_steps"] = 0
         report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
         report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
     print(json.dumps(report, indent=2, sort_keys=True))

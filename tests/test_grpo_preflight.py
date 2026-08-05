@@ -13,6 +13,7 @@ from training.train_grpo import (
     LOCKED_REWARD_WEIGHTS,
     LOCKED_TARGET_MODULES,
     LOCKED_TRAINABLE_PARAMETERS,
+    build_rollout_evidence,
     grpo_smoke_config_kwargs,
     inspect_grpo_config,
     inspect_model_trainability,
@@ -113,10 +114,58 @@ def test_importing_entrypoint_is_cpu_only_and_training_is_unavailable():
     assert parse_args(["--preflight-only"]).preflight_only
     assert parse_args(["--model-load-only"]).model_load_only
     assert parse_args(["--trainer-construction-only"]).trainer_construction_only
+    assert parse_args(["--rollout-only"]).rollout_only
     with pytest.raises(SystemExit):
         parse_args(["--preflight-only", "--model-load-only"])
     with pytest.raises(SystemExit, match="training is intentionally unavailable"):
         main([])
+
+
+def test_rollout_evidence_preserves_components_weights_and_raw_outputs():
+    reward_names = ["format", "compliance", "agreement"]
+    component_rewards = {
+        "format": [1.0] * 8,
+        "compliance": [1.0] * 4 + [0.0] * 4,
+        "agreement": [1.0, 0.0] * 4,
+    }
+    report = build_rollout_evidence(
+        sku_id="sku-1",
+        completions=[f"completion-{index}" for index in range(8)],
+        reward_names=reward_names,
+        component_rewards=component_rewards,
+        reward_weights=LOCKED_REWARD_WEIGHTS,
+        advantages=[1.0, -1.0] * 4,
+        effective_completion_tokens=list(range(10, 18)),
+        truncated_and_masked=[False] * 8,
+    )
+
+    assert report["weighted_totals"] == [4.0, 2.0, 4.0, 2.0, 3.0, 1.0, 3.0, 1.0]
+    assert report["weighted_total_has_variance"]
+    assert report["nonzero_advantage_count"] == 8
+    assert report["truncated_and_masked_count"] == 0
+    assert report["records"][0]["raw_output"] == "completion-0"
+    assert report["records"][0]["component_rewards"]["agreement"] == 1.0
+
+
+def test_rollout_evidence_rejects_misalignment_and_nonfinite_values():
+    kwargs = {
+        "sku_id": "sku-1",
+        "completions": ["{}"] * 8,
+        "reward_names": ["format"],
+        "component_rewards": {"format": [1.0] * 8},
+        "reward_weights": [1.0],
+        "advantages": [0.0] * 8,
+        "effective_completion_tokens": [10] * 8,
+        "truncated_and_masked": [False] * 8,
+    }
+    bad_alignment = dict(kwargs, completions=["{}"] * 7)
+    with pytest.raises(RuntimeError, match="eight completions"):
+        build_rollout_evidence(**bad_alignment)
+
+    bad_rewards = dict(kwargs)
+    bad_rewards["component_rewards"] = {"format": [float("nan")] * 8}
+    with pytest.raises(RuntimeError, match="non-finite"):
+        build_rollout_evidence(**bad_rewards)
 
 
 def test_grpo_smoke_config_is_complete_and_one_prompt_group_per_step(tmp_path):
