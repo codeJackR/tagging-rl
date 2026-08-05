@@ -9,11 +9,15 @@ from types import SimpleNamespace
 import pytest
 
 from training.train_grpo import (
+    LOCKED_ADAM_BETAS,
+    LOCKED_ADAM_EPSILON,
     LOCKED_BASE_MODEL,
+    LOCKED_LEARNING_RATE,
     LOCKED_REWARD_WEIGHTS,
     LOCKED_TARGET_MODULES,
     LOCKED_TRAINABLE_PARAMETERS,
     LOCKED_TRAINABLE_TENSORS,
+    LOCKED_WEIGHT_DECAY,
     build_rollout_evidence,
     grpo_smoke_config_kwargs,
     inspect_grpo_config,
@@ -217,6 +221,23 @@ def test_optimizer_evidence_requires_exact_lora_scope_and_lazy_state():
         "optimizer_module": "bitsandbytes.optim.adamw",
         "optimizer_bits": 8,
         "is_paged": False,
+        "optimizer_initialized_flag": False,
+        "parameter_groups": [
+            {
+                "parameter_tensors": LOCKED_TRAINABLE_TENSORS,
+                "lr": LOCKED_LEARNING_RATE,
+                "weight_decay": LOCKED_WEIGHT_DECAY,
+                "betas": list(LOCKED_ADAM_BETAS),
+                "eps": LOCKED_ADAM_EPSILON,
+            },
+            {
+                "parameter_tensors": 0,
+                "lr": LOCKED_LEARNING_RATE,
+                "weight_decay": 0.0,
+                "betas": list(LOCKED_ADAM_BETAS),
+                "eps": LOCKED_ADAM_EPSILON,
+            },
+        ],
         "trainable_model_tensors": LOCKED_TRAINABLE_TENSORS,
         "trainable_model_elements": LOCKED_TRAINABLE_PARAMETERS,
         "unique_optimizer_parameter_tensors": LOCKED_TRAINABLE_TENSORS,
@@ -226,6 +247,7 @@ def test_optimizer_evidence_requires_exact_lora_scope_and_lazy_state():
         "duplicate_optimizer_references": 0,
         "optimizer_state_entries": 0,
         "optimizer_state_tensor_count": 0,
+        "optimizer_state_tensor_bytes": 0,
         "gradients_attached": 0,
         "trainable_lora_unchanged": True,
         "global_step": 0,
@@ -247,6 +269,10 @@ def test_optimizer_evidence_requires_exact_lora_scope_and_lazy_state():
         validate_optimizer_evidence({**stats, "frozen_optimizer_tensors": 1})
     with pytest.raises(RuntimeError, match="initialized parameter state"):
         validate_optimizer_evidence({**stats, "optimizer_state_entries": 1})
+    bad_groups = [dict(group) for group in stats["parameter_groups"]]
+    bad_groups[0]["lr"] = 1e-4
+    with pytest.raises(RuntimeError, match="learning rate drifted"):
+        validate_optimizer_evidence({**stats, "parameter_groups": bad_groups})
     with pytest.raises(RuntimeError, match="LoRA weights changed"):
         validate_optimizer_evidence({**stats, "trainable_lora_unchanged": False})
 
@@ -264,6 +290,10 @@ def test_grpo_smoke_config_is_complete_and_one_prompt_group_per_step(tmp_path):
     assert not kwargs["use_vllm"]
     assert kwargs["beta"] == 0.0
     assert kwargs["save_strategy"] == "no"
+    assert kwargs["learning_rate"] == LOCKED_LEARNING_RATE
+    assert kwargs["weight_decay"] == LOCKED_WEIGHT_DECAY
+    assert (kwargs["adam_beta1"], kwargs["adam_beta2"]) == LOCKED_ADAM_BETAS
+    assert kwargs["adam_epsilon"] == LOCKED_ADAM_EPSILON
 
     with pytest.raises(ValueError, match="reward weights must remain locked"):
         grpo_smoke_config_kwargs(output_dir=tmp_path, reward_weights=(1, 1, 1))

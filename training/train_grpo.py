@@ -34,6 +34,11 @@ DEFAULT_OUTPUT_DIR = "runs/grpo-first-smoke"
 DEFAULT_MINIMUM_FREE_GIB = 3.0
 MODEL_MAX_SEQUENCE_LENGTH = 896
 LOCKED_REWARD_WEIGHTS = (1.0, 1.0, 2.0)
+LOCKED_OPTIMIZER_NAME = "adamw_8bit"
+LOCKED_LEARNING_RATE = 5e-6
+LOCKED_WEIGHT_DECAY = 0.001
+LOCKED_ADAM_BETAS = (0.9, 0.999)
+LOCKED_ADAM_EPSILON = 1e-8
 
 LOCKED_FIXTURE_DATA_SHA256 = (
     "268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084"
@@ -92,10 +97,14 @@ def grpo_smoke_config_kwargs(
         "top_p": 0.95,
         "repetition_penalty": 1.0,
         "use_vllm": False,
-        "learning_rate": 5e-6,
+        "learning_rate": LOCKED_LEARNING_RATE,
+        "weight_decay": LOCKED_WEIGHT_DECAY,
+        "adam_beta1": LOCKED_ADAM_BETAS[0],
+        "adam_beta2": LOCKED_ADAM_BETAS[1],
+        "adam_epsilon": LOCKED_ADAM_EPSILON,
         "warmup_ratio": 0.1,
         "lr_scheduler_type": "cosine",
-        "optim": "adamw_8bit",
+        "optim": LOCKED_OPTIMIZER_NAME,
         "beta": 0.0,
         "num_iterations": 1,
         "epsilon": 0.2,
@@ -386,6 +395,27 @@ def validate_optimizer_evidence(stats: dict) -> dict:
         raise RuntimeError("configured bitsandbytes AdamW is not using 8-bit state")
     if stats.get("is_paged"):
         raise RuntimeError("configured optimizer unexpectedly uses paged state")
+    if stats.get("optimizer_initialized_flag"):
+        raise RuntimeError("fresh optimizer unexpectedly reports initialized state")
+    parameter_groups = stats.get("parameter_groups")
+    if not isinstance(parameter_groups, list) or len(parameter_groups) != 2:
+        raise RuntimeError("optimizer parameter-group structure drifted")
+    for group in parameter_groups:
+        if float(group.get("lr", float("nan"))) != LOCKED_LEARNING_RATE:
+            raise RuntimeError("optimizer learning rate drifted")
+        if tuple(group.get("betas", ())) != LOCKED_ADAM_BETAS:
+            raise RuntimeError("optimizer beta values drifted")
+        if float(group.get("eps", float("nan"))) != LOCKED_ADAM_EPSILON:
+            raise RuntimeError("optimizer epsilon drifted")
+    nonempty_groups = [
+        group for group in parameter_groups if group.get("parameter_tensors", 0) > 0
+    ]
+    if len(nonempty_groups) != 1:
+        raise RuntimeError("optimizer nonempty parameter-group structure drifted")
+    if float(nonempty_groups[0].get("weight_decay", float("nan"))) != (
+        LOCKED_WEIGHT_DECAY
+    ):
+        raise RuntimeError("optimizer weight decay drifted")
     if stats.get("trainable_model_tensors") != LOCKED_TRAINABLE_TENSORS:
         raise RuntimeError("optimizer audit has an unexpected trainable tensor count")
     if stats.get("trainable_model_elements") != LOCKED_TRAINABLE_PARAMETERS:
@@ -404,6 +434,8 @@ def validate_optimizer_evidence(stats: dict) -> dict:
         raise RuntimeError("fresh optimizer unexpectedly initialized parameter state")
     if stats.get("optimizer_state_tensor_count") != 0:
         raise RuntimeError("fresh optimizer unexpectedly owns state tensors")
+    if stats.get("optimizer_state_tensor_bytes") != 0:
+        raise RuntimeError("fresh optimizer unexpectedly allocated state bytes")
     if stats.get("gradients_attached") != 0:
         raise RuntimeError("optimizer-construction gate unexpectedly has gradients")
     if not stats.get("trainable_lora_unchanged"):
