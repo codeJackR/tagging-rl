@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate → one-group rollout/reward gate → one-group gradient-only gate → optimizer-construction-only gate
-**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight, model-load gate, trainer-construction gate, one-group rollout gate, gradient-only gate and optimizer-construction-only gate are implemented; the configured 8-bit AdamW controls exactly the locked LoRA tensors and changes no weights, while its large per-parameter state and all parameter updates remain intentionally unavailable until the first real step
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate → one-group rollout/reward gate → one-group gradient-only gate → optimizer-construction-only gate → one-real-update gate
+**Current status:** the deterministic pool, reward contract, five-row smoke fixture and staged integration gates now reach one real trainer update; the first step used the intended nonzero learning rate, initialized complete 8-bit AdamW state and changed every LoRA tensor finitely while leaving the locked source checkpoint untouched, but multi-step stability and saved-checkpoint quality remain intentionally untested
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -1661,7 +1661,7 @@ the entry point must assert the starting adapter SHA-256, rank, alpha, target
 modules and exact **18,464,768** trainable-parameter count. It must verify again
 afterward that the source checkpoint bytes were not modified.
 
-##### Planned `GRPOConfig`
+##### Locked smoke `GRPOConfig`
 
 | parameter | smoke value | reasoning |
 |---|---:|---|
@@ -1670,6 +1670,7 @@ afterward that the source checkpoint bytes were not modified.
 | `num_generations` | `8` | matches difficulty scoring and gives one comparison group per prompt |
 | `per_device_train_batch_size` | `8` | one prompt repeated into its eight completions on one GPU |
 | `gradient_accumulation_steps` | `1` | one group per optimizer update; simplest gradient diagnosis |
+| `max_grad_norm` | `1.0` | explicit trainer clipping ceiling; first real update remained below it |
 | `steps_per_generation` | `1` | make the generation/update relationship explicit |
 | `max_steps` | `5` | one update for each deterministic smoke prompt |
 | `shuffle_dataset` | `False` | preserve the declared SKU-to-step mapping |
@@ -1679,9 +1680,12 @@ afterward that the source checkpoint bytes were not modified.
 | `repetition_penalty` | `1.0` | avoid introducing an unmeasured decoding intervention |
 | `use_vllm` | `False` | isolate trainer/reward correctness before testing colocated acceleration |
 | `learning_rate` | `5e-6` | conservative LoRA-RL rate already proven by the W0 rig |
-| `warmup_ratio` | `0.1` | preserve the W0 optimization recipe; one short warmup step in the smoke |
+| `warmup_ratio` | `0.0` | avoid making the first of only five smoke steps a zero-LR no-op; revisit warmup for a longer run |
 | `lr_scheduler_type` | `cosine` | preserve the W0 recipe |
 | `optim` | `adamw_8bit` | reduce optimizer memory; already exercised by W0 |
+| `weight_decay` | `0.001` | make the observed Transformers default explicit for this smoke |
+| `adam_beta1` / `adam_beta2` | `0.9 / 0.999` | lock the observed Adam moment coefficients |
+| `adam_epsilon` | `1e-8` | lock the observed numerical-stability term |
 | `beta` | `0.0` | avoid a reference-model path in the smallest smoke and match TRL's memory-saving default |
 | `num_iterations` | `1` | one policy update per generated batch |
 | `epsilon` | `0.2` | installed TRL default clipping range |
@@ -2427,6 +2431,178 @@ allocation, scheduler behavior, gradient clipping, a weight update, update
 magnitude or post-update model quality. Those begin at the one-real-update
 boundary.
 
+##### One real trainer update, then stop
+
+Before implementing the first update, an installed-scheduler probe exposed a
+five-step-smoke bug. With `warmup_ratio=0.1`, Transformers computes one warmup
+step and initializes the first learning rate to zero:
+
+```text
+planned steps:                    5
+ceil(5 × 0.1) warmup steps:       1
+learning rate used at step 1:     0.0
+```
+
+That would create optimizer state and increment `global_step`, but would not
+change a weight. In a five-step smoke it would waste 20% of the experiment and
+contradict the acceptance requirement for five real updates. Commit
+`ea87577bac7b5b12f9344ba5cf8d5ed21f2bd163` therefore locked smoke
+`warmup_ratio=0.0`. This is not a claim that warmup is generally bad; warmup is
+reasonable for a longer run. It is inappropriate when one warmup step is one
+fifth of a tiny integration smoke.
+
+Commit `feae967b2e3b351ef971f667317f3216dc1c1b9b` added
+`--one-update-only`. It uses the real `trainer.train()` loop and unchanged
+five-step schedule, but installs a callback that sets `should_training_stop`
+immediately after `global_step` becomes one. This exercises the normal trainer
+path—rollout, rewards, loss, backward, gradient clipping check, optimizer step,
+scheduler step and logging—without manually imitating training-loop order.
+
+The gate also locks `max_grad_norm=1.0`, copies the starting LoRA to CPU, and
+fails unless:
+
+- the callback is called exactly once at `global_step=1`;
+- the first step uses learning rate `5e-6` and the cosine scheduler produces
+  the expected next learning rate;
+- all 392 LoRA tensors change, all deltas and resulting values are finite, and
+  the live LoRA hash differs;
+- bitsandbytes initializes step-one 8-bit state for exactly all 392 LoRA
+  tensors and no frozen tensor;
+- the rollout contains eight raw completions with nonzero reward variance; and
+- the immutable source adapter retains its locked SHA-256.
+
+The exact run was:
+
+```bash
+/venv/rl/bin/python -m training.train_grpo \
+  --one-update-only \
+  --report-file runs/grpo-one-update-gate-v1.json \
+  --expected-commit feae967b2e3b351ef971f667317f3216dc1c1b9b
+```
+
+Its evidence artifact is:
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `runs/grpo-one-update-gate-v1.json` | 88,815 | `bed88d14c83771a634a26f5ff538d5f9a89d7caa5441823183439662e963d50d` |
+
+The focused CPU suite passed **18 tests** locally and remotely; the complete
+local suite passed **241 tests**. Preflight found `4,886,654,976` free bytes, a
+clean tracked worktree/index, an absent reserved training output and the exact
+source-adapter checksum.
+
+The trainer reported five planned steps but the callback stopped it after the
+first:
+
+| trainer result | observed value |
+|---|---:|
+| completed global steps | 1 / 5 |
+| epoch fraction | 0.2 |
+| callback step-end calls | `[1]` |
+| trainer runtime | 17.966 seconds |
+| audited update section | 19.981 seconds |
+| model load + trainer + update + audits | 27.903 seconds |
+| train loss | `-0.006234` |
+| gradient norm before clipping | `0.489256` |
+| configured max gradient norm | `1.0` |
+| learning rate used | `5e-6` |
+| next cosine-scheduled learning rate | `4.5225425e-6` |
+
+Because `0.489256 < 1.0`, gradient clipping did not need to shrink this step's
+gradient. This gradient norm should not be confused with the logged GRPO
+`clip_ratio/*` metrics, which measure policy-ratio clipping; those were also
+zero, but describe a different mechanism.
+
+The exact same deterministic first-prompt rollout reappeared. Its ordered raw
+outputs again hash to
+`029d63fd3391b1e35fa76668d1a6a2e4c8125dcf4ea61af044a8f44612408c4a`,
+with totals:
+
+```text
+[2, 4, 2, 2, 4, 2, 4, 2]
+```
+
+Format and compliance remained 8/8, golden agreement remained 3/8, all eight
+advantages were nonzero, mean reward was `2.75`, reward standard deviation was
+`1.0351`, mean completion length was `111.375` tokens and no completion was
+clipped. Reusing identical sampled text isolates this gate's new evidence to the
+optimizer/scheduler/update path rather than generation luck.
+
+The live LoRA fingerprint changed from:
+
+```text
+before: 1c9f10100bfc250323ad43c0e8b1b170a909d842fb2579903200f95a786e711e
+after:  be665ea319128f176c5f546d4ceeff2d4bd0f187f13ff325233dcf1699a5342b
+```
+
+Measured parameter movement:
+
+| update measurement | observed value |
+|---|---:|
+| LoRA tensors changed | 392 / 392 |
+| elements changed | 18,464,225 / 18,464,768 |
+| unchanged elements | 543 |
+| nonfinite resulting values / deltas | 0 / 0 |
+| global update L2 norm | `0.0213529` |
+| starting LoRA L2 norm | `33.49877` |
+| relative update L2 | `0.0006374` = 0.06374% |
+| largest absolute element change | `5.00027e-6` |
+| mean absolute element change | `4.96642e-6` |
+
+All seven target families changed in all 56 of their tensors. Their delta L2
+norms ranged from `0.004412` for `v_proj` to `0.010820` for `up_proj`. The
+near-`5e-6` element changes are consistent with Adam's normalized first update
+at a `5e-6` learning rate. The small 0.06374% relative L2 movement is reassuring
+for an integration step, but it does not prove the direction improves quality.
+
+The optimizer-state estimate from the construction gate was exact. After step
+one, every LoRA tensor had state at optimizer step one:
+
+| optimizer-state measurement | observed value |
+|---|---:|
+| parameter state entries | 392 |
+| `state1` elements / dtype | 18,464,768 / uint8 |
+| `state2` elements / dtype | 18,464,768 / uint8 |
+| first / second block scales | 72,128 / 72,128 float32 values |
+| unique state tensors | 1,570 |
+| unique state storage | 37,508,608 bytes = 35.77 MiB |
+| missing / foreign state entries | 0 / 0 |
+| nonfinite state elements | 0 |
+
+The 1,570 unique tensors are 392 first moments, 392 second moments, 392 first
+scale arrays, 392 second scale arrays and two shared quantization maps. This is
+why 8-bit AdamW state is much smaller than two full float32 moment copies.
+
+CUDA memory remained bounded:
+
+| CUDA reading | bytes | approximate GiB |
+|---|---:|---:|
+| allocated before update | 3,190,780,416 | 2.97 |
+| allocated after update/state initialization | 3,250,374,144 | 3.03 |
+| peak allocated during full step | 4,250,522,112 | 3.96 |
+| peak reserved during full step | 4,318,035,968 | 4.02 |
+| allocated after complete release | 33,189,888 | 0.031 |
+| reserved after complete release | 69,206,016 | 0.064 |
+
+Persistent allocation rose by about **56.83 MiB** after the update. The
+measured optimizer state accounts for 35.77 MiB; allocator and other retained
+training objects account for the remainder. Peak allocation did not exceed the
+earlier rollout gate's 3.96 GiB because the new state fit within the already
+observed generation/backward memory envelope.
+
+No updated checkpoint was intentionally saved at this gate. The changed model
+existed only in memory and was released after auditing, while the locked source
+adapter retained SHA-256
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+The temporary trainer directory was removed, `runs/grpo-first-smoke` remained
+absent, disk ended at `4,886,253,568` free bytes, and external GPU use settled
+at **264 MiB and 0% utilization**.
+
+This gate proves one real update is numerically active, correctly scoped and
+memory-safe. It does **not** prove that later prompts remain stable, that a
+five-step adapter can be saved/reloaded, or that model quality improves. Those
+are the remaining purposes of the full five-step smoke and frozen evaluation.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -2674,6 +2850,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   unchanged LoRA weights and no optimizer.
 - [x] Real 8-bit AdamW construction with exact LoRA scope, explicit
   hyperparameters, lazy-state proof and unchanged weights.
+- [x] Real trainer-loop update at nonzero LR with complete 8-bit state, finite
+  all-LoRA parameter deltas and unchanged source checkpoint.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
