@@ -17,6 +17,7 @@ from training.train_grpo import (
     LOCKED_TARGET_MODULES,
     LOCKED_TRAINABLE_PARAMETERS,
     LOCKED_TRAINABLE_TENSORS,
+    LOCKED_WARMUP_RATIO,
     LOCKED_WEIGHT_DECAY,
     build_rollout_evidence,
     grpo_smoke_config_kwargs,
@@ -294,6 +295,7 @@ def test_grpo_smoke_config_is_complete_and_one_prompt_group_per_step(tmp_path):
     assert kwargs["weight_decay"] == LOCKED_WEIGHT_DECAY
     assert (kwargs["adam_beta1"], kwargs["adam_beta2"]) == LOCKED_ADAM_BETAS
     assert kwargs["adam_epsilon"] == LOCKED_ADAM_EPSILON
+    assert kwargs["warmup_ratio"] == LOCKED_WARMUP_RATIO == 0.0
 
     with pytest.raises(ValueError, match="reward weights must remain locked"):
         grpo_smoke_config_kwargs(output_dir=tmp_path, reward_weights=(1, 1, 1))

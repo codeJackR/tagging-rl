@@ -39,6 +39,7 @@ LOCKED_LEARNING_RATE = 5e-6
 LOCKED_WEIGHT_DECAY = 0.001
 LOCKED_ADAM_BETAS = (0.9, 0.999)
 LOCKED_ADAM_EPSILON = 1e-8
+LOCKED_WARMUP_RATIO = 0.0
 
 LOCKED_FIXTURE_DATA_SHA256 = (
     "268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084"
@@ -102,7 +103,7 @@ def grpo_smoke_config_kwargs(
         "adam_beta1": LOCKED_ADAM_BETAS[0],
         "adam_beta2": LOCKED_ADAM_BETAS[1],
         "adam_epsilon": LOCKED_ADAM_EPSILON,
-        "warmup_ratio": 0.1,
+        "warmup_ratio": LOCKED_WARMUP_RATIO,
         "lr_scheduler_type": "cosine",
         "optim": LOCKED_OPTIMIZER_NAME,
         "beta": 0.0,
