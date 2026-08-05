@@ -2050,6 +2050,13 @@ deterministic rollout was rerun to produce the versioned evidence artifact:
 |---|---:|---|
 | `runs/grpo-rollout-gate-v1.json` | 81,578 | `84a01ab1840a430f0b5b066d48499b8b6d544c2feb224d8b459ff4ea9be5f8bc` |
 
+The report artifact and this technical write-up were committed together as
+`8933af544277de414ce23081b4da92b337702695`, pushed to the Vast bare remote and
+fast-forwarded into `/workspace/tagging-rl`. The tracked remote copy was then
+byte-compared with the original GPU-generated file before the latter was kept
+as the recoverable temporary backup
+`/tmp/grpo-rollout-gate-v1-617306c.json`.
+
 The ordered eight raw outputs inside that artifact have SHA-256
 `029d63fd3391b1e35fa76668d1a6a2e4c8125dcf4ea61af044a8f44612408c4a`.
 The persisted rerun reproduced the first run's reward totals, advantages and
