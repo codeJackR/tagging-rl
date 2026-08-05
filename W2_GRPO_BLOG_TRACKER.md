@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate
-**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight and model-load-only gate are implemented; the real locked adapter loaded and passed its runtime trainability assertions on Vast, while trainer construction and the five-step training path remain intentionally unavailable
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate → no-training trainer-construction gate
+**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight, model-load gate and trainer-construction gate are implemented; the real locked policy, dataset, rewards and exact GRPO configuration constructed successfully together on Vast, while generation and training remain intentionally unavailable
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -1919,6 +1919,99 @@ yet prove that eight-completion generation, reward callbacks, optimizer state,
 backpropagation or a full GRPO update fit together. Those belong to the next
 gates.
 
+##### Real no-training GRPO trainer-construction gate
+
+Commit `c4a07a277c132c3fb9269ac5d023ce1be5e7aad4` added a third mutually
+exclusive mode, `--trainer-construction-only`. The normal entry point still has
+no training mode. This gate reruns the entire preflight, loads and reasserts the
+locked LoRA, builds the five-row conversational Hugging Face dataset, creates
+the exact `GRPOConfig`, constructs `GRPOTrainer`, inspects the result and then
+releases everything without calling `generate()` or `train()`.
+
+The configuration is produced by one pure function rather than being repeated
+between probes and the future training path. CPU tests lock all planned values,
+including rewards `(1, 1, 2)`, eight generations, batch eight, accumulation one,
+five maximum steps, disabled vLLM, `beta=0`, DAPO loss, bf16, and no checkpoint
+saves. A second pure inspector verifies TRL's post-construction values and
+allows only the documented normalization of `report_to="none"` into `[]`.
+
+The focused file now passes **10 tests** and the complete local suite passes
+**233 tests**. Before the GPU command, those same ten focused tests passed under
+the remote `/venv/rl`. An initial preflight invocation used the abbreviated
+commit `c4a07a2`; it was correctly rejected because the gate compares the exact
+40-character commit identity. No CUDA-capable import occurred on that rejected
+attempt. The corrected full-hash preflight then passed.
+
+The real command was:
+
+```bash
+python -m training.train_grpo \
+  --trainer-construction-only \
+  --expected-commit c4a07a277c132c3fb9269ac5d023ce1be5e7aad4
+```
+
+Measured integration result:
+
+| real trainer check | observed value |
+|---|---:|
+| gate status | passed |
+| trainer class | `UnslothGRPOTrainer` |
+| config class | `UnslothGRPOConfig` |
+| model class inside trainer | `PeftModelForCausalLM` |
+| construction time, including model load | 4.985 seconds |
+| trainer dataset rows | 5 |
+| columns retained by trainer | `prompt`, `gold`, `sku_id` |
+| deterministic SKU order retained | yes |
+| reward order retained | format, compliance, golden agreement |
+| runtime reward weights | `[1.0, 1.0, 2.0]` |
+| computed generation batch size | 8 |
+| prompt groups per generation batch | 1 |
+| trainable parameters before / after trainer | 18,464,768 / 18,464,768 |
+| optimizer constructed | no |
+| LR scheduler constructed | no |
+| reference model constructed | no |
+| global step | 0 |
+| generations / training steps | 0 / 0 |
+
+The hidden-column check matters because the agreement reward cannot score a
+completion without its trusted `gold`, and rollout audit records cannot be tied
+back to a product without `sku_id`. `remove_unused_columns=False` worked in the
+actual trainer: neither column was stripped during construction.
+
+The batch arithmetic also survived the installed TRL/Unsloth normalization:
+`generation_batch_size=8`, divided by `num_generations=8`, gives exactly **one
+product comparison group per generation batch**. With five locked products and
+five planned updates, this preserves the intended one-product-per-step smoke
+interpretation.
+
+`beta=0` produced no reference model, exactly as intended for the smallest
+memory-safe integration smoke. The optimizer and LR scheduler also remained
+`None`; TRL creates those lazily only when training starts. Therefore this gate
+tests trainer wiring without yet spending optimizer memory or changing a
+weight. The LoRA count and source adapter checksum were unchanged before and
+after trainer construction.
+
+CUDA memory after trainer construction was identical to the earlier model-only
+gate: **3,190,780,416 bytes (2.97 GiB) allocated**, with a **3,264,639,488-byte
+(3.04 GiB) peak**. In this environment, constructing the trainer itself added
+no measurable persistent CUDA allocation beyond loading the policy. This does
+not estimate optimizer, generated-token activation or backward-pass memory.
+
+The gate used a temporary output directory
+`/tmp/grpo-trainer-construction-up5k2o58` so trainer logging setup could not
+claim the reserved real-run path. The temporary directory was removed,
+`runs/grpo-first-smoke` remained absent, and free disk finished at
+`4,995,141,632` bytes. The external GPU reading settled back to **428 MiB used,
+23,699 MiB free, 0% utilization and 49°C**. The tracked worktree/index remained
+clean and the source adapter still matched
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+
+This gate proves the complete static integration boundary: locked policy +
+ordered prompts + hidden reward data + three callbacks + aligned weights +
+planned TRL configuration. It still does **not** prove generation, reward
+variance, optimizer creation, gradients or parameter updates. The next gate
+should cross only one of those boundaries at a time.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -2147,6 +2240,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] CPU-only fail-closed GRPO preflight and synthetic negative tests.
 - [x] Real-adapter GRPO preflight on the Vast training environment.
 - [x] Real locked-adapter model load and runtime trainability assertions.
+- [x] Real GRPO trainer construction with no optimizer, generation or training.
 - [ ] GRPO smoke and gradient evidence.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
