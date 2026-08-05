@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Guarded entry point for GRPO preflight and locked-model loading.
+"""Guarded entry point for GRPO preflight, model loading and trainer construction.
 
 Importing this module deliberately performs no Torch, Transformers, TRL, PEFT,
-Unsloth or vLLM import. The model-load-only path imports Unsloth and Torch only
-after ``run_preflight`` succeeds. GRPO trainer construction remains unavailable.
+Unsloth or vLLM import. GPU-capable modes import their stack only after
+``run_preflight`` succeeds. Generation and training remain unavailable.
 """
 
 from __future__ import annotations
@@ -14,12 +14,14 @@ import hashlib
 import json
 import shutil
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import Callable, Sequence
 
 PREFLIGHT_VERSION = "grpo-smoke-preflight-v1"
 MODEL_LOAD_VERSION = "grpo-smoke-model-load-v1"
+TRAINER_CONSTRUCTION_VERSION = "grpo-smoke-trainer-construction-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
 DEFAULT_SELECTION_MANIFEST = "runs/sft-selection.json"
@@ -27,6 +29,7 @@ DEFAULT_ADAPTER = "runs/sft-combined-2epoch/checkpoint-406"
 DEFAULT_OUTPUT_DIR = "runs/grpo-first-smoke"
 DEFAULT_MINIMUM_FREE_GIB = 3.0
 MODEL_MAX_SEQUENCE_LENGTH = 896
+LOCKED_REWARD_WEIGHTS = (1.0, 1.0, 2.0)
 
 LOCKED_FIXTURE_DATA_SHA256 = (
     "268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084"
@@ -53,6 +56,97 @@ LOCKED_TARGET_MODULES = {
     "up_proj",
     "down_proj",
 }
+
+
+def grpo_smoke_config_kwargs(
+    *,
+    output_dir: str | Path,
+    reward_weights: Sequence[float] = LOCKED_REWARD_WEIGHTS,
+) -> dict:
+    """Return the complete, auditable five-step smoke configuration contract."""
+    normalized_weights = tuple(float(weight) for weight in reward_weights)
+    if normalized_weights != LOCKED_REWARD_WEIGHTS:
+        raise ValueError(
+            f"reward weights must remain locked at {LOCKED_REWARD_WEIGHTS}"
+        )
+    return {
+        "output_dir": str(Path(output_dir).resolve()),
+        "run_name": "grpo-first-smoke",
+        "seed": 42,
+        "data_seed": 42,
+        "max_prompt_length": 600,
+        "max_completion_length": 170,
+        "num_generations": 8,
+        "per_device_train_batch_size": 8,
+        "gradient_accumulation_steps": 1,
+        "steps_per_generation": 1,
+        "max_steps": 5,
+        "shuffle_dataset": False,
+        "remove_unused_columns": False,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "repetition_penalty": 1.0,
+        "use_vllm": False,
+        "learning_rate": 5e-6,
+        "warmup_ratio": 0.1,
+        "lr_scheduler_type": "cosine",
+        "optim": "adamw_8bit",
+        "beta": 0.0,
+        "num_iterations": 1,
+        "epsilon": 0.2,
+        "epsilon_high": 0.28,
+        "scale_rewards": "group",
+        "loss_type": "dapo",
+        "mask_truncated_completions": True,
+        "reward_weights": list(normalized_weights),
+        "bf16": True,
+        "fp16": False,
+        "gradient_checkpointing": True,
+        "logging_strategy": "steps",
+        "logging_steps": 1,
+        "logging_first_step": True,
+        "log_completions": True,
+        "num_completions_to_print": 8,
+        "report_to": "none",
+        "save_strategy": "no",
+        "save_only_model": True,
+    }
+
+
+def inspect_grpo_config(config: object) -> dict:
+    """Assert TRL preserved the locked smoke settings after normalization."""
+    expected = grpo_smoke_config_kwargs(output_dir=getattr(config, "output_dir"))
+    normalized = {}
+    for key, expected_value in expected.items():
+        actual = getattr(config, key, None)
+        if key == "report_to":
+            # Transformers normalizes the user-facing "none" value to [].
+            if actual not in ("none", [], ()):  # pragma: no branch - explicit forms
+                raise RuntimeError(
+                    f"GRPO config normalized {key} unexpectedly: {actual}"
+                )
+            normalized[key] = [] if actual != "none" else "none"
+            continue
+        if key == "reward_weights":
+            actual = list(actual) if actual is not None else None
+        if actual != expected_value:
+            raise RuntimeError(
+                f"GRPO config drift for {key}: {actual!r} != {expected_value!r}"
+            )
+        normalized[key] = actual
+
+    generation_batch_size = getattr(config, "generation_batch_size", None)
+    if generation_batch_size != 8:
+        raise RuntimeError(
+            f"generation batch size must be 8, found {generation_batch_size}"
+        )
+    return {
+        "settings": normalized,
+        "generation_batch_size": generation_batch_size,
+        "prompts_per_generation_batch": generation_batch_size
+        // expected["num_generations"],
+        "settings_match_locked_contract": True,
+    }
 
 
 def inspect_model_trainability(
@@ -442,6 +536,23 @@ def _cuda_memory_snapshot(torch_module: object) -> dict:
     }
 
 
+def _load_locked_policy(
+    FastLanguageModel: object,
+    torch_module: object,
+    adapter_path: Path,
+):
+    """Load the selected SFT adapter as trainable PEFT weights, never a fresh LoRA."""
+    return FastLanguageModel.from_pretrained(
+        model_name=str(adapter_path),  # Locked PEFT checkpoint, not fresh Qwen.
+        max_seq_length=MODEL_MAX_SEQUENCE_LENGTH,  # Measured SFT/GRPO ceiling.
+        dtype=torch_module.bfloat16,  # Match the bf16 SFT policy on the RTX 3090.
+        load_in_4bit=False,  # Continue the unquantized SFT adapter unchanged.
+        local_files_only=True,  # Refuse downloads or remote revision drift.
+        use_gradient_checkpointing="unsloth",  # Match planned GRPO memory mode.
+        fast_inference=False,  # Do not start the colocated vLLM path yet.
+    )
+
+
 def run_model_load_gate(
     *,
     adapter_path: str | Path,
@@ -466,14 +577,8 @@ def run_model_load_gate(
     before = _cuda_memory_snapshot(torch)
     started = time.perf_counter()
     try:
-        model, tokenizer = FastLanguageModel.from_pretrained(
-            model_name=str(adapter_path),  # Locked PEFT checkpoint, not fresh Qwen.
-            max_seq_length=MODEL_MAX_SEQUENCE_LENGTH,  # Measured SFT/GRPO ceiling.
-            dtype=torch.bfloat16,  # Match the bf16 SFT policy on the RTX 3090.
-            load_in_4bit=False,  # Continue the unquantized SFT adapter unchanged.
-            local_files_only=True,  # Refuse downloads or remote revision drift.
-            use_gradient_checkpointing="unsloth",  # Match planned GRPO memory mode.
-            fast_inference=False,  # Do not start the colocated vLLM path yet.
+        model, tokenizer = _load_locked_policy(
+            FastLanguageModel, torch, adapter_path
         )
         torch.cuda.synchronize()
         trainability = inspect_model_trainability(model)
@@ -520,11 +625,203 @@ def run_model_load_gate(
     return report
 
 
+def run_trainer_construction_gate(
+    *,
+    fixture_data_path: str | Path,
+    adapter_path: str | Path,
+    adapter_file: str | Path,
+    expected_sku_ids: Sequence[str],
+    expected_adapter_sha256: str = LOCKED_ADAPTER_SHA256,
+) -> dict:
+    """Construct the exact GRPO trainer, inspect it, and exit before training."""
+    fixture_data_path = Path(fixture_data_path).resolve()
+    adapter_path = Path(adapter_path).resolve()
+    adapter_file = Path(adapter_file).resolve()
+
+    # Import order is part of the remote dependency contract: Unsloth patches
+    # the installed TRL/vLLM compatibility path before GRPOTrainer is imported.
+    from unsloth import FastLanguageModel
+
+    import torch
+    from trl import GRPOConfig, GRPOTrainer
+
+    from training.dataset import load_grpo_prompts
+    from training.rewards import (
+        FIRST_RUN_REWARD_FUNCTIONS,
+        FIRST_RUN_REWARD_WEIGHTS,
+    )
+    from verifier import load_pack
+
+    if tuple(FIRST_RUN_REWARD_WEIGHTS) != LOCKED_REWARD_WEIGHTS:
+        raise RuntimeError("reward implementation weights drifted from GRPO lock")
+
+    model = None
+    tokenizer = None
+    trainer = None
+    dataset = None
+    report = None
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+    before = _cuda_memory_snapshot(torch)
+    started = time.perf_counter()
+    temporary_output_path = None
+    try:
+        model, tokenizer = _load_locked_policy(
+            FastLanguageModel, torch, adapter_path
+        )
+        trainability_before = inspect_model_trainability(model)
+
+        pack = load_pack("packs/vastraa_taste_v1")
+        dataset = load_grpo_prompts(
+            pack,
+            fixture_data_path,
+            require_pass_rate_band=True,
+        )
+        actual_sku_ids = list(dataset["sku_id"])
+        if actual_sku_ids != list(expected_sku_ids):
+            raise RuntimeError("trainer dataset SKU order drifted from smoke manifest")
+        if len(dataset) != 5:
+            raise RuntimeError(
+                f"trainer dataset must contain five rows, found {len(dataset)}"
+            )
+        required_columns = {"prompt", "gold", "sku_id"}
+        if set(dataset.column_names) != required_columns:
+            raise RuntimeError(
+                f"trainer dataset columns drifted: {dataset.column_names}"
+            )
+
+        # Trainer construction may initialize logging internals. A temporary
+        # output keeps this no-training gate isolated from the reserved smoke path.
+        with tempfile.TemporaryDirectory(prefix="grpo-trainer-construction-") as temp:
+            temporary_output_path = Path(temp).resolve()
+            config = GRPOConfig(
+                **grpo_smoke_config_kwargs(
+                    output_dir=temporary_output_path,
+                    reward_weights=FIRST_RUN_REWARD_WEIGHTS,
+                )
+            )
+            config_report = inspect_grpo_config(config)
+            trainer = GRPOTrainer(
+                model=model,  # Locked SFT policy with its existing trainable LoRA.
+                reward_funcs=list(FIRST_RUN_REWARD_FUNCTIONS),  # Three plain rewards.
+                args=config,  # Fully asserted five-step smoke configuration.
+                train_dataset=dataset,  # Five deterministic pass-rate-0.5 prompts.
+                processing_class=tokenizer,  # Qwen chat template and tokenization.
+            )
+            torch.cuda.synchronize()
+
+            trainer_reward_names = [
+                getattr(reward, "__name__", type(reward).__name__)
+                for reward in trainer.reward_funcs
+            ]
+            expected_reward_names = [
+                reward.__name__ for reward in FIRST_RUN_REWARD_FUNCTIONS
+            ]
+            if trainer_reward_names != expected_reward_names:
+                raise RuntimeError("trainer reward function order drifted")
+            raw_reward_weights = trainer.reward_weights
+            if hasattr(raw_reward_weights, "tolist"):
+                raw_reward_weights = raw_reward_weights.tolist()
+            runtime_reward_weights = [
+                float(weight) for weight in raw_reward_weights
+            ]
+            if runtime_reward_weights != list(LOCKED_REWARD_WEIGHTS):
+                raise RuntimeError("trainer reward weights drifted")
+            if trainer.optimizer is not None:
+                raise RuntimeError(
+                    "trainer construction unexpectedly created an optimizer"
+                )
+            if trainer.lr_scheduler is not None:
+                raise RuntimeError(
+                    "trainer construction unexpectedly created an LR scheduler"
+                )
+            if trainer.ref_model is not None:
+                raise RuntimeError(
+                    "beta=0 trainer construction unexpectedly created a reference model"
+                )
+            if int(trainer.state.global_step) != 0:
+                raise RuntimeError(
+                    "trainer construction unexpectedly advanced global_step"
+                )
+            trainer_dataset_columns = list(trainer.train_dataset.column_names)
+            trainer_sku_ids = list(trainer.train_dataset["sku_id"])
+            if set(trainer_dataset_columns) != required_columns:
+                raise RuntimeError("trainer dropped a hidden reward/audit column")
+            if trainer_sku_ids != actual_sku_ids:
+                raise RuntimeError("trainer changed the deterministic SKU order")
+
+            trainability_after = inspect_model_trainability(trainer.model)
+            adapter_sha_after = _sha256_file(adapter_file)
+            if adapter_sha_after != expected_adapter_sha256:
+                raise RuntimeError("source adapter changed during trainer construction")
+            after_construction = _cuda_memory_snapshot(torch)
+            report = {
+                "version": TRAINER_CONSTRUCTION_VERSION,
+                "status": "passed",
+                "trainer_class": type(trainer).__name__,
+                "config_class": type(config).__name__,
+                "model_class": type(trainer.model).__name__,
+                "tokenizer_class": type(tokenizer).__name__,
+                "construction_seconds_including_model_load": time.perf_counter()
+                - started,
+                "dataset": {
+                    "rows": len(dataset),
+                    "columns_retained_by_trainer": trainer_dataset_columns,
+                    "sku_ids_in_step_order": trainer_sku_ids,
+                    "order_matches_manifest": True,
+                    "hidden_gold_retained": "gold" in trainer_dataset_columns,
+                    "hidden_sku_id_retained": "sku_id" in trainer_dataset_columns,
+                },
+                "rewards": {
+                    "names_in_trainer_order": trainer_reward_names,
+                    "weights_in_trainer": runtime_reward_weights,
+                    "order_matches_contract": True,
+                },
+                "config": config_report,
+                "trainability_before_trainer": trainability_before,
+                "trainability_after_trainer": trainability_after,
+                "adapter_sha256_after_construction": adapter_sha_after,
+                "source_adapter_unchanged": True,
+                "cuda_before_load": before,
+                "cuda_after_trainer_construction": after_construction,
+                "optimizer_constructed": False,
+                "lr_scheduler_constructed": False,
+                "reference_model_constructed": False,
+                "generation_performed": False,
+                "training_steps": 0,
+                "global_step": int(trainer.state.global_step),
+                "temporary_output_path": str(temporary_output_path),
+            }
+
+            trainer = None
+            config = None
+
+        report["temporary_output_removed"] = not temporary_output_path.exists()
+        if not report["temporary_output_removed"]:
+            raise RuntimeError("temporary trainer-construction output was not removed")
+    finally:
+        trainer = None
+        dataset = None
+        model = None
+        tokenizer = None
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+    if report is None:
+        raise RuntimeError("trainer-construction gate ended without a report")
+    report["cuda_after_release"] = _cuda_memory_snapshot(torch)
+    report["trainer_retained"] = False
+    report["model_retained"] = False
+    return report
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--preflight-only", action="store_true")
     mode.add_argument("--model-load-only", action="store_true")
+    mode.add_argument("--trainer-construction-only", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--fixture-data", default=DEFAULT_FIXTURE_DATA)
     parser.add_argument("--fixture-manifest", default=DEFAULT_FIXTURE_MANIFEST)
@@ -538,10 +835,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    if not args.preflight_only and not args.model_load_only:
+    if not (
+        args.preflight_only
+        or args.model_load_only
+        or args.trainer_construction_only
+    ):
         raise SystemExit(
             "training is intentionally unavailable; pass --preflight-only or "
-            "--model-load-only"
+            "--model-load-only or --trainer-construction-only"
         )
     report = run_preflight(
         repo_root=args.repo_root,
@@ -560,6 +861,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         report["cuda_imports_performed"] = True
         report["model_loaded"] = True
+        report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
+        report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
+    if args.trainer_construction_only:
+        report["trainer_construction"] = run_trainer_construction_gate(
+            fixture_data_path=report["fixture"]["data_path"],
+            adapter_path=report["sft_lock"]["adapter_path"],
+            adapter_file=report["sft_lock"]["adapter_file"],
+            expected_sku_ids=report["fixture"]["sku_ids_in_step_order"],
+        )
+        report["cuda_imports_performed"] = True
+        report["model_loaded"] = True
+        report["trainer_constructed"] = True
         report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
         report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
     print(json.dumps(report, indent=2, sort_keys=True))

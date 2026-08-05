@@ -10,8 +10,11 @@ import pytest
 
 from training.train_grpo import (
     LOCKED_BASE_MODEL,
+    LOCKED_REWARD_WEIGHTS,
     LOCKED_TARGET_MODULES,
     LOCKED_TRAINABLE_PARAMETERS,
+    grpo_smoke_config_kwargs,
+    inspect_grpo_config,
     inspect_model_trainability,
     main,
     parse_args,
@@ -109,10 +112,44 @@ def test_importing_entrypoint_is_cpu_only_and_training_is_unavailable():
     )
     assert parse_args(["--preflight-only"]).preflight_only
     assert parse_args(["--model-load-only"]).model_load_only
+    assert parse_args(["--trainer-construction-only"]).trainer_construction_only
     with pytest.raises(SystemExit):
         parse_args(["--preflight-only", "--model-load-only"])
     with pytest.raises(SystemExit, match="training is intentionally unavailable"):
         main([])
+
+
+def test_grpo_smoke_config_is_complete_and_one_prompt_group_per_step(tmp_path):
+    kwargs = grpo_smoke_config_kwargs(output_dir=tmp_path)
+
+    assert kwargs["num_generations"] == 8
+    assert kwargs["per_device_train_batch_size"] == 8
+    assert kwargs["gradient_accumulation_steps"] == 1
+    assert kwargs["steps_per_generation"] == 1
+    assert kwargs["max_steps"] == 5
+    assert not kwargs["shuffle_dataset"]
+    assert kwargs["reward_weights"] == list(LOCKED_REWARD_WEIGHTS)
+    assert not kwargs["use_vllm"]
+    assert kwargs["beta"] == 0.0
+    assert kwargs["save_strategy"] == "no"
+
+    with pytest.raises(ValueError, match="reward weights must remain locked"):
+        grpo_smoke_config_kwargs(output_dir=tmp_path, reward_weights=(1, 1, 1))
+
+
+def test_grpo_config_inspector_accepts_normalization_and_rejects_drift(tmp_path):
+    kwargs = grpo_smoke_config_kwargs(output_dir=tmp_path)
+    config = SimpleNamespace(**kwargs, generation_batch_size=8)
+    config.report_to = []
+
+    report = inspect_grpo_config(config)
+    assert report["generation_batch_size"] == 8
+    assert report["prompts_per_generation_batch"] == 1
+    assert report["settings_match_locked_contract"]
+
+    config.temperature = 1.0
+    with pytest.raises(RuntimeError, match="config drift for temperature"):
+        inspect_grpo_config(config)
 
 
 class FakeParameter:
