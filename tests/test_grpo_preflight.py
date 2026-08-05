@@ -12,6 +12,7 @@ from training.train_grpo import (
     LOCKED_BASE_MODEL,
     LOCKED_TARGET_MODULES,
     LOCKED_TRAINABLE_PARAMETERS,
+    inspect_model_trainability,
     main,
     parse_args,
     run_preflight,
@@ -90,11 +91,13 @@ def passing_kwargs(tmp_path: Path) -> dict:
     }
 
 
-def test_entrypoint_is_cpu_only_and_training_is_unavailable():
+def test_importing_entrypoint_is_cpu_only_and_training_is_unavailable():
     source_path = ROOT / "training" / "train_grpo.py"
     tree = ast.parse(source_path.read_text(encoding="utf-8"))
     imported_roots = set()
-    for node in ast.walk(tree):
+    # Runtime-only imports may exist inside guarded functions. This assertion
+    # covers imports executed merely by importing training.train_grpo.
+    for node in tree.body:
         if isinstance(node, ast.Import):
             imported_roots.update(
                 alias.name.split(".", 1)[0] for alias in node.names
@@ -105,8 +108,83 @@ def test_entrypoint_is_cpu_only_and_training_is_unavailable():
         {"torch", "transformers", "trl", "peft", "unsloth", "vllm"}
     )
     assert parse_args(["--preflight-only"]).preflight_only
+    assert parse_args(["--model-load-only"]).model_load_only
+    with pytest.raises(SystemExit):
+        parse_args(["--preflight-only", "--model-load-only"])
     with pytest.raises(SystemExit, match="training is intentionally unavailable"):
         main([])
+
+
+class FakeParameter:
+    def __init__(
+        self,
+        size: int,
+        *,
+        requires_grad: bool,
+        dtype: str = "torch.float32",
+        device: str = "cuda:0",
+    ):
+        self.size = size
+        self.requires_grad = requires_grad
+        self.dtype = dtype
+        self.device = device
+
+    def numel(self):
+        return self.size
+
+
+class FakeModel:
+    def __init__(self, parameters):
+        self.parameters = parameters
+
+    def named_parameters(self):
+        return iter(self.parameters)
+
+
+def locked_fake_model(*, bad_name: str | None = None, missing_target: bool = False):
+    targets = sorted(LOCKED_TARGET_MODULES)
+    quotient, remainder = divmod(LOCKED_TRAINABLE_PARAMETERS, len(targets))
+    parameters = [
+        (
+            "model.embed_tokens.weight",
+            FakeParameter(1_500_000_000, requires_grad=False),
+        )
+    ]
+    for index, target in enumerate(targets):
+        if missing_target and target == targets[-1]:
+            target = targets[0]
+        name = f"base_model.model.layers.0.{target}.lora_A.default.weight"
+        if bad_name is not None and index == 0:
+            name = bad_name
+        size = quotient + (1 if index < remainder else 0)
+        parameters.append((name, FakeParameter(size, requires_grad=True)))
+    return FakeModel(parameters)
+
+
+def test_model_trainability_matches_locked_lora_contract():
+    report = inspect_model_trainability(locked_fake_model())
+
+    assert report["trainable_parameters"] == LOCKED_TRAINABLE_PARAMETERS
+    assert report["trainable_tensors"] == len(LOCKED_TARGET_MODULES)
+    assert report["target_modules_observed"] == sorted(LOCKED_TARGET_MODULES)
+    assert report["only_lora_parameters_trainable"]
+    assert report["matches_locked_trainable_count"]
+    assert report["total_parameters"] > report["trainable_parameters"]
+
+
+def test_model_trainability_rejects_count_or_parameter_scope_drift():
+    model = locked_fake_model()
+    model.parameters[-1][1].size -= 1
+    with pytest.raises(RuntimeError, match="trainable-parameter count mismatch"):
+        inspect_model_trainability(model)
+
+    with pytest.raises(RuntimeError, match="non-LoRA parameter"):
+        inspect_model_trainability(
+            locked_fake_model(bad_name="base_model.model.layers.0.q_proj.weight")
+        )
+
+    with pytest.raises(RuntimeError, match="target modules mismatch"):
+        inspect_model_trainability(locked_fake_model(missing_target=True))
 
 
 def test_preflight_passes_without_creating_output_or_loading_cuda(tmp_path):

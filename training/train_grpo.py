@@ -1,28 +1,32 @@
 #!/usr/bin/env python3
-"""Guarded entry point for GRPO; currently implements preflight only.
+"""Guarded entry point for GRPO preflight and locked-model loading.
 
-This module deliberately has no Torch, Transformers, TRL, PEFT, Unsloth or vLLM
-imports. The first CUDA-capable import belongs after ``run_preflight`` succeeds
-in the future training path.
+Importing this module deliberately performs no Torch, Transformers, TRL, PEFT,
+Unsloth or vLLM import. The model-load-only path imports Unsloth and Torch only
+after ``run_preflight`` succeeds. GRPO trainer construction remains unavailable.
 """
 
 from __future__ import annotations
 
 import argparse
+import gc
 import hashlib
 import json
 import shutil
 import subprocess
+import time
 from pathlib import Path
 from typing import Callable, Sequence
 
 PREFLIGHT_VERSION = "grpo-smoke-preflight-v1"
+MODEL_LOAD_VERSION = "grpo-smoke-model-load-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
 DEFAULT_SELECTION_MANIFEST = "runs/sft-selection.json"
 DEFAULT_ADAPTER = "runs/sft-combined-2epoch/checkpoint-406"
 DEFAULT_OUTPUT_DIR = "runs/grpo-first-smoke"
 DEFAULT_MINIMUM_FREE_GIB = 3.0
+MODEL_MAX_SEQUENCE_LENGTH = 896
 
 LOCKED_FIXTURE_DATA_SHA256 = (
     "268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084"
@@ -49,6 +53,83 @@ LOCKED_TARGET_MODULES = {
     "up_proj",
     "down_proj",
 }
+
+
+def inspect_model_trainability(
+    model: object,
+    *,
+    expected_trainable_parameters: int = LOCKED_TRAINABLE_PARAMETERS,
+    expected_target_modules: set[str] = LOCKED_TARGET_MODULES,
+) -> dict:
+    """Fail unless the loaded policy exposes exactly the locked LoRA for training."""
+    named_parameters = getattr(model, "named_parameters", None)
+    if not callable(named_parameters):
+        raise TypeError("loaded model does not expose named_parameters()")
+
+    total_parameters = 0
+    trainable_parameters = 0
+    trainable_tensors = 0
+    trainable_names = []
+    trainable_dtypes: set[str] = set()
+    trainable_devices: set[str] = set()
+    observed_target_modules: set[str] = set()
+
+    for name, parameter in named_parameters():
+        if not isinstance(name, str) or not name:
+            raise RuntimeError("loaded model contains an invalid parameter name")
+        numel_fn = getattr(parameter, "numel", None)
+        if not callable(numel_fn):
+            raise TypeError(f"parameter {name} does not expose numel()")
+        numel = int(numel_fn())
+        if numel < 0:
+            raise RuntimeError(f"parameter {name} has a negative size")
+        total_parameters += numel
+
+        if not bool(getattr(parameter, "requires_grad", False)):
+            continue
+        trainable_parameters += numel
+        trainable_tensors += 1
+        trainable_names.append(name)
+        trainable_dtypes.add(str(getattr(parameter, "dtype", "unknown")))
+        trainable_devices.add(str(getattr(parameter, "device", "unknown")))
+        if "lora_" not in name.lower():
+            raise RuntimeError(f"non-LoRA parameter is unexpectedly trainable: {name}")
+        matched_targets = {
+            module
+            for module in expected_target_modules
+            if f".{module}." in f".{name}."
+        }
+        if len(matched_targets) != 1:
+            raise RuntimeError(
+                f"trainable parameter does not map to one locked target module: {name}"
+            )
+        observed_target_modules.update(matched_targets)
+
+    if trainable_parameters != expected_trainable_parameters:
+        raise RuntimeError(
+            "runtime trainable-parameter count mismatch: "
+            f"{trainable_parameters} != {expected_trainable_parameters}"
+        )
+    if observed_target_modules != expected_target_modules:
+        raise RuntimeError(
+            "runtime LoRA target modules mismatch: "
+            f"{sorted(observed_target_modules)} != {sorted(expected_target_modules)}"
+        )
+    if total_parameters <= trainable_parameters:
+        raise RuntimeError("loaded model does not contain a frozen base model")
+
+    return {
+        "total_parameters": total_parameters,
+        "trainable_parameters": trainable_parameters,
+        "trainable_percentage": 100 * trainable_parameters / total_parameters,
+        "trainable_tensors": trainable_tensors,
+        "trainable_parameter_names": trainable_names,
+        "trainable_dtypes": sorted(trainable_dtypes),
+        "trainable_devices": sorted(trainable_devices),
+        "target_modules_observed": sorted(observed_target_modules),
+        "only_lora_parameters_trainable": True,
+        "matches_locked_trainable_count": True,
+    }
 
 
 def _sha256_file(path: str | Path) -> str:
@@ -340,9 +421,110 @@ def run_preflight(
     }
 
 
+def _cuda_memory_snapshot(torch_module: object) -> dict:
+    """Capture one JSON-safe CUDA memory reading from the active device."""
+    cuda = getattr(torch_module, "cuda", None)
+    if cuda is None or not cuda.is_available():
+        raise RuntimeError("CUDA is unavailable for the GRPO model-load gate")
+    device_index = int(cuda.current_device())
+    properties = cuda.get_device_properties(device_index)
+    free_bytes, total_bytes = cuda.mem_get_info(device_index)
+    return {
+        "device_index": device_index,
+        "device_name": properties.name,
+        "device_total_bytes": int(properties.total_memory),
+        "driver_free_bytes": int(free_bytes),
+        "driver_used_bytes": int(total_bytes - free_bytes),
+        "torch_allocated_bytes": int(cuda.memory_allocated(device_index)),
+        "torch_reserved_bytes": int(cuda.memory_reserved(device_index)),
+        "torch_peak_allocated_bytes": int(cuda.max_memory_allocated(device_index)),
+        "torch_peak_reserved_bytes": int(cuda.max_memory_reserved(device_index)),
+    }
+
+
+def run_model_load_gate(
+    *,
+    adapter_path: str | Path,
+    adapter_file: str | Path,
+    expected_adapter_sha256: str = LOCKED_ADAPTER_SHA256,
+) -> dict:
+    """Load and inspect the locked policy, then release it without training."""
+    adapter_path = Path(adapter_path).resolve()
+    adapter_file = Path(adapter_file).resolve()
+
+    # Unsloth must patch the model stack before Torch/Transformers/TRL paths are
+    # used. No heavyweight import occurs unless the CPU-only preflight passed.
+    from unsloth import FastLanguageModel
+
+    import torch
+
+    model = None
+    tokenizer = None
+    report = None
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+    before = _cuda_memory_snapshot(torch)
+    started = time.perf_counter()
+    try:
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=str(adapter_path),  # Locked PEFT checkpoint, not fresh Qwen.
+            max_seq_length=MODEL_MAX_SEQUENCE_LENGTH,  # Measured SFT/GRPO ceiling.
+            dtype=torch.bfloat16,  # Match the bf16 SFT policy on the RTX 3090.
+            load_in_4bit=False,  # Continue the unquantized SFT adapter unchanged.
+            local_files_only=True,  # Refuse downloads or remote revision drift.
+            use_gradient_checkpointing="unsloth",  # Match planned GRPO memory mode.
+            fast_inference=False,  # Do not start the colocated vLLM path yet.
+        )
+        torch.cuda.synchronize()
+        trainability = inspect_model_trainability(model)
+        after_load = _cuda_memory_snapshot(torch)
+        adapter_sha_after_load = _sha256_file(adapter_file)
+        if adapter_sha_after_load != expected_adapter_sha256:
+            raise RuntimeError("source adapter changed during model loading")
+        report = {
+            "version": MODEL_LOAD_VERSION,
+            "status": "passed",
+            "adapter_path": str(adapter_path),
+            "adapter_file": str(adapter_file),
+            "adapter_sha256_after_load": adapter_sha_after_load,
+            "source_adapter_unchanged": True,
+            "base_model": LOCKED_BASE_MODEL,
+            "max_sequence_length": MODEL_MAX_SEQUENCE_LENGTH,
+            "dtype_requested": "bfloat16",
+            "load_in_4bit": False,
+            "local_files_only": True,
+            "gradient_checkpointing": "unsloth",
+            "fast_inference": False,
+            "model_class": type(model).__name__,
+            "tokenizer_class": type(tokenizer).__name__,
+            "load_seconds": time.perf_counter() - started,
+            "trainability": trainability,
+            "cuda_before_load": before,
+            "cuda_after_load": after_load,
+            "trainer_constructed": False,
+            "optimizer_constructed": False,
+            "generation_performed": False,
+            "training_steps": 0,
+        }
+    finally:
+        model = None
+        tokenizer = None
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+    if report is None:
+        raise RuntimeError("model-load gate ended without a report")
+    report["cuda_after_release"] = _cuda_memory_snapshot(torch)
+    report["model_retained"] = False
+    return report
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--preflight-only", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--preflight-only", action="store_true")
+    mode.add_argument("--model-load-only", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--fixture-data", default=DEFAULT_FIXTURE_DATA)
     parser.add_argument("--fixture-manifest", default=DEFAULT_FIXTURE_MANIFEST)
@@ -356,9 +538,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    if not args.preflight_only:
+    if not args.preflight_only and not args.model_load_only:
         raise SystemExit(
-            "training is intentionally unavailable; pass --preflight-only"
+            "training is intentionally unavailable; pass --preflight-only or "
+            "--model-load-only"
         )
     report = run_preflight(
         repo_root=args.repo_root,
@@ -370,6 +553,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         minimum_free_bytes=int(args.minimum_free_gib * 1024**3),
         expected_commit=args.expected_commit,
     )
+    if args.model_load_only:
+        report["model_load"] = run_model_load_gate(
+            adapter_path=report["sft_lock"]["adapter_path"],
+            adapter_file=report["sft_lock"]["adapter_file"],
+        )
+        report["cuda_imports_performed"] = True
+        report["model_loaded"] = True
+        report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
+        report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0
 
