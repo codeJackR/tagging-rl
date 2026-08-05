@@ -2,8 +2,8 @@
 
 **Document type:** living technical tracker and future blog brief
 **Started:** 2026-08-02
-**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight
-**Current status:** the deterministic pool, reward contract, five-row smoke fixture and fail-closed preflight are implemented; the preflight passed against the real locked adapter on Vast, while the five-step training path remains intentionally unavailable
+**Current scope:** locked SFT checkpoint → sampled difficulty measurement → GRPO prompt selection → first reward implementation → minimal smoke preflight → locked-model load gate
+**Current status:** the deterministic pool, reward contract, five-row smoke fixture, fail-closed preflight and model-load-only gate are implemented; the real locked adapter loaded and passed its runtime trainability assertions on Vast, while trainer construction and the five-step training path remain intentionally unavailable
 **Update rule:** record measured results only after their artifact and checksum exist; keep planned settings clearly labeled as planned
 
 ---
@@ -1830,6 +1830,95 @@ remained clean and all existing untracked checkpoints were preserved. This is
 the first preflight using the real 73.9 MB adapter, but it is still not a model
 load, runtime trainable-parameter measurement or GRPO training smoke.
 
+##### Real locked-model load gate
+
+Commit `01fc14913ed5a05533798ece9e658f671e169e61` added a mutually exclusive
+`--model-load-only` mode. It always reruns the complete CPU-visible preflight
+before importing Unsloth or Torch. The mode loads the selected PEFT checkpoint
+directly with `FastLanguageModel.from_pretrained()`; it never calls
+`get_peft_model()`, so it cannot silently replace the selected SFT LoRA with a
+new randomly initialized adapter. It then checks every runtime parameter and
+exits before importing or constructing `GRPOTrainer`.
+
+The pure trainability inspector rejects the model unless all of these are true:
+
+- exactly `18,464,768` parameters have `requires_grad=True`;
+- every trainable parameter name belongs to a LoRA matrix;
+- the observed targets are exactly q/k/v/o and gate/up/down projections;
+- a larger frozen base model is present; and
+- the source adapter's SHA-256 remains unchanged after loading.
+
+Three new CPU test cases cover the passing lock and failures for a one-parameter
+count drift, a trainable original-model weight and target-module drift. The
+focused preflight/model-gate file passes **8 tests**, and the complete local
+suite passes **231 tests**. These tests validate the guard logic with fake
+parameters; they do not substitute for the GPU load below.
+
+The Vast worktree was fast-forwarded to that exact commit while preserving all
+untracked checkpoints. Remote focused tests and the preflight passed first.
+Only then was this command allowed to run under `/venv/rl`:
+
+```bash
+python -m training.train_grpo \
+  --model-load-only \
+  --expected-commit 01fc14913ed5a05533798ece9e658f671e169e61
+```
+
+Measured result:
+
+| real runtime check | observed value |
+|---|---:|
+| gate status | passed |
+| loaded model class | `PeftModelForCausalLM` |
+| tokenizer class | `Qwen2TokenizerFast` |
+| model load time | 4.607 seconds |
+| total parameters exposed by loaded PEFT model | 1,562,179,072 |
+| trainable parameters | 18,464,768 |
+| trainable share | 1.182% |
+| trainable tensors | 392 |
+| trainable device | `cuda:0` |
+| trainable dtype | `torch.float32` |
+| observed LoRA targets | q/k/v/o plus gate/up/down |
+| source adapter SHA-256 unchanged | yes |
+| trainer / optimizer constructed | no / no |
+| generations / training steps | 0 / 0 |
+| GRPO output directory created | no |
+
+The 392 tensors have a useful architectural explanation: Qwen has 28 decoder
+layers, each layer has seven selected projection modules, and every LoRA module
+has an A and a B matrix. Therefore `28 × 7 × 2 = 392`. The exact
+18,464,768 count proves that the selected SFT adapter was made trainable rather
+than loaded only for inference. The `1.182%` denominator is the loaded PEFT
+model's full parameter count, including the adapter.
+
+The base model was requested in bf16, but the actual trainable LoRA tensors were
+float32. This is not evidence that the frozen base became float32; the gate
+reports the dtype of trainable tensors specifically. Keeping small trainable
+adapters in float32 gives their updates more numerical precision while the much
+larger frozen base remains memory-efficient.
+
+| CUDA memory reading | bytes | approximate GiB |
+|---|---:|---:|
+| Torch allocated after load | 3,190,780,416 | 2.97 |
+| Torch peak allocated | 3,264,639,488 | 3.04 |
+| Torch reserved after load | 3,202,351,104 | 2.98 |
+| Torch peak reserved | 3,275,751,424 | 3.05 |
+| Torch allocated after release | 12,713,984 | 0.012 |
+| Torch reserved after release | 20,971,520 | 0.020 |
+
+The external GPU reading was **428 MiB used and 23,699 MiB free** before the
+command and returned to the same values after process exit. A settled follow-up
+also showed **0% utilization** and **47°C**. Free disk remained
+`4,990,865,408` bytes, the tracked worktree/index remained clean,
+`runs/grpo-first-smoke` remained absent, and the adapter checksum remained
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+
+This result proves that the locked SFT policy fits, is attached correctly and
+can expose exactly the intended LoRA weights for optimization. It does **not**
+yet prove that eight-completion generation, reward callbacks, optimizer state,
+backpropagation or a full GRPO update fit together. Those belong to the next
+gates.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -2057,6 +2146,7 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Deterministic five-row smoke fixture, manifest and rebuild proof.
 - [x] CPU-only fail-closed GRPO preflight and synthetic negative tests.
 - [x] Real-adapter GRPO preflight on the Vast training environment.
+- [x] Real locked-adapter model load and runtime trainability assertions.
 - [ ] GRPO smoke and gradient evidence.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
