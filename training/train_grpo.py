@@ -3,7 +3,8 @@
 
 Importing this module deliberately performs no Torch, Transformers, TRL, PEFT,
 Unsloth or vLLM import. GPU-capable modes import their stack only after
-``run_preflight`` succeeds. Parameter updates remain intentionally unavailable.
+``run_preflight`` succeeds. The full five-step mode remains intentionally
+unavailable until each persistence and capture boundary has passed separately.
 """
 
 from __future__ import annotations
@@ -19,6 +20,12 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Callable, Sequence
+
+from training.grpo_smoke_artifacts import (
+    EXPECTED_ADAPTER_MODEL_BYTES,
+    validate_smoke_context,
+    write_and_publish_smoke_bundle,
+)
 
 PREFLIGHT_VERSION = "grpo-smoke-preflight-v1"
 MODEL_LOAD_VERSION = "grpo-smoke-model-load-v1"
@@ -992,6 +999,136 @@ def _ordered_sku_sha256(sku_ids: Sequence[str]) -> str:
 def _resolve(repo_root: Path, path: str | Path) -> Path:
     path = Path(path)
     return path.resolve() if path.is_absolute() else (repo_root / path).resolve()
+
+
+def build_completed_smoke_context(
+    *,
+    preflight_report: dict,
+    config_settings: dict,
+    trainability: dict,
+    global_step: int,
+    optimizer_steps: int,
+    rollout_records: int,
+    starting_lora_sha256: str,
+    final_lora_sha256: str,
+    peak_allocated_bytes: int,
+    peak_reserved_bytes: int,
+    disk_free_after_bytes: int,
+) -> dict:
+    """Translate measured trainer state into the publisher's locked schema."""
+    context = {
+        "git": dict(preflight_report["git"]),
+        "source_lock": {
+            "starting_adapter_sha256": preflight_report["sft_lock"][
+                "adapter_sha256"
+            ],
+            "fixture_data_sha256": preflight_report["fixture"]["data_sha256"],
+            "fixture_manifest_sha256": preflight_report["fixture"][
+                "manifest_sha256"
+            ],
+            "selection_manifest_sha256": preflight_report["sft_lock"][
+                "selection_manifest_sha256"
+            ],
+        },
+        "config": dict(config_settings),
+        "runtime": {
+            "global_step": int(global_step),
+            "trainable_tensors": int(trainability["trainable_tensors"]),
+            "trainable_parameters": int(trainability["trainable_parameters"]),
+            "starting_lora_sha256": starting_lora_sha256,
+            "final_lora_sha256": final_lora_sha256,
+            "source_adapter_unchanged": True,
+            "optimizer_steps": int(optimizer_steps),
+            "rollout_records": int(rollout_records),
+        },
+        "resources": {
+            "peak_allocated_bytes": int(peak_allocated_bytes),
+            "peak_reserved_bytes": int(peak_reserved_bytes),
+            "disk_free_after_bytes": int(disk_free_after_bytes),
+        },
+    }
+    validate_smoke_context(context)
+    return context
+
+
+def save_and_publish_completed_smoke(
+    *,
+    model: object,
+    tokenizer: object,
+    source_adapter_file: str | Path,
+    staging_dir: str | Path,
+    final_output_dir: str | Path,
+    records: Sequence[dict],
+    trainer_log_history: Sequence[dict],
+    expected_sku_ids: Sequence[str],
+    preflight_report: dict,
+    config_settings: dict,
+    trainability: dict,
+    global_step: int,
+    optimizer_steps: int,
+    starting_lora_sha256: str,
+    final_lora_sha256: str,
+    peak_allocated_bytes: int,
+    peak_reserved_bytes: int,
+    disk_usage_fn: Callable[[Path], object] | None = None,
+    expected_adapter_model_bytes: int = EXPECTED_ADAPTER_MODEL_BYTES,
+) -> dict:
+    """Save only the live LoRA/tokenizer and atomically publish its evidence."""
+    staging_dir = Path(staging_dir).resolve()
+    final_output_dir = Path(final_output_dir).resolve()
+    source_adapter_file = Path(source_adapter_file).resolve()
+    if final_output_dir.exists():
+        raise FileExistsError(
+            f"final smoke output already exists: {final_output_dir}"
+        )
+    expected_staging_prefix = f".{final_output_dir.name}.staging-"
+    if (
+        staging_dir.parent != final_output_dir.parent
+        or not staging_dir.name.startswith(expected_staging_prefix)
+    ):
+        raise ValueError("smoke staging directory is not bound to final output")
+    if not staging_dir.is_dir() or staging_dir.is_symlink():
+        raise FileNotFoundError("smoke staging directory is absent")
+    if any(staging_dir.iterdir()):
+        raise ValueError("smoke staging directory must be empty before adapter save")
+
+    expected_source_sha256 = preflight_report["sft_lock"]["adapter_sha256"]
+    if _sha256_file(source_adapter_file) != expected_source_sha256:
+        raise RuntimeError("source adapter changed before final save")
+    model_save = getattr(model, "save_pretrained", None)
+    tokenizer_save = getattr(tokenizer, "save_pretrained", None)
+    if not callable(model_save) or not callable(tokenizer_save):
+        raise TypeError("model and tokenizer must expose save_pretrained()")
+
+    adapter_dir = staging_dir / "adapter"
+    model_save(adapter_dir, safe_serialization=True)
+    tokenizer_save(adapter_dir)
+    if _sha256_file(source_adapter_file) != expected_source_sha256:
+        raise RuntimeError("source adapter changed while saving smoke output")
+
+    disk_usage = (disk_usage_fn or shutil.disk_usage)(staging_dir)
+    context = build_completed_smoke_context(
+        preflight_report=preflight_report,
+        config_settings=config_settings,
+        trainability=trainability,
+        global_step=global_step,
+        optimizer_steps=optimizer_steps,
+        rollout_records=len(records),
+        starting_lora_sha256=starting_lora_sha256,
+        final_lora_sha256=final_lora_sha256,
+        peak_allocated_bytes=peak_allocated_bytes,
+        peak_reserved_bytes=peak_reserved_bytes,
+        disk_free_after_bytes=int(disk_usage.free),
+    )
+    return write_and_publish_smoke_bundle(
+        staging_dir=staging_dir,
+        final_output_dir=final_output_dir,
+        records=records,
+        trainer_log_history=trainer_log_history,
+        expected_sku_ids=expected_sku_ids,
+        context=context,
+        expected_adapter_model_bytes=expected_adapter_model_bytes,
+    )
 
 
 def _read_json(path: Path) -> dict:
