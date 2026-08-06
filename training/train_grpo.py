@@ -10,6 +10,7 @@ unavailable until each persistence and capture boundary has passed separately.
 from __future__ import annotations
 
 import argparse
+import copy
 import gc
 import hashlib
 import json
@@ -23,7 +24,11 @@ from typing import Callable, Sequence
 
 from training.grpo_smoke_artifacts import (
     EXPECTED_ADAPTER_MODEL_BYTES,
+    GENERATIONS_PER_STEP,
+    EXPECTED_ROLLOUTS,
+    EXPECTED_STEPS,
     validate_smoke_context,
+    validate_rollout_records,
     write_and_publish_smoke_bundle,
 )
 
@@ -186,7 +191,7 @@ def build_rollout_evidence(
     truncated_and_masked: Sequence[bool],
 ) -> dict:
     """Validate and assemble one auditable eight-completion rollout group."""
-    expected = 8
+    expected = GENERATIONS_PER_STEP
     aligned = {
         "completions": len(completions),
         "reward_names": len(reward_names),
@@ -269,6 +274,171 @@ def build_rollout_evidence(
         ),
         "records": records,
     }
+
+
+def _tensor_like_to_list(value: object, *, label: str) -> list:
+    """Copy a tensor-like value to ordinary CPU-owned Python data."""
+    detach = getattr(value, "detach", None)
+    if callable(detach):
+        value = detach()
+    cpu = getattr(value, "cpu", None)
+    if callable(cpu):
+        value = cpu()
+    tolist = getattr(value, "tolist", None)
+    if callable(tolist):
+        value = tolist()
+    if not isinstance(value, (list, tuple)):
+        raise TypeError(f"{label} is not list- or tensor-like")
+    return list(value)
+
+
+class SmokeRolloutCollector:
+    """Freeze every generated group before TRL's latest-group deque overwrites it."""
+
+    def __init__(self, expected_sku_ids: Sequence[str]):
+        self.expected_sku_ids = tuple(expected_sku_ids)
+        if len(self.expected_sku_ids) != EXPECTED_STEPS:
+            raise ValueError("rollout collector requires exactly five ordered SKUs")
+        if len(set(self.expected_sku_ids)) != EXPECTED_STEPS:
+            raise ValueError("rollout collector SKU order contains duplicates")
+        self._groups: list[dict] = []
+
+    @property
+    def captured_steps(self) -> int:
+        return len(self._groups)
+
+    @property
+    def records(self) -> list[dict]:
+        return copy.deepcopy(
+            [record for group in self._groups for record in group["records"]]
+        )
+
+    def capture_from_trainer(
+        self,
+        *,
+        trainer: object,
+        inputs: Sequence[dict],
+        prepared: dict,
+    ) -> dict:
+        """Capture the just-generated group from one single-GPU TRL trainer."""
+        if not isinstance(prepared, dict):
+            raise TypeError("prepared rollout must be a dictionary")
+        accelerator = getattr(trainer, "accelerator", None)
+        if int(getattr(accelerator, "num_processes", 1)) != 1:
+            raise RuntimeError("smoke rollout capture supports exactly one process")
+        state = getattr(trainer, "state", None)
+        step = int(getattr(state, "global_step", -1)) + 1
+        expected_step = len(self._groups) + 1
+        if step != expected_step or not 1 <= step <= EXPECTED_STEPS:
+            raise RuntimeError(
+                f"rollout capture step drifted: {step} != {expected_step}"
+            )
+        if len(inputs) != GENERATIONS_PER_STEP or any(
+            not isinstance(row, dict) for row in inputs
+        ):
+            raise RuntimeError("rollout capture requires eight input rows")
+        expected_sku = self.expected_sku_ids[step - 1]
+        input_skus = [row.get("sku_id") for row in inputs]
+        if input_skus != [expected_sku] * GENERATIONS_PER_STEP:
+            raise RuntimeError(f"rollout input SKU drifted at step {step}")
+
+        logs = getattr(trainer, "_logs", None)
+        if not isinstance(logs, dict):
+            raise RuntimeError("trainer has no completion logs to capture")
+        completions = list(logs.get("completion", ()))
+        advantages = list(logs.get("advantages", ()))
+        reward_names = list(getattr(trainer, "reward_func_names", ()))
+        logged_rewards = logs.get("rewards", {})
+        component_rewards = {
+            name: list(logged_rewards.get(name, ())) for name in reward_names
+        }
+        reward_weights = _tensor_like_to_list(
+            getattr(trainer, "reward_weights", None), label="trainer reward weights"
+        )
+
+        completion_mask = prepared.get("completion_mask")
+        mask_rows = _tensor_like_to_list(
+            completion_mask, label="prepared completion mask"
+        )
+        if len(mask_rows) != GENERATIONS_PER_STEP:
+            raise RuntimeError("prepared completion mask must contain eight rows")
+        effective_completion_tokens = []
+        truncated_and_masked = []
+        for row in mask_rows:
+            values = _tensor_like_to_list(row, label="completion-mask row")
+            if any(value not in (0, 1, False, True) for value in values):
+                raise RuntimeError("completion mask contains a non-binary value")
+            effective_tokens = sum(int(value) for value in values)
+            effective_completion_tokens.append(effective_tokens)
+            truncated_and_masked.append(effective_tokens == 0)
+
+        group = build_rollout_evidence(
+            sku_id=expected_sku,
+            completions=completions,
+            reward_names=reward_names,
+            component_rewards=component_rewards,
+            reward_weights=reward_weights,
+            advantages=advantages,
+            effective_completion_tokens=effective_completion_tokens,
+            truncated_and_masked=truncated_and_masked,
+        )
+        group["step"] = step
+        group["records"] = [
+            {"step": step, **record} for record in group["records"]
+        ]
+        self._groups.append(group)
+        return {
+            "step": step,
+            "sku_id": expected_sku,
+            "records_captured": len(group["records"]),
+            "total_records_captured": len(self.records),
+            "truncated_and_masked_count": group["truncated_and_masked_count"],
+        }
+
+    def finalize(self) -> dict:
+        """Require and return the complete immutable 5 x 8 rollout evidence."""
+        records = self.records
+        if len(self._groups) != EXPECTED_STEPS or len(records) != EXPECTED_ROLLOUTS:
+            raise RuntimeError("rollout collector does not contain all five groups")
+        validation = validate_rollout_records(
+            records, expected_sku_ids=self.expected_sku_ids
+        )
+        return {
+            "groups": copy.deepcopy(self._groups),
+            "records": records,
+            "validation": validation,
+            "all_groups_captured_before_overwrite": True,
+        }
+
+
+def make_rollout_capturing_trainer_class(base_trainer_class: type) -> type:
+    """Wrap GRPOTrainer so every generated group is copied before training resumes."""
+    if not isinstance(base_trainer_class, type):
+        raise TypeError("base trainer must be a class")
+
+    class RolloutCapturingTrainer(base_trainer_class):
+        def __init__(
+            self,
+            *args,
+            smoke_rollout_collector: SmokeRolloutCollector,
+            **kwargs,
+        ):
+            if not isinstance(smoke_rollout_collector, SmokeRolloutCollector):
+                raise TypeError("trainer requires a SmokeRolloutCollector")
+            self.smoke_rollout_collector = smoke_rollout_collector
+            super().__init__(*args, **kwargs)
+
+        def _generate_and_score_completions(self, inputs):
+            prepared = super()._generate_and_score_completions(inputs)
+            self.smoke_rollout_collector.capture_from_trainer(
+                trainer=self,
+                inputs=inputs,
+                prepared=prepared,
+            )
+            return prepared
+
+    RolloutCapturingTrainer.__name__ = f"RolloutCapturing{base_trainer_class.__name__}"
+    return RolloutCapturingTrainer
 
 
 def inspect_model_trainability(
