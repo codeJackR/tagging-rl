@@ -2667,11 +2667,37 @@ locally and on Vast with `CUDA_VISIBLE_DEVICES=""`; the full local repository
 suite passed **248 tests**. No training output was created and no GPU smoke was
 run in this step.
 
-This contract is not yet connected to `training/train_grpo.py`, so it is
-implementation evidence, not evidence that the five-step smoke itself passes.
-The next gate is to wire the trainer's real rollout records, log history,
-adapter save and measured run context into this publisher, with CPU-only tests
-before spending GPU time.
+Commit `a33fce3` connected the final save/publish boundary to
+`training/train_grpo.py`, still without exposing a full-smoke CLI or running the
+GPU. The handoff now:
+
+1. refuses an existing final output or an unrelated/nonempty staging directory
+   before `save_pretrained()` is called;
+2. re-hashes the locked source adapter immediately before saving;
+3. calls the live model with `safe_serialization=True` and saves the tokenizer
+   beside the LoRA;
+4. re-hashes the source adapter after the save to detect accidental mutation;
+5. measures free disk after the adapter has consumed space, rather than relying
+   only on the earlier preflight reading;
+6. maps the preflight hashes, exact trainer configuration, trainable scope,
+   global/optimizer-step counts, LoRA before/after fingerprints and measured
+   CUDA peaks into the publisher context; and
+7. invokes the fail-closed validator and atomic directory publication.
+
+New fake-model/tokenizer integration tests prove the successful handoff and
+also prove that source mutation, a post-save disk reading one byte below 3 GiB,
+or an unbound staging path leaves the final output absent. The combined
+preflight/persistence/handoff suite passed **29 CPU-only tests** locally and on
+Vast with CUDA hidden. The complete local repository suite passed **252
+tests**.
+
+This remains implementation evidence, not evidence that the five-step smoke
+passes. Installed-TRL inspection showed why another boundary is required:
+`GRPOTrainer._logs` uses deques capped at the generation batch size and retains
+only the latest eight completions. Reading it after five updates would silently
+lose the first 32 rollouts. The next gate must therefore capture and freeze each
+eight-completion group when it is generated, assign it to the correct ordered
+step/SKU, and test all five groups before enabling training.
 
 ##### Smoke acceptance gates
 
@@ -2924,6 +2950,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   all-LoRA parameter deltas and unchanged source checkpoint.
 - [x] Atomic five-step smoke bundle contract with exact adapter allowlist,
   collision checks, disk bounds and CPU-only negative tests.
+- [x] CPU-tested live-adapter save and atomic-publisher handoff with source
+  re-hashing and post-save disk measurement.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
