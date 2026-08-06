@@ -2603,6 +2603,76 @@ memory-safe. It does **not** prove that later prompts remain stable, that a
 five-step adapter can be saved/reloaded, or that model quality improves. Those
 are the remaining purposes of the full five-step smoke and frozen evaluation.
 
+##### Five-step output persistence contract (implemented, not yet run)
+
+Commit `6da88ff` added a fail-closed persistence layer before connecting the
+full five-step trainer. This was deliberately tested without launching CUDA or
+performing another update. The purpose is to make a successful smoke
+recoverable and auditable while preventing a partial run, optimizer checkpoint
+or full-model save from being mistaken for the final LoRA result.
+
+The completed output is allowed to contain exactly:
+
+```text
+runs/grpo-first-smoke/
+├── adapter/           # final LoRA adapter plus tokenizer files
+├── manifest.json      # locks code, inputs, config, runtime and hashes
+├── rollouts.jsonl     # all 5 × 8 raw completions and reward details
+└── trainer-log.json   # one complete scalar record for each update
+```
+
+Publication uses a same-parent temporary directory named
+`.grpo-first-smoke.staging-*`. The code first refuses an existing final output,
+then validates the entire temporary bundle, and only then renames the directory
+to `runs/grpo-first-smoke`. Because staging and final output share a filesystem,
+the rename is atomic: readers see either no final run or the completed run, not
+a half-written final directory. A failed validation leaves the staging
+directory visible for diagnosis and does not publish it as completed evidence.
+
+The validator locks the following conditions:
+
+- exactly five ordered SKU groups and 40 total rollout records;
+- rollout indices `0..7` per step, nonempty raw output, all three reward
+  components, a correctly recomputed `1:1:2` weighted total, finite advantage,
+  `1..170` effective completion tokens and no truncation/masking;
+- at least one reward-varying group and at least one nonzero advantage;
+- exactly five complete trainer step logs, finite required GRPO metrics,
+  positive gradient norms, zero completion clipping and the expected no-warmup
+  cosine learning rates;
+- the exact smoke configuration: batch/generation size eight, one accumulation
+  step, learning rate `5e-6`, zero warmup, max gradient norm `1.0`, 8-bit AdamW,
+  beta zero, no vLLM trainer backend and no intermediate saves;
+- exactly 392 trainable LoRA tensors and 18,464,768 trainable parameters, five
+  optimizer steps, 40 rollout records, a changed live LoRA fingerprint and an
+  unchanged source adapter;
+- a clean tracked Git/index state plus full code, source-adapter, fixture and
+  selection hashes;
+- positive CUDA peak allocation, reserved peak no smaller than allocated peak,
+  and at least 3 GiB free disk after the run.
+
+The saved adapter has an exact allowlist matching the locked PEFT/tokenizer
+layout. Its `adapter_model.safetensors` must remain exactly 73,911,112 bytes,
+retain rank 16 and all seven combined attention/MLP targets, and differ in
+SHA-256 from the starting adapter. Optimizer/scheduler/RNG/trainer state,
+intermediate `checkpoint-*` directories and full-model weight names are
+forbidden. The complete bundle is capped at 256 MiB, which prevents an
+accidental full checkpoint from consuming the machine's limited disk.
+
+Seven focused CPU tests cover the valid bundle and deliberately broken cases:
+misordered or truncated rollouts, wrong learning-rate schedules, missing log
+metrics, optimizer-state leakage, unchanged or wrong-sized adapter weights,
+configuration drift, less than the 3 GiB disk floor, an existing final output,
+an unrelated staging directory and an incomplete staging root. They passed
+locally and on Vast with `CUDA_VISIBLE_DEVICES=""`; the full local repository
+suite passed **248 tests**. No training output was created and no GPU smoke was
+run in this step.
+
+This contract is not yet connected to `training/train_grpo.py`, so it is
+implementation evidence, not evidence that the five-step smoke itself passes.
+The next gate is to wire the trainer's real rollout records, log history,
+adapter save and measured run context into this publisher, with CPU-only tests
+before spending GPU time.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -2852,6 +2922,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   hyperparameters, lazy-state proof and unchanged weights.
 - [x] Real trainer-loop update at nonzero LR with complete 8-bit state, finite
   all-LoRA parameter deltas and unchanged source checkpoint.
+- [x] Atomic five-step smoke bundle contract with exact adapter allowlist,
+  collision checks, disk bounds and CPU-only negative tests.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
