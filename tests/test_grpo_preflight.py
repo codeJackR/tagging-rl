@@ -25,6 +25,7 @@ from training.train_grpo import (
     grpo_smoke_config_kwargs,
     inspect_grpo_config,
     inspect_model_trainability,
+    inspect_trainable_parameter_values,
     main,
     parse_args,
     run_preflight,
@@ -367,6 +368,13 @@ def test_initialized_optimizer_evidence_requires_complete_step_one_state():
     assert report["state_initialized_at_step_one"]
     assert report["state_is_finite"]
 
+    step_five = validate_initialized_optimizer_evidence(
+        {**stats, "state_step_values": [5]},
+        expected_step=5,
+    )
+    assert step_five["state_initialized_at_expected_step"]
+    assert not step_five["state_initialized_at_step_one"]
+
     with pytest.raises(RuntimeError, match="exactly at step one"):
         validate_initialized_optimizer_evidence({**stats, "state_step_values": [2]})
     with pytest.raises(RuntimeError, match="not fully 8-bit"):
@@ -426,14 +434,24 @@ class FakeParameter:
         requires_grad: bool,
         dtype: str = "torch.float32",
         device: str = "cuda:0",
+        finite_count: int | None = None,
     ):
         self.size = size
         self.requires_grad = requires_grad
         self.dtype = dtype
         self.device = device
+        self.finite_count = size if finite_count is None else finite_count
 
     def numel(self):
         return self.size
+
+    def detach(self):
+        return self
+
+    def isfinite(self):
+        return SimpleNamespace(
+            sum=lambda: SimpleNamespace(item=lambda: self.finite_count)
+        )
 
 
 class FakeModel:
@@ -488,6 +506,22 @@ def test_model_trainability_rejects_count_or_parameter_scope_drift():
 
     with pytest.raises(RuntimeError, match="target modules mismatch"):
         inspect_model_trainability(locked_fake_model(missing_target=True))
+
+
+def test_trainable_parameter_value_audit_rejects_nonfinite_values():
+    model = locked_fake_model()
+    report = inspect_trainable_parameter_values(
+        model,
+        expected_trainable_tensors=len(LOCKED_TARGET_MODULES),
+    )
+    assert report["all_trainable_values_finite"]
+
+    model.parameters[-1][1].finite_count -= 1
+    with pytest.raises(RuntimeError, match="contains NaN or infinity"):
+        inspect_trainable_parameter_values(
+            model,
+            expected_trainable_tensors=len(LOCKED_TARGET_MODULES),
+        )
 
 
 def test_preflight_passes_without_creating_output_or_loading_cuda(tmp_path):

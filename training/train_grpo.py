@@ -27,8 +27,10 @@ from training.grpo_smoke_artifacts import (
     GENERATIONS_PER_STEP,
     EXPECTED_ROLLOUTS,
     EXPECTED_STEPS,
+    create_staging_output,
     validate_smoke_context,
     validate_rollout_records,
+    validate_trainer_log_history,
     write_and_publish_smoke_bundle,
 )
 
@@ -540,6 +542,39 @@ def _trainable_parameter_sha256(model: object) -> str:
     return digest.hexdigest()
 
 
+def inspect_trainable_parameter_values(
+    model: object,
+    *,
+    expected_trainable_parameters: int = LOCKED_TRAINABLE_PARAMETERS,
+    expected_trainable_tensors: int = LOCKED_TRAINABLE_TENSORS,
+) -> dict:
+    """Require every value in the exact trainable LoRA footprint to be finite."""
+    trainable_tensors = 0
+    trainable_parameters = 0
+    nonfinite_parameters = 0
+    for _name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        trainable_tensors += 1
+        values = parameter.detach()
+        elements = int(values.numel())
+        trainable_parameters += elements
+        finite_elements = int(values.isfinite().sum().item())
+        nonfinite_parameters += elements - finite_elements
+    if trainable_tensors != expected_trainable_tensors:
+        raise RuntimeError("finite-value audit has an unexpected tensor count")
+    if trainable_parameters != expected_trainable_parameters:
+        raise RuntimeError("finite-value audit has an unexpected parameter count")
+    if nonfinite_parameters != 0:
+        raise RuntimeError("five-step LoRA contains NaN or infinity")
+    return {
+        "trainable_tensors": trainable_tensors,
+        "trainable_parameters": trainable_parameters,
+        "nonfinite_parameters": 0,
+        "all_trainable_values_finite": True,
+    }
+
+
 def validate_gradient_evidence(stats: dict) -> dict:
     """Fail closed unless backward produced complete, finite, nonzero LoRA gradients."""
     if stats.get("trainable_tensors") != LOCKED_TRAINABLE_TENSORS:
@@ -1028,8 +1063,14 @@ def inspect_parameter_update(model: object, before: dict) -> dict:
     return validate_parameter_update_evidence(stats)
 
 
-def validate_initialized_optimizer_evidence(stats: dict) -> dict:
-    """Fail unless the first real step initialized complete finite 8-bit state."""
+def validate_initialized_optimizer_evidence(
+    stats: dict,
+    *,
+    expected_step: int = 1,
+) -> dict:
+    """Fail unless an update initialized complete finite 8-bit optimizer state."""
+    if expected_step <= 0:
+        raise ValueError("expected optimizer step must be positive")
     if stats.get("optimizer_class") != "AdamW":
         raise RuntimeError("updated optimizer is not bitsandbytes AdamW")
     if stats.get("optimizer_bits") != 8 or stats.get("is_paged"):
@@ -1042,8 +1083,11 @@ def validate_initialized_optimizer_evidence(stats: dict) -> dict:
         raise RuntimeError("at least one trainable LoRA tensor has no optimizer state")
     if stats.get("foreign_state_entries") != 0:
         raise RuntimeError("optimizer state includes a frozen or foreign tensor")
-    if stats.get("state_step_values") != [1]:
-        raise RuntimeError("optimizer state is not exactly at step one")
+    if stats.get("state_step_values") != [expected_step]:
+        step_label = "one" if expected_step == 1 else str(expected_step)
+        raise RuntimeError(
+            f"optimizer state is not exactly at step {step_label}"
+        )
     if stats.get("state1_elements") != LOCKED_TRAINABLE_PARAMETERS:
         raise RuntimeError("first-moment optimizer state has the wrong size")
     if stats.get("state2_elements") != LOCKED_TRAINABLE_PARAMETERS:
@@ -1063,13 +1107,19 @@ def validate_initialized_optimizer_evidence(stats: dict) -> dict:
     return {
         **stats,
         "state_covers_exact_locked_lora": True,
-        "state_initialized_at_step_one": True,
+        "state_initialized_at_expected_step": True,
+        "state_initialized_at_step_one": expected_step == 1,
         "state_is_finite": True,
     }
 
 
-def inspect_initialized_optimizer(optimizer: object, model: object) -> dict:
-    """Measure bitsandbytes state after exactly one real optimizer step."""
+def inspect_initialized_optimizer(
+    optimizer: object,
+    model: object,
+    *,
+    expected_step: int = 1,
+) -> dict:
+    """Measure bitsandbytes state after an exact expected optimizer step."""
     trainable_parameters = [
         parameter for parameter in model.parameters() if parameter.requires_grad
     ]
@@ -1150,7 +1200,10 @@ def inspect_initialized_optimizer(optimizer: object, model: object) -> dict:
     }
     if stats["gradients_attached_after_step"] != 0:
         raise RuntimeError("trainer left gradients attached after the first step")
-    return validate_initialized_optimizer_evidence(stats)
+    return validate_initialized_optimizer_evidence(
+        stats,
+        expected_step=expected_step,
+    )
 
 
 def _sha256_file(path: str | Path) -> str:
@@ -1299,6 +1352,151 @@ def save_and_publish_completed_smoke(
         context=context,
         expected_adapter_model_bytes=expected_adapter_model_bytes,
     )
+
+
+def run_five_step_smoke_orchestration(
+    *,
+    trainer: object,
+    tokenizer: object,
+    source_adapter_file: str | Path,
+    final_output_dir: str | Path,
+    expected_sku_ids: Sequence[str],
+    preflight_report: dict,
+    config_settings: dict,
+    cuda_snapshot_fn: Callable[[], dict],
+    trainability_fn: Callable[[object], dict] = inspect_model_trainability,
+    parameter_values_fn: Callable[[object], dict] = (
+        inspect_trainable_parameter_values
+    ),
+    fingerprint_fn: Callable[[object], str] = _trainable_parameter_sha256,
+    optimizer_inspector_fn: Callable[..., dict] = inspect_initialized_optimizer,
+    disk_usage_fn: Callable[[Path], object] | None = None,
+    expected_adapter_model_bytes: int = EXPECTED_ADAPTER_MODEL_BYTES,
+) -> dict:
+    """Run, validate and publish one already-constructed capturing trainer."""
+    final_output_dir = Path(final_output_dir).resolve()
+    if final_output_dir.exists():
+        raise FileExistsError(
+            f"final smoke output already exists: {final_output_dir}"
+        )
+    collector = getattr(trainer, "smoke_rollout_collector", None)
+    if not isinstance(collector, SmokeRolloutCollector):
+        raise TypeError("five-step trainer has no SmokeRolloutCollector")
+    if collector.expected_sku_ids != tuple(expected_sku_ids):
+        raise RuntimeError("trainer collector SKU order drifted")
+    state = getattr(trainer, "state", None)
+    if int(getattr(state, "global_step", -1)) != 0:
+        raise RuntimeError("five-step trainer did not start at global_step zero")
+    if getattr(trainer, "optimizer", None) is not None:
+        raise RuntimeError("five-step trainer started with an optimizer")
+    if getattr(trainer, "lr_scheduler", None) is not None:
+        raise RuntimeError("five-step trainer started with an LR scheduler")
+    model = getattr(trainer, "model", None)
+    if model is None:
+        raise RuntimeError("five-step trainer has no model")
+
+    trainability_before = trainability_fn(model)
+    starting_lora_sha256 = fingerprint_fn(model)
+    if not callable(cuda_snapshot_fn):
+        raise TypeError("five-step orchestration requires CUDA measurement")
+    cuda_before_train = cuda_snapshot_fn()
+    train_started = time.perf_counter()
+    train_result = trainer.train()
+    train_seconds = time.perf_counter() - train_started
+    cuda_after_train = cuda_snapshot_fn()
+
+    completed_step = int(getattr(trainer.state, "global_step", -1))
+    if completed_step != EXPECTED_STEPS:
+        raise RuntimeError("five-step trainer did not finish exactly five updates")
+    if int(getattr(train_result, "global_step", -1)) != EXPECTED_STEPS:
+        raise RuntimeError("trainer result disagrees with completed global step")
+    if getattr(trainer, "optimizer", None) is None:
+        raise RuntimeError("five-step trainer did not construct an optimizer")
+    if getattr(trainer, "lr_scheduler", None) is None:
+        raise RuntimeError("five-step trainer did not construct an LR scheduler")
+
+    rollout_evidence = collector.finalize()
+    log_history = [dict(entry) for entry in trainer.state.log_history]
+    trainer_log_validation = validate_trainer_log_history(log_history)
+    trainability_after = trainability_fn(model)
+    if trainability_after["trainable_tensors"] != trainability_before[
+        "trainable_tensors"
+    ]:
+        raise RuntimeError("trainable tensor count changed during five-step smoke")
+    if trainability_after["trainable_parameters"] != trainability_before[
+        "trainable_parameters"
+    ]:
+        raise RuntimeError("trainable parameter count changed during five-step smoke")
+    before_names = trainability_before.get("trainable_parameter_names")
+    after_names = trainability_after.get("trainable_parameter_names")
+    if before_names is not None and after_names != before_names:
+        raise RuntimeError("trainable parameter names changed during five-step smoke")
+    parameter_values = parameter_values_fn(model)
+    final_lora_sha256 = fingerprint_fn(model)
+    if final_lora_sha256 == starting_lora_sha256:
+        raise RuntimeError("five-step smoke changed no trainable LoRA bytes")
+
+    wrapped_optimizer = trainer.optimizer
+    base_optimizer = getattr(wrapped_optimizer, "optimizer", wrapped_optimizer)
+    optimizer_state = optimizer_inspector_fn(
+        base_optimizer,
+        model,
+        expected_step=EXPECTED_STEPS,
+    )
+    cuda_after_audit = cuda_snapshot_fn()
+    peak_allocated_bytes = int(
+        cuda_after_audit.get("torch_peak_allocated_bytes", 0)
+    )
+    peak_reserved_bytes = int(
+        cuda_after_audit.get("torch_peak_reserved_bytes", 0)
+    )
+    if peak_allocated_bytes <= 0 or peak_reserved_bytes < peak_allocated_bytes:
+        raise RuntimeError("five-step trainer produced invalid CUDA peak evidence")
+
+    staging_dir = create_staging_output(final_output_dir)
+    manifest = save_and_publish_completed_smoke(
+        model=model,
+        tokenizer=tokenizer,
+        source_adapter_file=source_adapter_file,
+        staging_dir=staging_dir,
+        final_output_dir=final_output_dir,
+        records=rollout_evidence["records"],
+        trainer_log_history=log_history,
+        expected_sku_ids=expected_sku_ids,
+        preflight_report=preflight_report,
+        config_settings=config_settings,
+        trainability=trainability_after,
+        global_step=completed_step,
+        optimizer_steps=completed_step,
+        starting_lora_sha256=starting_lora_sha256,
+        final_lora_sha256=final_lora_sha256,
+        peak_allocated_bytes=peak_allocated_bytes,
+        peak_reserved_bytes=peak_reserved_bytes,
+        disk_usage_fn=disk_usage_fn,
+        expected_adapter_model_bytes=expected_adapter_model_bytes,
+    )
+    train_metrics = dict(getattr(train_result, "metrics", {}))
+    return {
+        "status": "passed",
+        "global_step": completed_step,
+        "optimizer_steps": completed_step,
+        "train_seconds": train_seconds,
+        "train_metrics": train_metrics,
+        "trainability_before": trainability_before,
+        "trainability_after": trainability_after,
+        "parameter_values": parameter_values,
+        "starting_lora_sha256": starting_lora_sha256,
+        "final_lora_sha256": final_lora_sha256,
+        "rollout_validation": rollout_evidence["validation"],
+        "trainer_log_validation": trainer_log_validation,
+        "optimizer_state": optimizer_state,
+        "cuda_before_train": cuda_before_train,
+        "cuda_after_train": cuda_after_train,
+        "cuda_after_audit": cuda_after_audit,
+        "manifest": manifest,
+        "final_output_dir": str(final_output_dir),
+        "published": True,
+    }
 
 
 def _read_json(path: Path) -> dict:
