@@ -2744,6 +2744,54 @@ evidence, then pass those records and trainer logs through the already tested
 save/publish handoff. That path should receive CPU-level control-flow tests
 before its CLI is allowed to spend GPU time.
 
+Commit `5753784` implemented and CPU-tested that orchestration boundary. It
+accepts an already constructed capturing trainer but remains unreachable from
+the command line, so this commit cannot launch the GPU smoke.
+
+The orchestrator now executes the following fail-closed sequence:
+
+1. Refuse an existing final output, a missing collector, collector/SKU-order
+   drift, a nonzero starting step, pre-existing optimizer/scheduler state or a
+   missing model.
+2. Recheck the exact trainable scope and fingerprint the starting live LoRA.
+3. Record CUDA state, call the trainer's normal `train()` method once, and
+   record CUDA state immediately afterward.
+4. Require both trainer state and returned `TrainOutput` to report exactly five
+   completed optimizer steps, with optimizer and scheduler now present.
+5. Finalize exactly 40 captured rollout records and validate all five complete
+   trainer logs before any output directory is created.
+6. Recheck trainable tensor/parameter counts and names, prove all 18,464,768
+   live LoRA values are finite, and require the final LoRA fingerprint to differ
+   from the starting fingerprint.
+7. Generalize the existing real bitsandbytes state audit from step one to an
+   explicitly required step five, still requiring complete 8-bit state for all
+   392 LoRA tensors and no frozen/foreign state.
+8. Sample CUDA again after fingerprint/value/optimizer audits and use this
+   later peak in the manifest, so audit-time temporary allocations are not
+   omitted.
+9. Only after every in-memory check passes, create staging and invoke the
+   previously tested source-rehash, post-save-disk and atomic-publish handoff.
+
+The end-to-end CPU fake followed the same call shape: five generation groups,
+five optimizer steps, five scheduled trainer logs, finite changed LoRA state,
+step-five optimizer evidence, adapter/tokenizer save and final atomic
+publication. Negative tests proved that a four-step result, only four captured
+groups, an unchanged LoRA fingerprint or nonfinite LoRA values all fail before
+`save_pretrained()` and before a final or staging output is created. The
+generalized optimizer validator also retains the existing one-update behavior
+while accepting only `[5]` for the future full smoke.
+
+The combined focused suite passed **40 CPU-only tests** locally and on Vast;
+the complete local suite passed **263 tests**. No Torch/TRL model was imported,
+no CUDA context was initialized and no optimizer update occurred in this gate.
+
+This proves orchestration logic and failure ordering, not compatibility with a
+live `GRPOTrainer`. The next small gate is to construct the real capturing
+trainer and connect it to this orchestrator inside a dedicated full-smoke
+function while keeping that function unavailable from CLI dispatch. Only after
+that construction path passes static/CPU checks should a separately reviewed
+CLI flag and remote preflight make GPU execution possible.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -2999,6 +3047,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   re-hashing and post-save disk measurement.
 - [x] Generation-time collector preserving all five ordered rollout groups
   before TRL's latest-eight deque overwrites earlier evidence.
+- [x] CPU-only end-to-end five-step orchestration with fail-before-save negative
+  tests, finite-LoRA audit and exact step-five optimizer-state requirement.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
