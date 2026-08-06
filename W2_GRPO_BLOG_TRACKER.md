@@ -2699,6 +2699,51 @@ lose the first 32 rollouts. The next gate must therefore capture and freeze each
 eight-completion group when it is generated, assign it to the correct ordered
 step/SKU, and test all five groups before enabling training.
 
+Commit `b96cd93` implemented that generation-time capture boundary. A narrow
+`GRPOTrainer` subclass wrapper calls the installed trainer's real
+`_generate_and_score_completions()` first, copies its just-produced evidence to
+ordinary CPU-owned Python values, and then returns the original prepared tensor
+dictionary unchanged so normal loss/backward behavior is not altered.
+
+For every group, the collector fails unless:
+
+- the run is single-process, matching the one-RTX-3090 smoke contract;
+- `global_step + 1` is exactly the next step from one through five;
+- all eight input rows repeat the SKU predeclared for that step;
+- completion text, three component-reward arrays, reward weights and advantages
+  are aligned and finite; and
+- the prepared completion mask has eight binary rows from which effective token
+  counts and truncation/masking status can be copied.
+
+Each record receives its step number before the next optimizer step can replace
+TRL's deque. Returned evidence is deep-copied so a downstream caller cannot
+mutate the collector's internal audit trail. Finalization requires exactly five
+groups and 40 ordered records, then runs the same strict rollout validator used
+by atomic publication. A truncated/masked completion is retained as failure
+evidence but prevents finalization from passing.
+
+CPU fakes reproduced TRL's latest-eight behavior across five steps. After the
+fake trainer retained only step-five completions, the collector still held
+step-one record 0, step-four record 31 and step-five record 39 in exact order.
+Negative tests covered a duplicate step, wrong SKU, multi-process execution,
+missing collector, caller mutation and a truncated completion. The combined
+collector/preflight/persistence/handoff suite passed **34 tests** locally and on
+Vast with CUDA hidden; the complete local suite passed **257 tests**. No model
+was loaded and no optimizer step was run.
+
+Installed TRL source inspection also confirmed the timing assumption behind the
+mapping. With the locked `steps_per_generation=1` and `num_iterations=1`,
+generation occurs before every optimizer update. Therefore generation while
+`global_step=0` belongs to update one, through generation while
+`global_step=4` belonging to update five. Any duplicate or skipped mapping now
+aborts immediately.
+
+The next gate is orchestration: instantiate this capturing trainer for the
+full-smoke-only path, require five completed updates and finalized rollout
+evidence, then pass those records and trainer logs through the already tested
+save/publish handoff. That path should receive CPU-level control-flow tests
+before its CLI is allowed to spend GPU time.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -2952,6 +2997,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   collision checks, disk bounds and CPU-only negative tests.
 - [x] CPU-tested live-adapter save and atomic-publisher handoff with source
   re-hashing and post-save disk measurement.
+- [x] Generation-time collector preserving all five ordered rollout groups
+  before TRL's latest-eight deque overwrites earlier evidence.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
