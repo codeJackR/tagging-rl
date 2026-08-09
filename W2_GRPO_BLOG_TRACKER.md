@@ -2881,6 +2881,54 @@ fully synced commit: confirm clean tracked Git state, exact source hashes,
 reserved-output absence, current disk/GPU state and no stale staging directory.
 That audit must still not call the new training flag.
 
+##### Remote launch-readiness preflight (no training)
+
+The first readiness audit ran on Vast at exact commit
+`19ad6b2d728f6c618470357ddc32f46720c0b0ba` using only:
+
+```bash
+/venv/rl/bin/python -m training.train_grpo \
+  --preflight-only \
+  --expected-commit 19ad6b2d728f6c618470357ddc32f46720c0b0ba
+```
+
+It passed with these measured locks:
+
+| readiness item | measured result |
+|---|---|
+| tracked worktree / index | clean / clean |
+| fixture rows | 5 in exact manifest order |
+| fixture data SHA-256 | `268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084` |
+| fixture manifest SHA-256 | `e898510534d967b9a35367e0aba5a564e6cb564e2c326d45804d0319d528dd05` |
+| ordered-SKU SHA-256 | `99820aef9777190af82b999d587a260198e65ef9c420c0ca5d6befde06fe7af0` |
+| SFT selection SHA-256 | `e425635d323b3ffe9e7350fb61a2d9e1848345a95abab6b92032bf64d2718299` |
+| source adapter SHA-256 | `00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af` |
+| source adapter bytes | 73,911,112 |
+| LoRA rank / alpha | 16 / 16 |
+| LoRA targets | q/k/v/o plus gate/up/down projections |
+| expected trainable parameters | 18,464,768 |
+| reserved final output | absent and collision-free |
+| stale `.grpo-first-smoke.staging-*` | absent |
+| free disk | 4,882,526,208 bytes, about 4.55 GiB |
+| required disk floor | 3,221,225,472 bytes = 3 GiB |
+| RTX 3090 before preflight | 264 MiB, 0% utilization, 39°C |
+
+The report explicitly recorded `cuda_imports_performed: false`,
+`model_loaded: false` and `trainer_constructed: false`. A post-preflight audit
+found no final or staging output, no tracked Git change, exactly the same free
+disk byte count and the same 264 MiB / 0% / 39°C GPU reading. Thus preflight was
+read-only with respect to the model, optimizer, GPU and reserved evidence path.
+
+Historical untracked SFT checkpoints, difficulty artifacts and the compiled
+Unsloth cache remained present and untouched. They do not make the tracked
+worktree dirty and are expected inputs/history rather than stale full-smoke
+output.
+
+Recording this audit changes HEAD only through this tracker documentation. The
+same preflight must be repeated against the resulting synchronized commit before
+any launch; the training command itself also embeds this exact-commit preflight,
+so a documentation commit cannot silently bypass the code-state lock.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -3142,6 +3190,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   deliberately unavailable from CLI dispatch.
 - [x] Mutually exclusive, commit-locked five-step CLI launch control with
   reserved output, 3 GiB floor, preflight-before-GPU dispatch and CPU tests.
+- [x] Remote preflight-only readiness audit with exact hashes, output/staging
+  absence, 4.55 GiB free disk and unchanged idle GPU state.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
