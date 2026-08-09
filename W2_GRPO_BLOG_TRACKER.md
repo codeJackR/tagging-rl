@@ -2792,6 +2792,54 @@ function while keeping that function unavailable from CLI dispatch. Only after
 that construction path passes static/CPU checks should a separately reviewed
 CLI flag and remote preflight make GPU execution possible.
 
+Commit `f7cc285` connected that live construction path without exposing it to
+CLI dispatch. The module still performs no Torch, TRL, Unsloth, vLLM or PEFT
+import when imported. Only a direct call to the new private execution boundary
+loads Unsloth first, followed by Torch, bitsandbytes and TRL in the required
+patching order.
+
+The dedicated full-smoke gate now:
+
+1. Requires the preflight's exact five-SKU order and an absent final output.
+2. Loads the locked adapter through the existing local-only, bf16,
+   non-quantized policy loader.
+3. Rechecks the 392-tensor/18,464,768-parameter trainable LoRA scope before
+   trainer construction.
+4. Loads the deterministic five-row pass-rate-0.5 dataset and requires exactly
+   the `prompt`, hidden `gold` and hidden `sku_id` columns in manifest order.
+5. Requires the three reward functions to retain their exact names and `1:1:2`
+   weights before constructing anything expensive.
+6. Builds the locked `GRPOConfig` in a disposable trainer-output directory,
+   wraps the installed `GRPOTrainer` with the generation-time collector, and
+   verifies that the trainer retained dataset order, reward order and weights.
+7. Requires global step zero and no optimizer, scheduler or beta-zero reference
+   model at the handoff boundary.
+8. Re-hashes the source adapter after construction, then passes this exact live
+   trainer to the already tested five-step orchestrator.
+9. Accepts success only if orchestration reports a completed manifest and the
+   final output directory actually exists.
+10. Removes the disposable trainer directory, clears only bitsandbytes global
+    optimizer overrides added after the gate began, releases model/trainer
+    references and records post-release CUDA state.
+
+The timing report now separates model-plus-trainer construction from total gate
+time; it does not label training time as construction time. CPU dependency
+injection proved the exact real call shape without importing the GPU stack. The
+tests also rejected reversed dataset order, source-adapter mutation and renamed
+reward functions, and confirmed that `--five-step-smoke` remains an unknown CLI
+argument.
+
+The combined construction/orchestration/persistence suite passed **44 CPU-only
+tests** locally and on Vast with CUDA hidden. The complete local suite passed
+**267 tests**. No real model was loaded, no CUDA context was initialized and no
+optimizer update occurred in this gate.
+
+The next gate is the final launch-control boundary: add a mutually exclusive
+five-step CLI mode that can only run after the existing preflight, can only
+write the reserved atomic bundle, and cannot also write a standalone gate
+report. Its parser/dispatch and collision failures should be CPU-tested first;
+the actual remote command should still wait for a separate explicit step.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -3049,6 +3097,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   before TRL's latest-eight deque overwrites earlier evidence.
 - [x] CPU-only end-to-end five-step orchestration with fail-before-save negative
   tests, finite-LoRA audit and exact step-five optimizer-state requirement.
+- [x] Live Unsloth/TRL construction path connected to guarded orchestration but
+  deliberately unavailable from CLI dispatch.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
