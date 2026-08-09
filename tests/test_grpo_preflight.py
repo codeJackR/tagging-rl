@@ -8,6 +8,8 @@ from types import SimpleNamespace
 
 import pytest
 
+import training.train_grpo as train_grpo_module
+
 from training.train_grpo import (
     LOCKED_ADAM_BETAS,
     LOCKED_ADAM_EPSILON,
@@ -33,6 +35,7 @@ from training.train_grpo import (
     validate_gradient_evidence,
     validate_initialized_optimizer_evidence,
     validate_parameter_update_evidence,
+    validate_five_step_launch_args,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -133,8 +136,11 @@ def test_importing_entrypoint_is_cpu_only_and_training_is_unavailable():
         ["--optimizer-construction-only"]
     ).optimizer_construction_only
     assert parse_args(["--one-update-only"]).one_update_only
+    assert parse_args(["--five-step-smoke"]).five_step_smoke
     with pytest.raises(SystemExit):
         parse_args(["--preflight-only", "--model-load-only"])
+    with pytest.raises(SystemExit):
+        parse_args(["--one-update-only", "--five-step-smoke"])
     with pytest.raises(SystemExit, match="training is intentionally unavailable"):
         main([])
 
@@ -147,6 +153,123 @@ def test_rollout_report_file_is_mode_locked_and_collision_safe(tmp_path):
     report_path.write_text("existing evidence", encoding="utf-8")
     with pytest.raises(FileExistsError, match="evidence report already exists"):
         main(["--rollout-only", "--report-file", str(report_path)])
+
+
+def test_five_step_launch_control_rejects_unlocked_arguments(tmp_path):
+    valid = [
+        "--five-step-smoke",
+        "--repo-root",
+        str(tmp_path),
+        "--expected-commit",
+        "a" * 40,
+    ]
+    report = validate_five_step_launch_args(parse_args(valid))
+    assert report["passed"]
+    assert report["standalone_report_forbidden"]
+    assert report["reserved_output"] == str(
+        (tmp_path / "runs" / "grpo-first-smoke").resolve()
+    )
+
+    with pytest.raises(SystemExit, match="full lowercase"):
+        main(["--five-step-smoke", "--repo-root", str(tmp_path)])
+    with pytest.raises(SystemExit, match="full lowercase"):
+        main(
+            [
+                "--five-step-smoke",
+                "--repo-root",
+                str(tmp_path),
+                "--expected-commit",
+                "A" * 40,
+            ]
+        )
+    with pytest.raises(SystemExit, match="reserved"):
+        main([*valid, "--output-dir", "runs/not-the-smoke"])
+    with pytest.raises(SystemExit, match="at least 3 GiB"):
+        main([*valid, "--minimum-free-gib", "2.99"])
+    with pytest.raises(SystemExit, match="--report-file is forbidden"):
+        main([*valid, "--report-file", str(tmp_path / "extra.json")])
+
+
+def test_five_step_cli_dispatches_only_after_preflight(monkeypatch, tmp_path, capsys):
+    observed = {}
+    final_output = tmp_path / "runs" / "grpo-first-smoke"
+
+    def fake_preflight(**kwargs):
+        observed["preflight"] = kwargs
+        return {
+            "version": "fake-preflight",
+            "status": "passed",
+            "fixture": {
+                "data_path": str(tmp_path / "fixture.jsonl"),
+                "sku_ids_in_step_order": [f"sku-{index}" for index in range(5)],
+            },
+            "sft_lock": {
+                "adapter_path": str(tmp_path / "checkpoint-406"),
+                "adapter_file": str(tmp_path / "adapter_model.safetensors"),
+                "runtime_trainable_parameter_assertion_required": True,
+            },
+            "output": {
+                "path": str(final_output),
+                "collision_free": True,
+                "created": False,
+            },
+            "cuda_imports_performed": False,
+            "model_loaded": False,
+            "trainer_constructed": False,
+        }
+
+    def fake_five_step_gate(**kwargs):
+        observed["gate"] = kwargs
+        return {
+            "version": "grpo-five-step-smoke-gate-v1",
+            "status": "passed",
+        }
+
+    monkeypatch.setattr(train_grpo_module, "run_preflight", fake_preflight)
+    monkeypatch.setattr(
+        train_grpo_module,
+        "run_five_step_smoke_gate",
+        fake_five_step_gate,
+    )
+    commit = "a" * 40
+    exit_code = main(
+        [
+            "--five-step-smoke",
+            "--repo-root",
+            str(tmp_path),
+            "--expected-commit",
+            commit,
+        ]
+    )
+    printed = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert observed["preflight"]["expected_commit"] == commit
+    assert observed["preflight"]["minimum_free_bytes"] == 3 * 1024**3
+    assert observed["gate"]["preflight_report"]["status"] == "passed"
+    assert observed["gate"]["final_output_dir"] == str(final_output)
+    assert printed["training_steps"] == 5
+    assert printed["rollout_records"] == 40
+    assert printed["output"]["created"] is True
+    assert printed["atomic_bundle_published"] is True
+
+    observed.clear()
+    monkeypatch.setattr(
+        train_grpo_module,
+        "run_preflight",
+        lambda **_kwargs: {"status": "failed"},
+    )
+    with pytest.raises(RuntimeError, match="failed preflight"):
+        main(
+            [
+                "--five-step-smoke",
+                "--repo-root",
+                str(tmp_path),
+                "--expected-commit",
+                commit,
+            ]
+        )
+    assert "gate" not in observed
 
 
 def test_rollout_evidence_preserves_components_weights_and_raw_outputs():

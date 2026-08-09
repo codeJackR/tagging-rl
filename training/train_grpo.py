@@ -3,8 +3,8 @@
 
 Importing this module deliberately performs no Torch, Transformers, TRL, PEFT,
 Unsloth or vLLM import. GPU-capable modes import their stack only after
-``run_preflight`` succeeds. The full five-step mode remains intentionally
-unavailable until each persistence and capture boundary has passed separately.
+``run_preflight`` succeeds. The five-step mode additionally requires its exact
+commit, output-path, disk-floor and atomic-publication launch controls.
 """
 
 from __future__ import annotations
@@ -2600,7 +2600,7 @@ def run_one_update_gate(**kwargs) -> dict:
 
 
 def _load_five_step_runtime() -> dict:
-    """Import the real GPU stack only inside the unreachable full-smoke gate."""
+    """Import the real GPU stack only inside the guarded full-smoke gate."""
     from unsloth import FastLanguageModel
 
     import torch
@@ -2881,6 +2881,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--gradient-only", action="store_true")
     mode.add_argument("--optimizer-construction-only", action="store_true")
     mode.add_argument("--one-update-only", action="store_true")
+    mode.add_argument("--five-step-smoke", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--fixture-data", default=DEFAULT_FIXTURE_DATA)
     parser.add_argument("--fixture-manifest", default=DEFAULT_FIXTURE_MANIFEST)
@@ -2896,6 +2897,47 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def validate_five_step_launch_args(args: argparse.Namespace) -> dict:
+    """Fail before preflight unless the destructive launch surface is locked."""
+    if not args.five_step_smoke:
+        raise ValueError("five-step launch validation requires five-step mode")
+    commit = args.expected_commit
+    if (
+        not isinstance(commit, str)
+        or len(commit) != 40
+        or any(character not in "0123456789abcdef" for character in commit)
+    ):
+        raise SystemExit(
+            "--five-step-smoke requires a full lowercase --expected-commit"
+        )
+    repo_root = Path(args.repo_root).resolve()
+    requested_output = _resolve(repo_root, args.output_dir)
+    reserved_output = _resolve(repo_root, DEFAULT_OUTPUT_DIR)
+    if requested_output != reserved_output:
+        raise SystemExit(
+            "--five-step-smoke must use the reserved runs/grpo-first-smoke output"
+        )
+    if (
+        not math.isfinite(args.minimum_free_gib)
+        or args.minimum_free_gib < DEFAULT_MINIMUM_FREE_GIB
+    ):
+        raise SystemExit(
+            "--five-step-smoke requires a preflight disk floor of at least 3 GiB"
+        )
+    if args.report_file is not None:
+        raise SystemExit(
+            "--five-step-smoke publishes only its atomic bundle; "
+            "--report-file is forbidden"
+        )
+    return {
+        "expected_commit": commit,
+        "reserved_output": str(reserved_output),
+        "minimum_free_gib": float(args.minimum_free_gib),
+        "standalone_report_forbidden": True,
+        "passed": True,
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
     if not (
@@ -2906,12 +2948,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         or args.gradient_only
         or args.optimizer_construction_only
         or args.one_update_only
+        or args.five_step_smoke
     ):
         raise SystemExit(
             "training is intentionally unavailable; pass --preflight-only or "
             "--model-load-only, --trainer-construction-only, --rollout-only, "
-            "--gradient-only, --optimizer-construction-only, or --one-update-only"
+            "--gradient-only, --optimizer-construction-only, --one-update-only, "
+            "or --five-step-smoke"
         )
+    launch_control = None
+    if args.five_step_smoke:
+        launch_control = validate_five_step_launch_args(args)
     report_path = None
     if args.report_file is not None:
         if not (
@@ -2941,6 +2988,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         minimum_free_bytes=int(args.minimum_free_gib * 1024**3),
         expected_commit=args.expected_commit,
     )
+    if args.five_step_smoke and report.get("status") != "passed":
+        raise RuntimeError("five-step smoke cannot continue after failed preflight")
     if args.model_load_only:
         report["model_load"] = run_model_load_gate(
             adapter_path=report["sft_lock"]["adapter_path"],
@@ -3032,6 +3081,33 @@ def main(argv: Sequence[str] | None = None) -> int:
         report["lr_scheduler_constructed"] = True
         report["optimizer_step_performed"] = True
         report["training_steps"] = 1
+        report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
+        report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
+    if args.five_step_smoke:
+        report["five_step_smoke_gate"] = run_five_step_smoke_gate(
+            preflight_report=report,
+            fixture_data_path=report["fixture"]["data_path"],
+            adapter_path=report["sft_lock"]["adapter_path"],
+            adapter_file=report["sft_lock"]["adapter_file"],
+            final_output_dir=report["output"]["path"],
+            expected_sku_ids=report["fixture"]["sku_ids_in_step_order"],
+        )
+        report["launch_control"] = launch_control
+        report["cuda_imports_performed"] = True
+        report["model_loaded"] = True
+        report["trainer_constructed"] = True
+        report["generation_performed"] = True
+        report["loss_computed"] = True
+        report["backward_performed"] = True
+        report["optimizer_constructed"] = True
+        report["optimizer_state_initialized"] = True
+        report["lr_scheduler_constructed"] = True
+        report["optimizer_step_performed"] = True
+        report["training_steps"] = EXPECTED_STEPS
+        report["rollout_records"] = EXPECTED_ROLLOUTS
+        report["final_adapter_saved"] = True
+        report["atomic_bundle_published"] = True
+        report["output"]["created"] = True
         report["sft_lock"]["runtime_trainable_parameter_assertion_required"] = False
         report["sft_lock"]["runtime_trainable_parameter_assertion_passed"] = True
     if report_path is not None:

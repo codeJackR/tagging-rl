@@ -303,6 +303,7 @@ def test_real_gate_bridge_rejects_dataset_and_source_drift(tmp_path):
     assert not Path(kwargs["final_output_dir"]).exists()
 
 
-def test_full_smoke_gate_is_not_exposed_by_cli():
+def test_full_smoke_cli_mode_is_mutually_exclusive():
+    assert parse_args(["--five-step-smoke"]).five_step_smoke
     with pytest.raises(SystemExit):
-        parse_args(["--five-step-smoke"])
+        parse_args(["--five-step-smoke", "--one-update-only"])
