@@ -2840,6 +2840,47 @@ write the reserved atomic bundle, and cannot also write a standalone gate
 report. Its parser/dispatch and collision failures should be CPU-tested first;
 the actual remote command should still wait for a separate explicit step.
 
+Commit `61c3a48` added that launch-control boundary without launching it. The
+new mutually exclusive `--five-step-smoke` mode is the only CLI route to the
+full-smoke function and refuses to continue unless all of these conditions are
+met before preflight:
+
+- `--expected-commit` is present as an exact 40-character lowercase Git hash;
+- output resolves exactly to the reserved
+  `runs/grpo-first-smoke` directory;
+- the requested preflight disk floor is at least 3 GiB; and
+- `--report-file` is absent, because the only accepted evidence output is the
+  atomic bundle itself.
+
+The mode remains mutually exclusive with preflight-only, model-load,
+trainer-construction, rollout, gradient, optimizer-construction and one-update
+gates. After launch-argument validation, it calls the existing CPU preflight,
+which still requires a clean tracked worktree/index, exact fixture/selection/
+adapter hashes, matching expected commit, collision-free final output and
+sufficient free disk. A non-passing preflight now explicitly blocks dispatch to
+the GPU gate.
+
+Only after the guarded full-smoke function returns successful publication does
+the top-level report mark five training steps, 40 rollout records, initialized
+optimizer/scheduler state, final-adapter save and atomic-bundle publication as
+true. The full mode cannot produce the older standalone gate-report file, so a
+successful run has one canonical evidence location rather than two potentially
+divergent records.
+
+CPU tests rejected a missing or uppercase commit, alternate output directory,
+2.99 GiB disk floor, standalone report request, mixed mode flags and a failed
+preflight. Mocked dispatch proved the order `launch validation → preflight →
+five-step gate`, while preserving the no-heavy-import module contract. The
+combined focused suite passed **46 tests** locally and on Vast with CUDA hidden;
+the complete local suite passed **269 tests**.
+
+No invocation of `--five-step-smoke` occurred in this gate. No model was loaded,
+CUDA context initialized, rollout generated or optimizer update performed. The
+next small step is a remote **preflight-only** launch-readiness audit at the
+fully synced commit: confirm clean tracked Git state, exact source hashes,
+reserved-output absence, current disk/GPU state and no stale staging directory.
+That audit must still not call the new training flag.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
@@ -3099,6 +3140,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   tests, finite-LoRA audit and exact step-five optimizer-state requirement.
 - [x] Live Unsloth/TRL construction path connected to guarded orchestration but
   deliberately unavailable from CLI dispatch.
+- [x] Mutually exclusive, commit-locked five-step CLI launch control with
+  reserved output, 3 GiB floor, preflight-before-GPU dispatch and CPU tests.
 - [ ] Five-step GRPO smoke with optimizer construction and real parameter
   updates.
 - [ ] GRPO training curve and resource use.
