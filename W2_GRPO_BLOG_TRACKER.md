@@ -2929,6 +2929,21 @@ same preflight must be repeated against the resulting synchronized commit before
 any launch; the training command itself also embeds this exact-commit preflight,
 so a documentation commit cannot silently bypass the code-state lock.
 
+After the documentation commit, the first repeat accidentally used a manually
+guessed expansion of the abbreviated commit (`cc5af861068c...`) rather than the
+value returned by `git rev-parse HEAD`. The commit guard rejected it before any
+model import with `Git commit disagrees with expected smoke commit`. No output
+or staging path was created. This is operational evidence for copying the full
+hash from Git rather than typing or extrapolating it.
+
+The retry used the exact local-and-remote HEAD
+`cc5af8615216b2277dece7063edc8b7fa8ea50ad` and passed. After the tracker
+checkout, free disk was `4,882,366,464` bytes; it remained exactly unchanged
+after preflight. The reserved final/staging paths remained absent, tracked Git
+remained clean, and the GPU again remained at 264 MiB, 0% utilization and 39°C.
+No training flag was invoked. Any future launch must still supply its then-current
+full commit, and its embedded preflight will recheck that value before CUDA.
+
 ##### Smoke acceptance gates
 
 The smoke passes only if all of the following hold:
