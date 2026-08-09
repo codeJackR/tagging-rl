@@ -24,6 +24,7 @@ from typing import Callable, Sequence
 
 from training.grpo_smoke_artifacts import (
     EXPECTED_ADAPTER_MODEL_BYTES,
+    EXPECTED_REWARD_NAMES,
     GENERATIONS_PER_STEP,
     EXPECTED_ROLLOUTS,
     EXPECTED_STEPS,
@@ -41,6 +42,7 @@ ROLLOUT_GATE_VERSION = "grpo-smoke-rollout-gate-v1"
 GRADIENT_GATE_VERSION = "grpo-smoke-gradient-gate-v1"
 OPTIMIZER_CONSTRUCTION_VERSION = "grpo-smoke-optimizer-construction-v1"
 ONE_UPDATE_GATE_VERSION = "grpo-smoke-one-update-gate-v1"
+FIVE_STEP_SMOKE_GATE_VERSION = "grpo-five-step-smoke-gate-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
 DEFAULT_SELECTION_MANIFEST = "runs/sft-selection.json"
@@ -2595,6 +2597,278 @@ def run_one_update_gate(**kwargs) -> dict:
         perform_one_update=True,
         **kwargs,
     )
+
+
+def _load_five_step_runtime() -> dict:
+    """Import the real GPU stack only inside the unreachable full-smoke gate."""
+    from unsloth import FastLanguageModel
+
+    import torch
+    from bitsandbytes.optim import GlobalOptimManager
+    from trl import GRPOConfig, GRPOTrainer
+
+    from training.dataset import load_grpo_prompts
+    from training.rewards import (
+        FIRST_RUN_REWARD_FUNCTIONS,
+        FIRST_RUN_REWARD_WEIGHTS,
+    )
+    from verifier import load_pack
+
+    return {
+        "FastLanguageModel": FastLanguageModel,
+        "torch": torch,
+        "GRPOConfig": GRPOConfig,
+        "GRPOTrainer": GRPOTrainer,
+        "GlobalOptimManager": GlobalOptimManager,
+        "load_grpo_prompts": load_grpo_prompts,
+        "load_pack": load_pack,
+        "reward_functions": tuple(FIRST_RUN_REWARD_FUNCTIONS),
+        "reward_weights": tuple(FIRST_RUN_REWARD_WEIGHTS),
+    }
+
+
+def construct_capturing_grpo_trainer(
+    *,
+    base_trainer_class: type,
+    config_class: type,
+    model: object,
+    tokenizer: object,
+    dataset: object,
+    expected_sku_ids: Sequence[str],
+    reward_functions: Sequence[Callable],
+    reward_weights: Sequence[float],
+    temporary_output_dir: str | Path,
+) -> tuple[object, dict]:
+    """Construct and assert the real trainer shape used only by the full smoke."""
+    expected_sku_ids = list(expected_sku_ids)
+    if len(dataset) != EXPECTED_STEPS:
+        raise RuntimeError("full-smoke dataset must contain exactly five rows")
+    required_columns = {"prompt", "gold", "sku_id"}
+    if set(dataset.column_names) != required_columns:
+        raise RuntimeError("full-smoke dataset columns drifted")
+    dataset_sku_ids = list(dataset["sku_id"])
+    if dataset_sku_ids != expected_sku_ids:
+        raise RuntimeError("full-smoke dataset SKU order drifted")
+    normalized_weights = tuple(float(value) for value in reward_weights)
+    if normalized_weights != LOCKED_REWARD_WEIGHTS:
+        raise RuntimeError("full-smoke reward weights drifted")
+    expected_reward_names = [
+        getattr(reward, "__name__", type(reward).__name__)
+        for reward in reward_functions
+    ]
+    if tuple(expected_reward_names) != EXPECTED_REWARD_NAMES:
+        raise RuntimeError("full-smoke reward function names drifted")
+
+    config = config_class(
+        **grpo_smoke_config_kwargs(
+            output_dir=temporary_output_dir,
+            reward_weights=normalized_weights,
+        )
+    )
+    config_report = inspect_grpo_config(config)
+    collector = SmokeRolloutCollector(expected_sku_ids)
+    capturing_class = make_rollout_capturing_trainer_class(base_trainer_class)
+    trainer = capturing_class(
+        model=model,
+        reward_funcs=list(reward_functions),
+        args=config,
+        train_dataset=dataset,
+        processing_class=tokenizer,
+        smoke_rollout_collector=collector,
+    )
+
+    actual_reward_names = list(getattr(trainer, "reward_func_names", ()))
+    if actual_reward_names != expected_reward_names:
+        raise RuntimeError("capturing trainer reward function order drifted")
+    actual_weights = _tensor_like_to_list(
+        getattr(trainer, "reward_weights", None),
+        label="capturing trainer reward weights",
+    )
+    if [float(value) for value in actual_weights] != list(LOCKED_REWARD_WEIGHTS):
+        raise RuntimeError("capturing trainer reward weights drifted")
+    if getattr(trainer, "optimizer", None) is not None:
+        raise RuntimeError("capturing trainer unexpectedly constructed an optimizer")
+    if getattr(trainer, "lr_scheduler", None) is not None:
+        raise RuntimeError("capturing trainer unexpectedly constructed a scheduler")
+    if getattr(trainer, "ref_model", None) is not None:
+        raise RuntimeError("beta-zero capturing trainer constructed a reference model")
+    if int(getattr(trainer.state, "global_step", -1)) != 0:
+        raise RuntimeError("capturing trainer advanced global_step during construction")
+    trainer_columns = set(trainer.train_dataset.column_names)
+    trainer_sku_ids = list(trainer.train_dataset["sku_id"])
+    if trainer_columns != required_columns or trainer_sku_ids != expected_sku_ids:
+        raise RuntimeError("capturing trainer changed its locked dataset")
+
+    return trainer, {
+        "trainer_class": type(trainer).__name__,
+        "base_trainer_class": base_trainer_class.__name__,
+        "config_class": type(config).__name__,
+        "config": config_report,
+        "dataset_rows": len(dataset),
+        "dataset_columns": sorted(trainer_columns),
+        "sku_ids_in_step_order": trainer_sku_ids,
+        "reward_names": actual_reward_names,
+        "reward_weights": [float(value) for value in actual_weights],
+        "collector_attached": trainer.smoke_rollout_collector is collector,
+        "optimizer_constructed": False,
+        "scheduler_constructed": False,
+        "reference_model_constructed": False,
+        "global_step": 0,
+        "matches_locked_contract": True,
+    }
+
+
+def run_five_step_smoke_gate(
+    *,
+    preflight_report: dict,
+    fixture_data_path: str | Path,
+    adapter_path: str | Path,
+    adapter_file: str | Path,
+    final_output_dir: str | Path,
+    expected_sku_ids: Sequence[str],
+    runtime_loader: Callable[[], dict] = _load_five_step_runtime,
+    policy_loader_fn: Callable[..., tuple] = _load_locked_policy,
+    trainability_fn: Callable[[object], dict] = inspect_model_trainability,
+    orchestration_fn: Callable[..., dict] = run_five_step_smoke_orchestration,
+) -> dict:
+    """Build the live capturing trainer and invoke guarded orchestration."""
+    fixture_data_path = Path(fixture_data_path).resolve()
+    adapter_path = Path(adapter_path).resolve()
+    adapter_file = Path(adapter_file).resolve()
+    final_output_dir = Path(final_output_dir).resolve()
+    if final_output_dir.exists():
+        raise FileExistsError(
+            f"final smoke output already exists: {final_output_dir}"
+        )
+    if list(expected_sku_ids) != preflight_report["fixture"][
+        "sku_ids_in_step_order"
+    ]:
+        raise RuntimeError("full-smoke SKU order disagrees with preflight")
+
+    runtime = runtime_loader()
+    required_runtime = {
+        "FastLanguageModel",
+        "torch",
+        "GRPOConfig",
+        "GRPOTrainer",
+        "GlobalOptimManager",
+        "load_grpo_prompts",
+        "load_pack",
+        "reward_functions",
+        "reward_weights",
+    }
+    if set(runtime) != required_runtime:
+        raise RuntimeError("full-smoke runtime stack is incomplete or unexpected")
+    if tuple(runtime["reward_weights"]) != LOCKED_REWARD_WEIGHTS:
+        raise RuntimeError("runtime reward weights drifted")
+
+    torch = runtime["torch"]
+    model = None
+    tokenizer = None
+    dataset = None
+    trainer = None
+    report = None
+    temporary_output_path = None
+    global_optim_manager = runtime["GlobalOptimManager"].get_instance()
+    overrides_before = len(global_optim_manager.module_weight_config_triple)
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+    cuda_before_load = _cuda_memory_snapshot(torch)
+    started = time.perf_counter()
+    try:
+        model, tokenizer = policy_loader_fn(
+            runtime["FastLanguageModel"],
+            torch,
+            adapter_path,
+        )
+        trainability_before = trainability_fn(model)
+        pack = runtime["load_pack"]("packs/vastraa_taste_v1")
+        dataset = runtime["load_grpo_prompts"](
+            pack,
+            fixture_data_path,
+            require_pass_rate_band=True,
+        )
+        with tempfile.TemporaryDirectory(prefix="grpo-five-step-runtime-") as temp:
+            temporary_output_path = Path(temp).resolve()
+            trainer, construction = construct_capturing_grpo_trainer(
+                base_trainer_class=runtime["GRPOTrainer"],
+                config_class=runtime["GRPOConfig"],
+                model=model,
+                tokenizer=tokenizer,
+                dataset=dataset,
+                expected_sku_ids=expected_sku_ids,
+                reward_functions=runtime["reward_functions"],
+                reward_weights=runtime["reward_weights"],
+                temporary_output_dir=temporary_output_path,
+            )
+            torch.cuda.synchronize()
+            cuda_after_construction = _cuda_memory_snapshot(torch)
+            adapter_sha_after_construction = _sha256_file(adapter_file)
+            expected_adapter_sha = preflight_report["sft_lock"]["adapter_sha256"]
+            if adapter_sha_after_construction != expected_adapter_sha:
+                raise RuntimeError(
+                    "source adapter changed during full-smoke construction"
+                )
+            construction_seconds = time.perf_counter() - started
+
+            orchestration = orchestration_fn(
+                trainer=trainer,
+                tokenizer=tokenizer,
+                source_adapter_file=adapter_file,
+                final_output_dir=final_output_dir,
+                expected_sku_ids=expected_sku_ids,
+                preflight_report=preflight_report,
+                config_settings=construction["config"]["settings"],
+                cuda_snapshot_fn=lambda: _cuda_memory_snapshot(torch),
+                trainability_fn=trainability_fn,
+            )
+            if (
+                orchestration.get("status") != "passed"
+                or not orchestration.get("published")
+                or orchestration.get("manifest", {}).get("status") != "completed"
+                or not final_output_dir.is_dir()
+            ):
+                raise RuntimeError("full-smoke orchestration did not publish success")
+            report = {
+                "version": FIVE_STEP_SMOKE_GATE_VERSION,
+                "status": "passed",
+                "construction_seconds_including_model_load": construction_seconds,
+                "total_gate_seconds_before_release": time.perf_counter() - started,
+                "temporary_output_path": str(temporary_output_path),
+                "trainability_before_trainer": trainability_before,
+                "construction": construction,
+                "orchestration": orchestration,
+                "adapter_sha256_after_construction": (
+                    adapter_sha_after_construction
+                ),
+                "source_adapter_unchanged_at_construction": True,
+                "cuda_before_load": cuda_before_load,
+                "cuda_after_construction": cuda_after_construction,
+                "global_optimizer_manager_overrides_before": overrides_before,
+            }
+
+        report["temporary_output_removed"] = not temporary_output_path.exists()
+        if not report["temporary_output_removed"]:
+            raise RuntimeError("temporary full-smoke trainer output was not removed")
+    finally:
+        trainer = None
+        dataset = None
+        model = None
+        tokenizer = None
+        del global_optim_manager.module_weight_config_triple[overrides_before:]
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+    if report is None:
+        raise RuntimeError("full-smoke gate ended without a report")
+    report["global_optimizer_manager_overrides_removed"] = (
+        len(global_optim_manager.module_weight_config_triple) == overrides_before
+    )
+    report["cuda_after_release"] = _cuda_memory_snapshot(torch)
+    report["trainer_retained"] = False
+    report["model_retained"] = False
+    return report
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
