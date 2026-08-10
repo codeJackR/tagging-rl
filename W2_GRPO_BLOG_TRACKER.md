@@ -4152,7 +4152,90 @@ that all 2,400 step-300 rollouts and 300 logs remain byte-identical and readable
 while the final output stays absent. Tampering with the durable rollout file is
 detected before retention. The focused writer/callback/lifecycle/orchestration
 set passes **90 tests** and the complete CPU suite passes **468 tests**. These
-changes are local and uncommitted at this point; no third GPU run has started.
+changes were committed and pushed as
+`3c53209b7e5414a7ef7d526afd3c4510356cc1bd` (`Persist rolling GRPO evidence at
+checkpoints`). No third GPU run had started.
+
+##### Synchronized phase profiling before the fresh dispatch
+
+Before spending another GPU run, commit
+`866060bb52edca111adcccb367399206990ba332` (`Profile synchronized GRPO
+training phases`) added lightweight timing around the production boundaries.
+The goal is to answer a more useful question than total runtime: where does
+each optimizer step spend its time?
+
+The five named buckets are deliberately disjoint call boundaries:
+
+| profile bucket | measured production call | meaning |
+|---|---|---|
+| generation | `trainer._generate` | sample the eight candidate completions |
+| reward | `trainer._calculate_rewards` | run the three rewards and combine their outputs |
+| forward/loss | `trainer.compute_loss` | score completions and construct the GRPO loss |
+| backward | `trainer.accelerator.backward` | compute LoRA gradients from the loss |
+| optimizer | trainer optimizer `step` | apply the gradient update to LoRA weights |
+
+This locked run has `gradient_accumulation_steps=1`, so one optimizer step must
+contain exactly one call to every bucket. The profiler fails closed if a phase
+is missing, duplicated, occurs outside an active step or produces a non-finite
+duration. This exact one-call invariant would have to change if gradient
+accumulation were later increased.
+
+CUDA work is asynchronous: a Python function can return while GPU kernels are
+still running. Therefore the profiler calls `torch.cuda.synchronize()` before
+and after each measured phase and at the start and end of every optimizer step,
+then uses `time.perf_counter()`. There are exactly 12 synchronization calls per
+step: two for each of five phases plus the two step boundaries. For 300 steps,
+the expected total is 3,600 synchronization calls.
+
+The resulting numbers are **synchronized wall-clock durations for the
+instrumented run**. They are exact for those declared boundaries, but profiling
+is not free: synchronization prevents some normal CPU/GPU overlap and can make
+the run slightly slower. The manifest records this observer-effect warning so
+the profile is not misrepresented as an overhead-free kernel trace.
+
+Two residual buckets make the arithmetic auditable:
+
+- `other_within_steps` is optimizer-step wall time outside the five wrapped
+  calls, such as data movement and trainer bookkeeping;
+- `outside_steps` is time inside `trainer.train()` but outside optimizer-step
+  boundaries, such as startup, logging, checkpoint export and shutdown.
+
+For every step, the five phases plus `other_within_steps` must equal that step's
+wall time. Across the run, all step wall time plus `outside_steps` must equal
+the authoritative `trainer.train()` wall time. The aggregate report also stores
+per-phase call count, total, mean, minimum, median, p95, maximum and percentage
+of total train time. Validators cross-check aggregate totals against all 300 raw
+step records rather than trusting a summary assembled in memory.
+
+Profiling evidence follows the same durability policy as rollouts and scalar
+logs. A `phase-timings.json` prefix is written and SHA-256-bound in the
+step-100, step-200 and step-300 milestone manifests. Final publication requires
+the root timing file to byte-match the durable step-300 timing snapshot. Thus a
+late publication failure should still leave the complete 300-step timing trace
+in the private step-300 milestone. The final run summary embeds the reconciled
+aggregate profile and its validation result.
+
+CPU tests use a deterministic manual clock to prove exact bucket values,
+callback/optimizer attachment, all reconciliation equations, missing-phase
+failure, non-finite rejection, aggregate tamper rejection and durable timing-
+file hash checks. The 300-step fake orchestration executes all five phases on
+every simulated update and atomically publishes the timing artifact alongside
+rollouts and trainer logs. The complete local suite passed **474 tests in 15.69
+seconds**; compilation and `git diff --check` also passed. The exact remote
+commit passed the same **474 tests in 28.52 seconds** under `/venv/rl`.
+
+The real no-training Vast construction gate then passed with the installed
+Unsloth/TRL stack. Both the phase profiler and checkpoint callback were attached
+to `FullRunRolloutCapturingUnslothGRPOTrainer`; the profiler had zero recorded
+steps because `trainer.train()` was never called. It created no optimizer,
+generated no rollouts, changed no LoRA bytes and removed its temporary output.
+Construction took **5.193 seconds**. Driver memory was 3,832,020,992 bytes after
+construction and 650,641,408 bytes after in-process release; a separate
+`nvidia-smi` check returned to **264 MiB used, 0% utilization**. The reserved
+`runs/grpo-first-300` path and staging glob remained absent, the tracked remote
+worktree remained clean, and disk free was **4,219,645,952 bytes**. This proves
+the real methods are wrappable before training; the fresh 300-step run itself
+has still not started.
 
 ### Questions to answer before the first GRPO run
 
@@ -4424,6 +4507,9 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] First exact-commit production dispatch reached step 100 and failed closed
   on the documented `trainer_state.json` checkpoint-contract mismatch, with
   source/checkpoint/control hashes and private staging preserved.
+- [x] CUDA-synchronized per-step profiling for generation, reward, forward/loss,
+  backward and optimizer work, with reconciled residuals, durable timing
+  prefixes, CPU tamper tests and a real no-training Unsloth attachment gate.
 - [ ] 300-step training dispatch with bounded checkpoint retention and enforced
   evidence handoffs.
 - [ ] GRPO training curve and resource use.
