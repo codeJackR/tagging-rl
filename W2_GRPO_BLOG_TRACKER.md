@@ -4237,6 +4237,230 @@ worktree remained clean, and disk free was **4,219,645,952 bytes**. This proves
 the real methods are wrappable before training; the fresh 300-step run itself
 has still not started.
 
+##### First fully published 300-step GRPO production run
+
+The exact-commit read-only preflight passed at
+`19be0ed58b86dd6db1faef45b92da1a7dfd11677`. It revalidated the clean tracked
+worktree, locked 1,565-row pool and ordered SKU hash, pool/selection manifests,
+source SFT adapter, collision-free output/staging/control paths, idle RTX 3090
+and 3 GiB disk floor. It observed **4,219,420,672 bytes free**, **264 MiB GPU
+memory** and **0% utilization**, imported no CUDA stack and created no output.
+
+The detached production command was then launched exactly once:
+
+```bash
+cd /workspace/tagging-rl
+/venv/rl/bin/python -m training.grpo_detached_runtime launch \
+  --final-output-dir /workspace/tagging-rl/runs/grpo-first-300 \
+  --expected-commit 19be0ed58b86dd6db1faef45b92da1a7dfd11677 \
+  --repo-root /workspace/tagging-rl \
+  --python-executable /venv/rl/bin/python \
+  -- /venv/rl/bin/python -m training.grpo_full_run_workload \
+  --control-dir /workspace/tagging-rl/runs/grpo-first-300-control \
+  --repo-root /workspace/tagging-rl \
+  --expected-commit 19be0ed58b86dd6db1faef45b92da1a7dfd11677
+```
+
+The launcher recorded PID **8054** and Linux process token
+`linux-proc-v1:72bdb1c3-61d9-4a08-adf1-258eebfc93ba:41744826`. Preparation was
+recorded at `2026-08-10T13:43:51.959612Z`; terminal success was recorded at
+`2026-08-10T14:07:23.192044Z`. The detached wall interval was therefore about
+**1,411.23 seconds (23 minutes 31 seconds)**, including import, model load,
+training, checkpoint/final-adapter writes, validation, atomic publication and
+release. The worker exited **0**, and the control validator reports `completed`.
+The workload and runtime bridge both report `passed` and `published=true`.
+
+This is the first attempt that satisfies the complete production contract:
+
+- **300/300 optimizer steps**;
+- **2,400/2,400 rollout records**;
+- **300/300 scalar logs and phase-timing records**;
+- all **12 lifecycle-v2 events** completed in order;
+- step-100 evidence exported before checkpoint-100 eviction;
+- checkpoints 200 and 300 retained;
+- final adapter validated as LoRA-only, with no optimizer or full-model state;
+- root evidence byte-matched the durable step-300 snapshot; and
+- the validated staging tree was atomically renamed to
+  `runs/grpo-first-300`.
+
+The completed bundle is **350,870,188 bytes**. Bundle validation observed
+**3,867,807,744 bytes free**, still above the 3 GiB floor. A later read-only
+check observed 3,866,611,712 bytes free. After process exit, `nvidia-smi`
+returned to **264 MiB used and 0% utilization**.
+
+###### Checkpoint and durable-evidence lineage
+
+| step | rollouts | scalar logs | timing rows | adapter SHA-256 | trainer-state SHA-256 |
+|---:|---:|---:|---:|---|---|
+| 100 | 800 | 100 | 100 | `e239205c97609b68e53d909220f8b616acae6a6d0ca1b22429ea76e26e2f6c29` | `76b2bd7689b89b6dbae9c83f8f9fd6bd16340868f4f81e3ae876604a49e553a6` |
+| 200 | 1,600 | 200 | 200 | `7e8f30783e399376718d29781556daaa2177f0477c239ef9a51b435acfcfa0a2` | `7eee4be28ec4d12d0fce71c897d0f210acfcf2061bf420b068e620cc85659d53` |
+| 300 | 2,400 | 300 | 300 | `741a189a23f948248a6c9067c401d66dde9187328748ea815441307241ab9d3c` | `b00470f162d343a32f1d04d1db608a1140e0050d835daa4f98a375efcde0f8a6` |
+
+The final-adapter weights independently hash to the exact checkpoint-300 hash,
+`741a189a...d3c`. That hash also matches the final adapter from the preceding
+`961113a` attempt, which completed the same seeded training but failed during
+publication. This byte-for-byte reproduction is strong evidence that the
+locked seed, pool order, trainer configuration and runtime produced the same
+final adapter across those two full training executions. It does not by itself
+prove general determinism on different hardware or dependency versions.
+
+The live trainable-LoRA fingerprint changed from
+`1c9f10100bfc250323ad43c0e8b1b170a909d842fb2579903200f95a786e711e`
+to
+`1f8e34152f4d02ec9fa394b5175f9bd30d0673837b4fdf611a9a165b7677b637`.
+All **18,464,768** trainable values across **392** tensors remained finite, all
+trainable parameters remained LoRA parameters on the seven locked projection
+families, and the immutable source SFT adapter remained unchanged.
+
+###### Full-run training-signal findings
+
+The authoritative train wall time was **1,385.825 seconds**. TRL separately
+reported runtime **1,383.861 seconds**, 1.734 samples/second, 0.217
+steps/second and aggregate train loss `3.393977085428768e-05`. That tiny signed
+policy loss is not an accuracy metric and must not be used to claim model
+improvement.
+
+All 300 logged metrics were finite. Of the 300 eight-completion groups:
+
+- **202 groups (67.3%)** had reward variance and could supply a relative GRPO
+  learning signal;
+- **98 groups (32.7%)** had zero reward variance;
+- the **98 zero-gradient steps were exactly those same 98 zero-variance
+  steps**;
+- groups with reward variance included finite positive gradient norms;
+- **1,611 of 2,400** rollout advantages were nonzero;
+- mean effective completion length was **108.86 tokens**; and
+- no completion was truncated/masked and no scalar log reported clipping.
+
+This exact alignment is important: observed zero gradients are explained by
+GRPO's within-group normalization, not by a broken backward pass. However, it
+also shows that roughly one third of the paid optimizer steps supplied no policy
+gradient. A future curriculum or sampling design could try to reduce that
+fraction, but changing it is future work and must not retroactively alter this
+locked first-run result.
+
+Across all 2,400 sampled training completions, descriptive component means were:
+
+| reward component | mean |
+|---|---:|
+| format validity | 1.0000 |
+| vocabulary/rule compliance | 0.9654 |
+| golden agreement | 0.5850 |
+| weighted total (`1:1:2`) | 3.1354 / 4.0 |
+
+For transparency, weighted reward averaged 2.9625 in steps 1–100, 3.2113 in
+steps 101–200 and 3.2325 in steps 201–300; golden agreement was respectively
+0.5025, 0.6200 and 0.6325. These blocks contain different shuffled products, so
+the upward descriptive pattern is **not a clean learning curve**. Frozen
+same-product evaluation remains necessary before claiming quality improvement.
+
+###### Exact synchronized runtime profile
+
+All **3,600** expected CUDA synchronization boundaries occurred. Every phase
+was called exactly once in each of 300 optimizer steps, all timing values were
+finite, raw records reconciled to step wall time and the aggregate summary
+passed validation.
+
+| phase | total | mean/step | p50 | p95 | share of train time |
+|---|---:|---:|---:|---:|---:|
+| generation | 1,246.536 s | 4.1551 s | 4.1799 s | 4.4521 s | 89.949% |
+| backward | 59.607 s | 0.1987 s | 0.1985 s | 0.2224 s | 4.301% |
+| forward/loss | 51.135 s | 0.1705 s | 0.1069 s | 0.1160 s | 3.690% |
+| optimizer | 6.771 s | 0.0226 s | 0.0224 s | 0.0228 s | 0.489% |
+| reward calculation | 0.600 s | 0.0020 s | 0.0016 s | 0.0017 s | 0.043% |
+
+The five named phases account for **1,364.650 seconds (98.472%)** of training
+wall time. Another **11.779 seconds** occurred inside optimizer-step boundaries
+outside those calls, and **9.396 seconds** occurred inside `trainer.train()` but
+outside step boundaries. Total step wall time was 1,376.429 seconds; total
+unattributed/residual time was 21.175 seconds. The intentionally synchronized
+profile describes this instrumented run and may reduce normal asynchronous
+CPU/GPU overlap.
+
+The main systems inference is unambiguous: **generation dominates cost**.
+Reward calculation consumed only 0.043% of train time, so optimizing the plain
+CPU reward functions would have negligible end-to-end impact. Future speed work
+should first target generation throughput, sequence length, batching or an
+appropriately validated inference backend. Forward/backward/optimizer work
+combined was under 8.5% of train time.
+
+Torch peak allocation/reservation was **4,914,862,080 / 5,043,650,560 bytes**
+(about 4.58 / 4.70 GiB). A live `nvidia-smi` sample during training observed
+**5,153 MiB** driver memory. No OOM occurred, and the runtime bridge removed the
+bitsandbytes global optimizer overrides before release.
+
+###### Published evidence hashes
+
+The independently reopened root files matched both the final manifest and the
+durable step-300 files byte for byte:
+
+| artifact | SHA-256 |
+|---|---|
+| completed manifest | `f266641137e6303ddb781eda72b436163954ddf66516a82241ed34b4ac872247` |
+| root/step-300 rollouts | `71054e350c1e0c3f7fcb20963f95b9e9a2648cf22ad6e1bbb7fc8268407c4885` |
+| root/step-300 trainer log | `e288b52b3c8be0508d53b83375945a25068c5c4d0db64177baa8dad0e395009f` |
+| root/step-300 phase timings | `10e66e32529fd391f004cb9f9d5ba03f9761170b1aca29913a13fedd1473828e` |
+| final adapter weights | `741a189a23f948248a6c9067c401d66dde9187328748ea815441307241ab9d3c` |
+| detached process log | `b84f57ffe57f39b90f5cfe19062eb4f5e42742a2866d2d5350bcfb57e5e244c4` |
+| bridge/workload result | `43bb525a80b62d1760486c470d84a5fe8165bb9bb11f63fb38ce2789d2bf3e88` |
+| terminal exit evidence | `6d73870f91320a6bd9e5ab7cb6d82cfb2e6c65bbb05b75d0d6bbf0b1bbf238f2` |
+
+The earlier inspection message claiming that root hashes did not match was a
+local inspection-script keying error: filename keys were compared with manifest
+field keys. The corrected independent comparison returned `true` for both
+root-versus-manifest and root-versus-step-300. It was not an artifact or
+publication failure.
+
+###### Durable local archive and locked evaluation contract
+
+Before frozen inference, the selected final adapter and compact audit evidence
+were copied off the rented Vast.ai disk to the durable local path
+`../tagging-rl-artifacts/grpo-first-300`. The archive contains the final adapter,
+root manifest, all 2,400 rollout records, all 300 scalar logs, all 300 phase
+timings, detached control evidence and the three milestone manifests. It does
+**not** duplicate checkpoint-200 or checkpoint-300 directories. The files total
+**93,967,532 bytes** and occupy **106,487,808 bytes** on the local filesystem.
+
+Every transferred file was reopened and SHA-256 hashed locally. The important
+hashes exactly matched the published Vast artifacts: final adapter
+`741a189a...d3c`, root manifest `f2666411...2247`, rollouts
+`71054e35...4885`, trainer log `e288b52b...009f`, phase timings
+`10e66e32...28e`, process log `b84f57ff...44c4`, workload result
+`43bb525a...e88` and exit evidence `6d73870f...38f2`. This turns the adapter and
+evidence into a second durable copy rather than leaving the only copy on an
+ephemeral rented server.
+
+The machine-readable contract `runs/grpo-evaluation-lock.json` was then written
+while both reserved GRPO output paths were absent locally and remotely. Its
+status is `locked_not_evaluated`; no frozen inference or scoring was performed
+during this step. It binds:
+
+- training commit `19be0ed58b86dd6db1faef45b92da1a7dfd11677`, the completed-run
+  manifest hash and the selected step-300 adapter hash;
+- the unchanged 300-row frozen file's byte hash, canonical-content hash and
+  freeze-manifest hash;
+- Qwen2.5-1.5B-Instruct plus deterministic SFT-matched generation: batch eight,
+  640 input tokens, 170 new tokens, bfloat16 and `do_sample=False`;
+- the prediction code and verifier metric/parser/report hashes plus vocabulary
+  and rule-pack hashes;
+- the saved checkpoint-406 SFT predictions and metrics, including their file
+  hashes and baseline values; and
+- collision-free future GRPO prediction/report paths with overwrite forbidden.
+
+The primary comparison remains macro-F1, but it cannot be read alone. The lock
+requires selective macro-F1, coverage, schema validity, vocabulary validity,
+rule violations and missing outputs, followed by a paired row bootstrap against
+the saved SFT predictions. Intermediate GRPO checkpoints are explicitly barred
+from post-hoc frozen-set selection. This makes the next GPU action a
+predeclared measurement, not a search for whichever checkpoint or decoding
+setting looks best after seeing the answer key.
+
+This run proves successful optimization, evidence durability, bounded resource
+use and reproducible publication. It does **not** yet prove that GRPO improved
+catalog-tagging quality. The next scientific boundary is inference with the
+published final adapter on the unchanged frozen 300-product evaluation, followed
+by the predeclared SFT-versus-GRPO comparison.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
@@ -4510,9 +4734,15 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] CUDA-synchronized per-step profiling for generation, reward, forward/loss,
   backward and optimizer work, with reconciled residuals, durable timing
   prefixes, CPU tamper tests and a real no-training Unsloth attachment gate.
-- [ ] 300-step training dispatch with bounded checkpoint retention and enforced
-  evidence handoffs.
-- [ ] GRPO training curve and resource use.
+- [x] Exact-commit 300-step training dispatch with bounded checkpoint retention,
+  2,400 rollouts, 300 scalar/timing records, all 12 lifecycle-v2 events and
+  atomic final-bundle publication.
+- [x] Full synchronized phase profile showing generation at 89.95% of training
+  wall time, finite phase metrics and exact raw/aggregate reconciliation.
+- [x] GRPO training-signal summary and measured resource use.
+- [x] Durable local final-adapter/evidence archive with independent re-hashing.
+- [x] Pre-inference GRPO evaluation lock binding the adapter, frozen set, SFT
+  baseline, generation/evaluator settings and collision-free output paths.
 - [ ] Locked frozen evaluation after GRPO.
 - [ ] SFT-versus-GRPO uncertainty estimate.
 - [ ] Final limitations and reproducibility package.

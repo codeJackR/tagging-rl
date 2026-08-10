@@ -1,0 +1,146 @@
+{
+  "version": "grpo-frozen-evaluation-lock-v1",
+  "status": "locked_not_evaluated",
+  "locked_at_utc": "2026-08-10T23:47:09Z",
+  "purpose": "Bind the selected GRPO adapter, frozen data, SFT baseline, deterministic generation settings, evaluator inputs, and collision-free output paths before GRPO frozen inference.",
+  "training_run": {
+    "git_commit": "19be0ed58b86dd6db1faef45b92da1a7dfd11677",
+    "remote_run_path": "/workspace/tagging-rl/runs/grpo-first-300",
+    "local_archive_path": "../tagging-rl-artifacts/grpo-first-300",
+    "run_manifest": {
+      "archive_path": "../tagging-rl-artifacts/grpo-first-300/manifest.json",
+      "sha256": "f266641137e6303ddb781eda72b436163954ddf66516a82241ed34b4ac872247"
+    },
+    "final_adapter": {
+      "remote_path": "/workspace/tagging-rl/runs/grpo-first-300/final-adapter",
+      "archive_path": "../tagging-rl-artifacts/grpo-first-300/final-adapter",
+      "weights_file": "adapter_model.safetensors",
+      "bytes": 73911112,
+      "sha256": "741a189a23f948248a6c9067c401d66dde9187328748ea815441307241ab9d3c"
+    },
+    "source_sft_adapter": {
+      "remote_path": "/workspace/tagging-rl/runs/sft-combined-2epoch/checkpoint-406",
+      "weights_file": "adapter_model.safetensors",
+      "bytes": 73911112,
+      "sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af"
+    },
+    "optimizer_steps": 300,
+    "rollout_groups": 300,
+    "rollout_records": 2400,
+    "selected_checkpoint_policy": "final published step 300 adapter; intermediate checkpoints are not candidates for frozen evaluation"
+  },
+  "durable_evidence": {
+    "archive_file_bytes": 93967532,
+    "archive_allocated_bytes_on_disk": 106487808,
+    "archive_scope": "final adapter, root manifest, complete rollouts, trainer log, phase timings, detached control evidence, and milestone manifests; no duplicate checkpoint directories",
+    "rollouts": {
+      "path": "../tagging-rl-artifacts/grpo-first-300/rollouts.jsonl",
+      "sha256": "71054e350c1e0c3f7fcb20963f95b9e9a2648cf22ad6e1bbb7fc8268407c4885"
+    },
+    "trainer_log": {
+      "path": "../tagging-rl-artifacts/grpo-first-300/trainer-log.json",
+      "sha256": "e288b52b3c8be0508d53b83375945a25068c5c4d0db64177baa8dad0e395009f"
+    },
+    "phase_timings": {
+      "path": "../tagging-rl-artifacts/grpo-first-300/phase-timings.json",
+      "sha256": "10e66e32529fd391f004cb9f9d5ba03f9761170b1aca29913a13fedd1473828e"
+    },
+    "process_log": {
+      "path": "../tagging-rl-artifacts/grpo-first-300/control/process.log",
+      "sha256": "b84f57ffe57f39b90f5cfe19062eb4f5e42742a2866d2d5350bcfb57e5e244c4"
+    },
+    "workload_result": {
+      "path": "../tagging-rl-artifacts/grpo-first-300/control/workload-result.json",
+      "sha256": "43bb525a80b62d1760486c470d84a5fe8165bb9bb11f63fb38ce2789d2bf3e88"
+    },
+    "exit_record": {
+      "path": "../tagging-rl-artifacts/grpo-first-300/control/exit.json",
+      "sha256": "6d73870f91320a6bd9e5ab7cb6d82cfb2e6c65bbb05b75d0d6bbf0b1bbf238f2"
+    }
+  },
+  "frozen_evaluation": {
+    "data_path": "data/eval_300/eval.jsonl",
+    "rows": 300,
+    "file_sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c",
+    "canonical_content_sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052",
+    "freeze_manifest": {
+      "path": "data/eval_300/eval.jsonl.frozen.json",
+      "sha256": "cec7cf3424a0e2d25e845e51ca3ef96c0fd02ecf2b2e95ce627e610620c2eb76"
+    }
+  },
+  "generation": {
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "adapter_path": "/workspace/tagging-rl/runs/grpo-first-300/final-adapter",
+    "prediction_code": {
+      "path": "training/predict.py",
+      "sha256": "1477919e40dcf981c740b69e33e46ada8eba0add63df3e7dfe5806e3a69999e8"
+    },
+    "do_sample": false,
+    "batch_size": 8,
+    "max_input_tokens": 640,
+    "max_new_tokens": 170,
+    "dtype": "bfloat16",
+    "local_files_only": true,
+    "command": "HF_HOME=/workspace/.hf_home PYTHONPATH=. /venv/rl/bin/python -m training.predict --model unsloth/Qwen2.5-1.5B-Instruct --adapter runs/grpo-first-300/final-adapter --input data/eval_300/eval.jsonl --output runs/grpo-first-300-frozen-eval-300-predictions.jsonl --batch-size 8 --max-input-length 640 --max-new-tokens 170 --local-files-only"
+  },
+  "verifier": {
+    "pack_path": "packs/vastraa_taste_v1",
+    "vocab_sha256": "f98eba2177343867ce7f010b0ef4ec8d745b1154219a7137d29ad1807925c17d",
+    "rules_sha256": "2d5e186fb5157bd1f371aa2009a02052457d49b94e7c3ef0343ec43632157c56",
+    "report_code_sha256": "a3878ba78b96e1e2fb97181d19225e4f49c8d136ba29f41d3cb98562a4a39fd5",
+    "predictions_code_sha256": "87967600fe842af202f21d404fcb8c1ee47e3e2bc8997c9b704e67f0d255913c",
+    "metrics_code_sha256": "98763087717a8c904a8cb7e5ab6728797354320c45f5f9675df77a7f5a08c4ad",
+    "command": "PYTHONPATH=. /venv/rl/bin/python -m evalharness.report --gold data/eval_300 --pred runs/grpo-first-300-frozen-eval-300-predictions.jsonl --json"
+  },
+  "sft_baseline": {
+    "selection_manifest": {
+      "path": "runs/sft-selection.json",
+      "sha256": "e425635d323b3ffe9e7350fb61a2d9e1848345a95abab6b92032bf64d2718299",
+      "selected_checkpoint": "runs/sft-combined-2epoch/checkpoint-406"
+    },
+    "predictions": {
+      "path": "runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl",
+      "rows": 300,
+      "sha256": "cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b"
+    },
+    "metrics": {
+      "path": "runs/sft-combined-2epoch/frozen-eval-300-metrics.json",
+      "sha256": "608961d47be50ba2a1df455657964a7038480d656e757e83826e4f748fef2491",
+      "macro_f1": 0.6411414820991878,
+      "selective_macro_f1": 0.7169543520009967,
+      "coverage": 0.9430127041742287,
+      "schema_validity": 1.0,
+      "vocab_validity": 0.8866666666666667,
+      "rule_violations": 12,
+      "missing_predictions": 0
+    }
+  },
+  "reserved_outputs": {
+    "predictions": "runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+    "report": "runs/grpo-first-300-frozen-eval-300-report.json",
+    "local_paths_absent_at_lock": true,
+    "remote_paths_absent_at_lock": true,
+    "overwrite_forbidden": true
+  },
+  "comparison_policy": {
+    "primary_metric": "macro_f1",
+    "required_companion_metrics": [
+      "selective_macro_f1",
+      "coverage",
+      "schema_validity",
+      "vocab_validity",
+      "rule_violations",
+      "missing_predictions"
+    ],
+    "uncertainty": "paired row bootstrap against the saved SFT predictions using identical frozen rows",
+    "interpretation": "No GRPO improvement or regression claim is allowed until predictions are complete, freeze verification passes, all 300 SKU IDs match, and the locked metrics plus uncertainty are reported together."
+  },
+  "guardrails": {
+    "evaluation_not_run_as_of_lock": true,
+    "single_selected_grpo_adapter": true,
+    "intermediate_checkpoint_selection_forbidden": true,
+    "frozen_labels_not_used_for_training_or_checkpoint_selection": true,
+    "generation_settings_match_sft_baseline": true,
+    "post_result_hyperparameter_selection_forbidden": true
+  }
+}
