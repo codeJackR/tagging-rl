@@ -38,6 +38,7 @@ from training.grpo_smoke_artifacts import (
 )
 from training.grpo_full_run_artifacts import (
     FULL_RUN_LIFECYCLE_VERSION,
+    FULL_RUN_SUMMARY_VERSION,
     FullRunCheckpointLifecycleWriter,
     build_full_run_lifecycle_plan,
     create_full_run_staging_output,
@@ -57,6 +58,8 @@ ONE_UPDATE_GATE_VERSION = "grpo-smoke-one-update-gate-v1"
 FIVE_STEP_SMOKE_GATE_VERSION = "grpo-five-step-smoke-gate-v1"
 FULL_RUN_300_CONTRACT_VERSION = "grpo-full-run-300-contract-v1"
 FULL_RUN_CONSTRUCTION_GATE_VERSION = "grpo-full-run-construction-gate-v1"
+FULL_RUN_RUNTIME_BRIDGE_VERSION = "grpo-full-run-runtime-bridge-v1"
+FULL_RUN_RUNTIME_CONTEXT_VERSION = "grpo-full-run-runtime-context-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
 DEFAULT_FULL_RUN_DATA = "data/train_weak_grpo_cap4.jsonl"
@@ -786,6 +789,7 @@ class FullRunCheckpointHandoff:
         *,
         lifecycle_writer: FullRunCheckpointLifecycleWriter,
         rollout_collector: FullRunRolloutCollector,
+        progress_callback: Callable[..., object] | None = None,
     ):
         if not isinstance(lifecycle_writer, FullRunCheckpointLifecycleWriter):
             raise TypeError("handoff requires a FullRunCheckpointLifecycleWriter")
@@ -793,10 +797,14 @@ class FullRunCheckpointHandoff:
             raise TypeError("handoff requires a FullRunRolloutCollector")
         if rollout_collector.expected_steps != FULL_RUN_STEPS:
             raise ValueError("handoff collector must require exactly 300 steps")
+        if progress_callback is not None and not callable(progress_callback):
+            raise TypeError("handoff progress callback must be callable")
         self.lifecycle_writer = lifecycle_writer
         self.rollout_collector = rollout_collector
+        self.progress_callback = progress_callback
         self._begun = False
         self._ended = False
+        self._reported_progress_step = 0
         self._processed_checkpoint_steps: list[int] = []
         self._checkpoint_evidence: dict[int, dict] = {}
         self._final_evidence: dict | None = None
@@ -907,6 +915,53 @@ class FullRunCheckpointHandoff:
         self._checkpoint_evidence[step] = report
         return copy.deepcopy(report)
 
+    def on_log(self, state: object) -> dict | None:
+        """Validate and forward one authoritative optimizer-step heartbeat."""
+        if self.progress_callback is None:
+            return None
+        if not self._begun or self._ended:
+            raise RuntimeError("full-run progress occurred outside active training")
+        step = int(getattr(state, "global_step", -1))
+        history = self._log_history(state)
+        latest_log = history[-1] if history else {}
+        if "loss" not in latest_log:
+            if (
+                step == FULL_RUN_STEPS
+                and self._reported_progress_step == FULL_RUN_STEPS
+            ):
+                return None
+            raise RuntimeError(
+                "full-run non-step log arrived before progress completion"
+            )
+        expected_step = self._reported_progress_step + 1
+        if step != expected_step:
+            raise RuntimeError(
+                f"full-run progress expected step {expected_step}, found {step}"
+            )
+        if self.rollout_collector.captured_steps != step:
+            raise RuntimeError(
+                "full-run progress disagrees with captured rollout groups"
+            )
+        log_validation = validate_full_run_trainer_log_history(
+            history, expected_steps=step
+        )
+        if log_validation.get("step_records") is None or len(
+            log_validation["step_records"]
+        ) != step:
+            raise RuntimeError("full-run progress scalar-log prefix drifted")
+        result = self.progress_callback(
+            optimizer_step=step,
+            rollout_records=step * GENERATIONS_PER_STEP,
+            scalar_logs=step,
+        )
+        self._reported_progress_step = step
+        return {
+            "optimizer_step": step,
+            "rollout_records": step * GENERATIONS_PER_STEP,
+            "scalar_logs": step,
+            "callback_result": result,
+        }
+
     def on_train_end(self, state: object) -> dict:
         """Freeze complete evidence for the later final-adapter publication."""
         if not self._begun or self._ended:
@@ -915,6 +970,11 @@ class FullRunCheckpointHandoff:
             raise RuntimeError("full-run callback did not end at step 300")
         if self._processed_checkpoint_steps != list(FULL_RUN_CHECKPOINT_STEPS):
             raise RuntimeError("full-run callback did not process all checkpoints")
+        if (
+            self.progress_callback is not None
+            and self._reported_progress_step != FULL_RUN_STEPS
+        ):
+            raise RuntimeError("full-run callback did not report all progress steps")
         if (
             self.lifecycle_writer.snapshot().get("status")
             != "checkpoints_ready_for_final_handoff"
@@ -958,11 +1018,13 @@ def make_full_run_checkpoint_callback_class(base_callback_class: type) -> type:
             *,
             lifecycle_writer: FullRunCheckpointLifecycleWriter,
             rollout_collector: FullRunRolloutCollector,
+            progress_callback: Callable[..., object] | None = None,
         ):
             super().__init__()
             self.checkpoint_handoff = FullRunCheckpointHandoff(
                 lifecycle_writer=lifecycle_writer,
                 rollout_collector=rollout_collector,
+                progress_callback=progress_callback,
             )
 
         def on_train_begin(self, args, state, control, **kwargs):
@@ -971,6 +1033,10 @@ def make_full_run_checkpoint_callback_class(base_callback_class: type) -> type:
 
         def on_save(self, args, state, control, **kwargs):
             self.checkpoint_handoff.on_save(state)
+            return control
+
+        def on_log(self, args, state, control, **kwargs):
+            self.checkpoint_handoff.on_log(state)
             return control
 
         def on_train_end(self, args, state, control, **kwargs):
@@ -999,7 +1065,13 @@ def run_full_run_300_orchestration(
     source_adapter_file: str | Path,
     final_output_dir: str | Path,
     preflight_report: dict,
+    trainability_fn: Callable[[object], dict] | None = None,
+    parameter_values_fn: Callable[[object], dict] | None = None,
+    fingerprint_fn: Callable[[object], str] | None = None,
+    runtime_context: dict | None = None,
+    cuda_snapshot_fn: Callable[[], dict] | None = None,
     disk_usage_fn: Callable[[Path], object] | None = None,
+    progress_callback: Callable[..., object] | None = None,
     expected_adapter_model_bytes: int = EXPECTED_ADAPTER_MODEL_BYTES,
 ) -> dict:
     """Construct, run and publish the locked full run via injected runtime types.
@@ -1017,6 +1089,17 @@ def run_full_run_300_orchestration(
         raise ValueError("full-run orchestration requires a passed preflight")
     if preflight_report.get("cuda_imports_performed") is not False:
         raise ValueError("full-run preflight CUDA-import evidence drifted")
+    trainability_fn = trainability_fn or inspect_model_trainability
+    parameter_values_fn = (
+        parameter_values_fn or inspect_trainable_parameter_values
+    )
+    fingerprint_fn = fingerprint_fn or _trainable_parameter_sha256
+    if not isinstance(runtime_context, dict) or runtime_context.get(
+        "version"
+    ) != FULL_RUN_RUNTIME_CONTEXT_VERSION:
+        raise ValueError("full-run orchestration requires locked runtime context")
+    if not callable(cuda_snapshot_fn):
+        raise TypeError("full-run orchestration requires CUDA snapshots")
 
     final_output = Path(final_output_dir).resolve()
     preflight_output = Path(
@@ -1071,6 +1154,8 @@ def run_full_run_300_orchestration(
     tokenizer_save = getattr(tokenizer, "save_pretrained", None)
     if not callable(model_save) or not callable(tokenizer_save):
         raise TypeError("model and tokenizer must expose save_pretrained()")
+    trainability_before = trainability_fn(model)
+    lora_sha_before = fingerprint_fn(model)
 
     staging = create_full_run_staging_output(final_output)
     plan = build_full_run_lifecycle_plan(
@@ -1121,15 +1206,18 @@ def run_full_run_300_orchestration(
     callback = callback_class(
         lifecycle_writer=writer,
         rollout_collector=collector,
+        progress_callback=progress_callback,
     )
     add_callback = getattr(trainer, "add_callback", None)
     if not callable(add_callback):
         raise TypeError("full-run trainer does not expose add_callback()")
     add_callback(callback)
 
+    cuda_before_train = cuda_snapshot_fn()
     train_started = time.perf_counter()
     train_result = trainer.train()
     train_seconds = time.perf_counter() - train_started
+    cuda_after_train = cuda_snapshot_fn()
     completed_step = int(getattr(trainer.state, "global_step", -1))
     if completed_step != FULL_RUN_STEPS:
         raise RuntimeError("full-run trainer did not finish exactly 300 updates")
@@ -1140,6 +1228,51 @@ def run_full_run_300_orchestration(
         raise RuntimeError("full-run callback returned incomplete rollout evidence")
     if len(evidence["trainer_step_logs"]) != FULL_RUN_STEPS:
         raise RuntimeError("full-run callback returned incomplete trainer logs")
+
+    trainability_after = trainability_fn(model)
+    for key in ("trainable_parameters", "trainable_tensors"):
+        if trainability_after.get(key) != trainability_before.get(key):
+            raise RuntimeError(f"full-run trainability changed for {key}")
+    before_names = trainability_before.get("trainable_parameter_names")
+    if before_names is not None and trainability_after.get(
+        "trainable_parameter_names"
+    ) != before_names:
+        raise RuntimeError("full-run trainable parameter names changed")
+    parameter_values = parameter_values_fn(model)
+    if parameter_values.get("all_trainable_values_finite") is not True:
+        raise RuntimeError("full-run LoRA contains a non-finite value")
+    lora_sha_after = fingerprint_fn(model)
+    if lora_sha_after == lora_sha_before:
+        raise RuntimeError("full-run changed no trainable LoRA bytes")
+    cuda_after_model_audit = cuda_snapshot_fn()
+    train_metrics = dict(getattr(train_result, "metrics", {}))
+    run_summary = {
+        "version": FULL_RUN_SUMMARY_VERSION,
+        "status": "completed",
+        "training": {
+            "optimizer_steps": completed_step,
+            "rollout_records": len(evidence["rollout_records"]),
+            "train_seconds": train_seconds,
+            "train_metrics": train_metrics,
+        },
+        "model_audit": {
+            "trainability_before": trainability_before,
+            "trainability_after": trainability_after,
+            "parameter_values_after": parameter_values,
+            "lora_sha256_before": lora_sha_before,
+            "lora_sha256_after": lora_sha_after,
+            "trainable_lora_changed": True,
+        },
+        "resources": {
+            "runtime": copy.deepcopy(runtime_context["runtime"]),
+            "preflight_disk_free_bytes": preflight_report["disk"]["free_bytes"],
+            "cuda_before_load": copy.deepcopy(runtime_context["cuda_before_load"]),
+            "cuda_after_load": copy.deepcopy(runtime_context["cuda_after_load"]),
+            "cuda_before_train": cuda_before_train,
+            "cuda_after_train": cuda_after_train,
+            "cuda_after_model_audit": cuda_after_model_audit,
+        },
+    }
 
     def save_live_adapter(adapter_output: Path) -> None:
         model_save(adapter_output, safe_serialization=True)
@@ -1155,6 +1288,7 @@ def run_full_run_300_orchestration(
         trainer_step_logs=evidence["trainer_step_logs"],
         preflight_report=preflight_report,
         config_settings=config_settings,
+        run_summary=run_summary,
         disk_usage_fn=disk_usage_fn,
     )
     if writer.snapshot().get("status") != "completed_and_published":
@@ -1166,7 +1300,14 @@ def run_full_run_300_orchestration(
         "optimizer_steps": completed_step,
         "expected_rollouts": FULL_RUN_STEPS * GENERATIONS_PER_STEP,
         "train_seconds": train_seconds,
-        "train_metrics": dict(getattr(train_result, "metrics", {})),
+        "train_metrics": train_metrics,
+        "run_summary": run_summary,
+        "trainability_before": trainability_before,
+        "trainability_after": trainability_after,
+        "parameter_values_after": parameter_values,
+        "lora_sha256_before": lora_sha_before,
+        "lora_sha256_after": lora_sha_after,
+        "trainable_lora_changed": True,
         "config": config_report,
         "dataset_rows": len(dataset),
         "dataset_order_sha256": expected_order_sha,
@@ -3649,6 +3790,14 @@ def _load_full_run_construction_runtime() -> dict:
     }
 
 
+def _load_full_run_runtime() -> dict:
+    """Load construction dependencies plus optimizer-global cleanup support."""
+    runtime = _load_full_run_construction_runtime()
+    from bitsandbytes.optim import GlobalOptimManager
+
+    return {**runtime, "GlobalOptimManager": GlobalOptimManager}
+
+
 def run_full_run_300_construction_gate(
     *,
     training_data_path: str | Path,
@@ -3901,6 +4050,226 @@ def run_full_run_300_construction_gate(
     report["model_retained"] = False
     report["trainer_retained"] = False
     report["training_dispatched"] = False
+    return report
+
+
+def run_full_run_300_gate(
+    *,
+    preflight_report: dict,
+    training_data_path: str | Path,
+    adapter_path: str | Path,
+    adapter_file: str | Path,
+    final_output_dir: str | Path,
+    runtime_loader: Callable[[], dict] = _load_full_run_runtime,
+    policy_loader_fn: Callable[..., tuple] = _load_locked_policy,
+    trainability_fn: Callable[[object], dict] = inspect_model_trainability,
+    parameter_values_fn: Callable[[object], dict] = (
+        inspect_trainable_parameter_values
+    ),
+    fingerprint_fn: Callable[[object], str] = _trainable_parameter_sha256,
+    cuda_snapshot_fn: Callable[[object], dict] = _cuda_memory_snapshot,
+    orchestration_fn: Callable[..., dict] = run_full_run_300_orchestration,
+    disk_usage_fn: Callable[[Path], object] | None = None,
+    progress_callback: Callable[..., object] | None = None,
+    expected_adapter_model_bytes: int = EXPECTED_ADAPTER_MODEL_BYTES,
+) -> dict:
+    """Load the real runtime and invoke guarded orchestration outside the CLI."""
+    if preflight_report.get("status") != "passed":
+        raise ValueError("full-run runtime bridge requires a passed preflight")
+    if preflight_report.get("cuda_imports_performed") is not False:
+        raise ValueError("full-run runtime bridge received invalid preflight state")
+
+    training_data = Path(training_data_path).resolve()
+    adapter_path = Path(adapter_path).resolve()
+    adapter_file = Path(adapter_file).resolve()
+    final_output = Path(final_output_dir).resolve()
+    expected_data = Path(preflight_report.get("pool", {}).get("data_path", "")).resolve()
+    expected_adapter_path = Path(
+        preflight_report.get("sft_lock", {}).get("adapter_path", "")
+    ).resolve()
+    expected_adapter_file = Path(
+        preflight_report.get("sft_lock", {}).get("adapter_file", "")
+    ).resolve()
+    expected_output = Path(
+        preflight_report.get("output", {}).get("path", "")
+    ).resolve()
+    if training_data != expected_data:
+        raise RuntimeError("full-run bridge data path disagrees with preflight")
+    if adapter_path != expected_adapter_path or adapter_file != expected_adapter_file:
+        raise RuntimeError("full-run bridge adapter path disagrees with preflight")
+    if final_output != expected_output:
+        raise RuntimeError("full-run bridge output path disagrees with preflight")
+    if final_output.exists():
+        raise FileExistsError(f"final full-run output already exists: {final_output}")
+    expected_adapter_sha = preflight_report.get("sft_lock", {}).get(
+        "adapter_sha256"
+    )
+    if _sha256_file(adapter_file) != expected_adapter_sha:
+        raise RuntimeError("source adapter disagrees before full-run bridge")
+
+    runtime = runtime_loader()
+    required_runtime = {
+        "FastLanguageModel",
+        "torch",
+        "TrainerCallback",
+        "GRPOConfig",
+        "GRPOTrainer",
+        "GlobalOptimManager",
+        "load_grpo_prompts",
+        "load_pack",
+        "reward_functions",
+        "reward_weights",
+    }
+    if set(runtime) != required_runtime:
+        raise RuntimeError("full-run runtime bridge stack is incomplete or unexpected")
+    reward_weights = tuple(float(value) for value in runtime["reward_weights"])
+    reward_names = tuple(
+        getattr(reward, "__name__", type(reward).__name__)
+        for reward in runtime["reward_functions"]
+    )
+    if reward_weights != LOCKED_REWARD_WEIGHTS:
+        raise RuntimeError("full-run bridge reward weights drifted")
+    if reward_names != EXPECTED_REWARD_NAMES:
+        raise RuntimeError("full-run bridge reward functions drifted")
+
+    torch = runtime["torch"]
+    global_optim_manager = runtime["GlobalOptimManager"].get_instance()
+    overrides_before = len(global_optim_manager.module_weight_config_triple)
+    model = None
+    tokenizer = None
+    dataset = None
+    report = None
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+    cuda_before_load = cuda_snapshot_fn(torch)
+    started = time.perf_counter()
+    try:
+        model, tokenizer = policy_loader_fn(
+            runtime["FastLanguageModel"], torch, adapter_path
+        )
+        trainability_before = trainability_fn(model)
+        lora_sha_before = fingerprint_fn(model)
+        cuda_after_load = cuda_snapshot_fn(torch)
+        runtime_context = {
+            "version": FULL_RUN_RUNTIME_CONTEXT_VERSION,
+            "runtime": {
+                "torch_version": str(getattr(torch, "__version__", "unknown")),
+                "trainer_class": runtime["GRPOTrainer"].__name__,
+                "trainer_module": runtime["GRPOTrainer"].__module__,
+                "callback_class": runtime["TrainerCallback"].__name__,
+                "config_class": runtime["GRPOConfig"].__name__,
+            },
+            "cuda_before_load": cuda_before_load,
+            "cuda_after_load": cuda_after_load,
+        }
+
+        pack = runtime["load_pack"]("packs/vastraa_taste_v1")
+        dataset = runtime["load_grpo_prompts"](
+            pack,
+            training_data,
+            require_pass_rate_band=True,
+        )
+        if len(dataset) != FULL_RUN_DATA_ROWS:
+            raise RuntimeError("full-run bridge dataset row count drifted")
+        required_columns = {"prompt", "gold", "sku_id"}
+        if set(dataset.column_names) != required_columns:
+            raise RuntimeError("full-run bridge dataset columns drifted")
+        dataset_skus = list(dataset["sku_id"])
+        if len(set(dataset_skus)) != FULL_RUN_DATA_ROWS:
+            raise RuntimeError("full-run bridge dataset SKUs are not unique")
+        observed_order_sha = _ordered_sku_sha256(dataset_skus)
+        if observed_order_sha != preflight_report["pool"].get(
+            "ordered_sku_sha256"
+        ):
+            raise RuntimeError("full-run bridge dataset order drifted")
+
+        orchestration = orchestration_fn(
+            base_trainer_class=runtime["GRPOTrainer"],
+            base_callback_class=runtime["TrainerCallback"],
+            config_class=runtime["GRPOConfig"],
+            model=model,
+            tokenizer=tokenizer,
+            dataset=dataset,
+            reward_functions=runtime["reward_functions"],
+            reward_weights=runtime["reward_weights"],
+            source_adapter_file=adapter_file,
+            final_output_dir=final_output,
+            preflight_report=preflight_report,
+            trainability_fn=trainability_fn,
+            parameter_values_fn=parameter_values_fn,
+            fingerprint_fn=fingerprint_fn,
+            runtime_context=runtime_context,
+            cuda_snapshot_fn=lambda: cuda_snapshot_fn(torch),
+            disk_usage_fn=disk_usage_fn,
+            progress_callback=progress_callback,
+            expected_adapter_model_bytes=expected_adapter_model_bytes,
+        )
+        if (
+            orchestration.get("status") != "passed"
+            or not orchestration.get("published")
+            or not final_output.is_dir()
+        ):
+            raise RuntimeError("full-run orchestration did not publish success")
+
+        trainability_after = trainability_fn(model)
+        if trainability_after.get("trainable_parameters") != trainability_before.get(
+            "trainable_parameters"
+        ):
+            raise RuntimeError("full-run trainable-parameter count changed")
+        if trainability_after.get("trainable_tensors") != trainability_before.get(
+            "trainable_tensors"
+        ):
+            raise RuntimeError("full-run trainable-tensor count changed")
+        parameter_values = parameter_values_fn(model)
+        lora_sha_after = fingerprint_fn(model)
+        if lora_sha_after == lora_sha_before:
+            raise RuntimeError("full-run bridge changed no trainable LoRA bytes")
+        if _sha256_file(adapter_file) != expected_adapter_sha:
+            raise RuntimeError("source adapter changed during full-run bridge")
+        cuda_after_orchestration = cuda_snapshot_fn(torch)
+        report = {
+            "version": FULL_RUN_RUNTIME_BRIDGE_VERSION,
+            "status": "passed",
+            "training_data_path": str(training_data),
+            "dataset_rows": len(dataset),
+            "dataset_columns": sorted(required_columns),
+            "dataset_ordered_sku_sha256": observed_order_sha,
+            "adapter_path": str(adapter_path),
+            "adapter_file": str(adapter_file),
+            "adapter_sha256": expected_adapter_sha,
+            "source_adapter_unchanged": True,
+            "trainability_before": trainability_before,
+            "trainability_after": trainability_after,
+            "parameter_values_after": parameter_values,
+            "lora_sha256_before": lora_sha_before,
+            "lora_sha256_after": lora_sha_after,
+            "trainable_lora_changed": True,
+            "orchestration": orchestration,
+            "cuda_before_load": cuda_before_load,
+            "cuda_after_load": cuda_after_load,
+            "cuda_after_orchestration": cuda_after_orchestration,
+            "bridge_seconds_before_release": time.perf_counter() - started,
+            "global_optimizer_manager_overrides_before": overrides_before,
+            "training_dispatched": True,
+            "published": True,
+        }
+    finally:
+        dataset = None
+        model = None
+        tokenizer = None
+        del global_optim_manager.module_weight_config_triple[overrides_before:]
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+    if report is None:
+        raise RuntimeError("full-run runtime bridge ended without a report")
+    report["global_optimizer_manager_overrides_removed"] = (
+        len(global_optim_manager.module_weight_config_triple) == overrides_before
+    )
+    report["cuda_after_release"] = cuda_snapshot_fn(torch)
+    report["model_retained"] = False
+    report["trainer_retained"] = False
     return report
 
 

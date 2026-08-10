@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import shutil
@@ -15,6 +16,7 @@ from training.grpo_full_run_artifacts import (
     FullRunCheckpointLifecycleWriter,
     build_full_run_lifecycle_plan,
     create_full_run_staging_output,
+    validate_full_run_summary,
 )
 
 STARTING_SHA = hashlib.sha256(b"starting SFT adapter").hexdigest()
@@ -111,6 +113,61 @@ def locked_config():
         "save_steps": 100,
         "save_total_limit": 2,
         "save_only_model": True,
+    }
+
+
+def cuda_snapshot(**overrides):
+    value = {
+        "device_index": 0,
+        "device_name": "Fake GPU",
+        "device_total_bytes": 1_000,
+        "driver_free_bytes": 800,
+        "driver_used_bytes": 200,
+        "torch_allocated_bytes": 10,
+        "torch_reserved_bytes": 20,
+        "torch_peak_allocated_bytes": 30,
+        "torch_peak_reserved_bytes": 40,
+    }
+    value.update(overrides)
+    return value
+
+
+def run_summary():
+    return {
+        "version": "grpo-full-run-summary-v1",
+        "status": "completed",
+        "training": {
+            "optimizer_steps": 300,
+            "rollout_records": 2_400,
+            "train_seconds": 90.0,
+            "train_metrics": {"train_loss": -1.5},
+        },
+        "model_audit": {
+            "trainability_before": {
+                "trainable_parameters": 18_464_768,
+                "trainable_tensors": 392,
+            },
+            "trainability_after": {
+                "trainable_parameters": 18_464_768,
+                "trainable_tensors": 392,
+            },
+            "parameter_values_after": {
+                "all_trainable_values_finite": True,
+                "nonfinite_parameters": 0,
+            },
+            "lora_sha256_before": "e" * 64,
+            "lora_sha256_after": "f" * 64,
+            "trainable_lora_changed": True,
+        },
+        "resources": {
+            "runtime": {"torch_version": "fake"},
+            "preflight_disk_free_bytes": 4 * 1024**3,
+            "cuda_before_load": cuda_snapshot(),
+            "cuda_after_load": cuda_snapshot(),
+            "cuda_before_train": cuda_snapshot(),
+            "cuda_after_train": cuda_snapshot(),
+            "cuda_after_model_audit": cuda_snapshot(),
+        },
     }
 
 
@@ -238,6 +295,7 @@ def test_final_adapter_and_complete_bundle_publish_atomically(tmp_path):
         trainer_step_logs=logs(300),
         preflight_report={"status": "passed", "cuda_imports_performed": False},
         config_settings=locked_config(),
+        run_summary=run_summary(),
         disk_usage_fn=lambda _: SimpleNamespace(free=4 * 1024**3),
     )
 
@@ -259,8 +317,69 @@ def test_final_adapter_and_complete_bundle_publish_atomically(tmp_path):
     assert manifest["rollout_records"] == 2_400
     assert manifest["trainer_step_logs"] == 300
     assert len(manifest["checkpoint_events_before_publication"]) == 8
+    assert manifest["run_summary"]["version"] == "grpo-full-run-summary-v1"
+    assert manifest["run_summary_validation"]["status"] == "passed"
+    assert manifest["run_summary_validation"]["peak_allocated_bytes"] == 30
     assert writer.snapshot()["status"] == "completed_and_published"
     assert writer.snapshot()["event_count"] == 10
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda value: value.update(version="wrong"), "unexpected.*version"),
+        (
+            lambda value: value["training"].update(train_seconds=0.0),
+            "positive training duration",
+        ),
+        (
+            lambda value: value["training"].update(train_seconds=float("nan")),
+            "non-finite",
+        ),
+        (
+            lambda value: value["model_audit"].update(
+                lora_sha256_after=value["model_audit"]["lora_sha256_before"]
+            ),
+            "did not record a LoRA change",
+        ),
+        (
+            lambda value: value["model_audit"]["parameter_values_after"].update(
+                all_trainable_values_finite=False
+            ),
+            "did not prove finite",
+        ),
+        (
+            lambda value: value["resources"]["cuda_after_train"].update(
+                driver_free_bytes=799
+            ),
+            "does not sum",
+        ),
+        (
+            lambda value: value["resources"]["cuda_after_train"].update(
+                device_name="Other GPU"
+            ),
+            "identity drifted",
+        ),
+        (
+            lambda value: value["resources"].update(
+                preflight_disk_free_bytes=3 * 1024**3 - 1
+            ),
+            "disk was below",
+        ),
+        (
+            lambda value: value["training"]["train_metrics"].update(
+                bad=object()
+            ),
+            "non-JSON value",
+        ),
+    ],
+)
+def test_run_summary_validator_fails_closed(mutate, message):
+    value = copy.deepcopy(run_summary())
+    mutate(value)
+
+    with pytest.raises((TypeError, ValueError), match=message):
+        validate_full_run_summary(value)
 
 
 def test_final_handoff_rejects_source_drift_or_unchanged_final_adapter(tmp_path):
@@ -308,6 +427,7 @@ def test_bundle_handoff_rejects_incomplete_evidence(
             trainer_step_logs=logs(log_count),
             preflight_report={"status": "passed"},
             config_settings=locked_config(),
+            run_summary=run_summary(),
             disk_usage_fn=lambda _: SimpleNamespace(free=4 * 1024**3),
         )
 
@@ -325,6 +445,7 @@ def test_bundle_handoff_rejects_size_disk_or_config_drift(tmp_path):
             trainer_step_logs=logs(300),
             preflight_report={"status": "passed"},
             config_settings=locked_config(),
+            run_summary=run_summary(),
             disk_usage_fn=lambda _: SimpleNamespace(free=4 * 1024**3),
             maximum_bundle_bytes=1,
         )
@@ -342,6 +463,7 @@ def test_bundle_handoff_rejects_size_disk_or_config_drift(tmp_path):
             trainer_step_logs=logs(300),
             preflight_report={"status": "passed"},
             config_settings=locked_config(),
+            run_summary=run_summary(),
             disk_usage_fn=lambda _: SimpleNamespace(free=3 * 1024**3 - 1),
         )
 
@@ -359,5 +481,6 @@ def test_bundle_handoff_rejects_size_disk_or_config_drift(tmp_path):
             trainer_step_logs=logs(300),
             preflight_report={"status": "passed"},
             config_settings=config,
+            run_summary=run_summary(),
             disk_usage_fn=lambda _: SimpleNamespace(free=4 * 1024**3),
         )

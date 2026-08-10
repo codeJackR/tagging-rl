@@ -72,6 +72,7 @@ class FakeModel:
     def __init__(self, *, final_weights=FINAL_WEIGHTS):
         self.final_weights = final_weights
         self.save_calls = 0
+        self.updated = False
 
     def save_pretrained(self, path: Path, *, safe_serialization: bool):
         assert safe_serialization is True
@@ -203,10 +204,18 @@ class FakeGRPOTrainer:
             )
             self.state.global_step = step
             self.state.log_history.append(step_log(step))
+            for callback in self.callbacks:
+                callback.on_log(self.args, self.state, control)
             if self.emit_save_callbacks and step in (100, 200, 300):
                 self._write_checkpoint(step)
                 for callback in self.callbacks:
                     callback.on_save(self.args, self.state, control)
+        self.state.log_history.append(
+            {"step": self.state.global_step, "train_runtime": 90.0}
+        )
+        for callback in self.callbacks:
+            callback.on_log(self.args, self.state, control)
+        self.model.updated = self.steps_to_run > 0
         self.optimizer = object()
         self.lr_scheduler = object()
         for callback in self.callbacks:
@@ -227,6 +236,20 @@ class NoSaveFakeGRPOTrainer(FakeGRPOTrainer):
 
 def ordered_sku_sha256(sku_ids):
     return hashlib.sha256(("\n".join(sku_ids) + "\n").encode()).hexdigest()
+
+
+def cuda_snapshot():
+    return {
+        "device_index": 0,
+        "device_name": "Fake GPU",
+        "device_total_bytes": 1_000,
+        "driver_free_bytes": 800,
+        "driver_used_bytes": 200,
+        "torch_allocated_bytes": 10,
+        "torch_reserved_bytes": 20,
+        "torch_peak_allocated_bytes": 30,
+        "torch_peak_reserved_bytes": 40,
+    }
 
 
 def orchestration_kwargs(tmp_path, **overrides):
@@ -254,7 +277,27 @@ def orchestration_kwargs(tmp_path, **overrides):
                 "ordered_sku_sha256": ordered_sku_sha256(dataset.sku_ids)
             },
             "sft_lock": {"adapter_sha256": SOURCE_SHA},
+            "disk": {"free_bytes": 4 * 1024**3},
         },
+        "trainability_fn": lambda model: {
+            "trainable_parameters": 18_464_768,
+            "trainable_tensors": 392,
+            "trainable_parameter_names": ["fake.lora.weight"],
+        },
+        "parameter_values_fn": lambda model: {
+            "all_trainable_values_finite": True,
+            "nonfinite_parameters": 0,
+        },
+        "fingerprint_fn": lambda model: (
+            "b" * 64 if model.updated else "a" * 64
+        ),
+        "runtime_context": {
+            "version": "grpo-full-run-runtime-context-v1",
+            "runtime": {"torch_version": "fake"},
+            "cuda_before_load": cuda_snapshot(),
+            "cuda_after_load": cuda_snapshot(),
+        },
+        "cuda_snapshot_fn": cuda_snapshot,
         "disk_usage_fn": lambda _: SimpleNamespace(free=4 * 1024**3),
         "expected_adapter_model_bytes": len(FINAL_WEIGHTS),
     }
@@ -288,6 +331,29 @@ def test_orchestration_constructs_trains_and_atomically_publishes(tmp_path):
     }
     assert len((final / "rollouts.jsonl").read_text().splitlines()) == 2_400
     assert kwargs["model"].save_calls == 1
+
+
+def test_orchestration_forwards_all_300_authoritative_progress_steps(tmp_path):
+    progress = []
+    kwargs = orchestration_kwargs(
+        tmp_path,
+        progress_callback=lambda **values: progress.append(values),
+    )
+
+    report = run_full_run_300_orchestration(**kwargs)
+
+    assert report["status"] == "passed"
+    assert len(progress) == 300
+    assert progress[0] == {
+        "optimizer_step": 1,
+        "rollout_records": 8,
+        "scalar_logs": 1,
+    }
+    assert progress[-1] == {
+        "optimizer_step": 300,
+        "rollout_records": 2_400,
+        "scalar_logs": 300,
+    }
 
 
 @pytest.mark.parametrize(
@@ -342,4 +408,31 @@ def test_orchestration_refuses_unsafe_final_adapter_without_publication(tmp_path
         run_full_run_300_orchestration(**kwargs)
     assert not Path(kwargs["final_output_dir"]).exists()
     assert model.save_calls == 1
+    assert len(list(tmp_path.glob(".grpo-first-300.staging-*"))) == 1
+
+
+@pytest.mark.parametrize(
+    ("override", "message"),
+    [
+        (
+            {
+                "parameter_values_fn": lambda model: {
+                    "all_trainable_values_finite": False,
+                    "nonfinite_parameters": 1,
+                }
+            },
+            "non-finite value",
+        ),
+        ({"fingerprint_fn": lambda model: "a" * 64}, "changed no trainable"),
+    ],
+)
+def test_orchestration_audits_live_lora_before_adapter_save(
+    tmp_path, override, message
+):
+    kwargs = orchestration_kwargs(tmp_path, **override)
+
+    with pytest.raises(RuntimeError, match=message):
+        run_full_run_300_orchestration(**kwargs)
+    assert not Path(kwargs["final_output_dir"]).exists()
+    assert kwargs["model"].save_calls == 0
     assert len(list(tmp_path.glob(".grpo-first-300.staging-*"))) == 1

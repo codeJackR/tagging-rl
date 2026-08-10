@@ -3468,9 +3468,373 @@ dataset, accidental eager optimizer creation, source-adapter drift before heavy
 imports and reward-weight drift. Together with orchestration and callback tests,
 the focused command passes **24 tests in 0.82 seconds**. The complete local suite
 passes **367 tests in 11.24 seconds**; compilation and `git diff --check` pass.
-The gate has not yet run on Vast.ai. Both repositories remain at commit
-`f79ce8cae1c96bf52605fd136f236cc2da82320f`, so these new files must be committed,
-pushed and pulled before remote evidence can be tied to an exact clean commit.
+At this point the gate had not yet run on Vast.ai, so the implementation was
+committed before collecting remote evidence.
+
+#### Real Vast.ai full-run construction gate
+
+The accumulated guarded full-run implementation, tests, tracker and compact
+smoke-reload record were committed as
+`39175487803f089a9d667e8a45fc9197939790b2` (`Build guarded full-run GRPO
+orchestration`). The local repository's configured remote is named `vastai`, not
+`origin`; the first push attempt therefore failed without changing remote state.
+Pushing to `vastai` succeeded, and `/workspace/tagging-rl` fast-forwarded from
+`f79ce8c` to the exact same commit. Pre-existing run directories remained
+untracked and untouched; the tracked worktree and index were clean.
+
+The real no-training construction gate then passed on the RTX 3090. It used:
+
+- Unsloth `2026.7.5`;
+- Torch `2.11.0+cu130`;
+- Transformers `4.57.6`;
+- vLLM `0.23.0` (imported by the installed stack but disabled in config);
+- `UnslothGRPOTrainer` wrapped as
+  `FullRunRolloutCapturingUnslothGRPOTrainer`; and
+- the real callback subclass `FullRunCheckpointTrainerCallback`.
+
+The gate loaded all **1,565** cap-four rows with columns `gold`, `prompt` and
+`sku_id`. The observed ordered-SKU SHA-256 was
+`d6e4df11792fdba9834f14cdf394a9ab282db3684c935c181d06f5bebd6cb4ef`.
+The source data and pool-manifest hashes remained respectively
+`3e378187a8147923bae1e0753a750d6e252336e911fa8c91cd57a4a8ddc3a102`
+and `d166325a0c4ef3d78023ba492881fb3971e290b1b3606ee4ac8cd6aa733175e0`.
+The SFT adapter remained locked to
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+
+Every normalized trainer setting matched the 300-step contract, including
+generation batch eight, seeded shuffling, 30-step warmup, cosine scheduling,
+`adamw_8bit`, DAPO loss, beta zero, three rewards weighted `1:1:2`, model-only
+checkpointing every 100 steps and retention limit two. The collector, lifecycle
+writer and callback were all attached successfully.
+
+Runtime trainability matched the locked combined LoRA:
+
+| measurement | result |
+|---|---:|
+| loaded model parameters | 1,562,179,072 |
+| trainable LoRA parameters | 18,464,768 |
+| trainable tensors | 392 |
+| share of loaded parameters | 1.182% |
+| trainable dtype/device | float32 / `cuda:0` |
+| target modules | q, k, v, o, gate, up and down projections |
+
+The live trainable-LoRA SHA-256 was
+`1c9f10100bfc250323ad43c0e8b1b170a909d842fb2579903200f95a786e711e`
+both before and after trainer/callback construction. Therefore construction
+changed no trainable policy bytes. Global step, rollouts and lifecycle events
+all remained zero; no gradients, optimizer, scheduler or reference model were
+created; and `trainer.train()` was never called.
+
+Construction itself took **5.157 seconds**. GPU memory evidence was:
+
+| point | driver used | Torch allocated | Torch reserved |
+|---|---:|---:|---:|
+| before load | 629,669,888 B | 8,519,680 B | 20,971,520 B |
+| after trainer/callback construction | 3,832,020,992 B | 3,190,780,416 B | 3,202,351,104 B |
+| after release | 650,641,408 B | 12,713,984 B | 20,971,520 B |
+
+Peak Torch allocation/reservation during the gate was 3,264,639,488 /
+3,275,751,424 bytes. A separate post-process `nvidia-smi` check returned to the
+264 MiB idle baseline at 0% utilization and 39°C. The temporary lifecycle root
+was removed, no `/tmp/grpo-full-run-construction-*` path survived, and the
+reserved `runs/grpo-first-300` output remained absent. Disk free after the gate
+was 4,766,380,032 bytes.
+
+The compact backing artifact is
+`runs/grpo-full-run-construction-verification.json`. This proves that the exact
+real model, full dataset, config, collector and checkpoint callback can coexist
+within memory without mutating the policy or starting optimization. It does not
+prove that generation, backward, checkpoint callbacks during training or the
+300-step run will complete. The next small gate should exercise one real full-run
+generation/update through this exact assembled path while preventing checkpoint
+or final publication—or, if the already-passed five-step smoke is accepted as
+sufficient update evidence, proceed to exposing the detached 300-step dispatch.
+
+#### Real-runtime bridge prepared, still disconnected from CLI
+
+`run_full_run_300_gate` now bridges production runtime loading into the tested
+300-step orchestration, but `--full-run-300` remains unchanged and still exits
+after read-only preflight. The bridge rechecks that training-data, adapter and
+final-output paths exactly match preflight; verifies the immutable adapter hash;
+imports the real Unsloth/TRL/Transformers stack; loads the SFT policy and full
+production dataset; rechecks 1,565 rows, required columns, SKU uniqueness and
+ordered-SKU SHA-256; and passes the real trainer, callback and config classes to
+`run_full_run_300_orchestration`.
+
+The bridge records CUDA state before policy load, after load, after orchestration
+and after release. It also snapshots the existing bitsandbytes
+`GlobalOptimManager` registration count and removes every registration added by
+the run during `finally`, including when orchestration raises. Model, tokenizer
+and dataset references are released and CUDA cache cleanup/synchronization is
+guaranteed on both success and failure.
+
+One publication-order gap was corrected while adding this bridge. The full
+orchestration now fingerprints and audits the live trainable LoRA before
+training, then—after 300 steps and complete callback evidence but **before**
+calling either model saver—requires:
+
+- unchanged trainable tensor/parameter counts and names;
+- all trainable values finite; and
+- a final live-LoRA SHA-256 different from its pre-training fingerprint.
+
+Only after those checks may it save and validate the final adapter and publish
+the bundle. CPU negative tests prove that a non-finite LoRA or unchanged live
+LoRA leaves the final output absent and never calls the model saver. This moves
+the failure boundary ahead of publication instead of discovering a bad policy
+after an apparently completed bundle exists.
+
+The six bridge tests verify exact class/dependency forwarding, model/dataset
+lineage, positive LoRA change, source immutability, resource-report assembly,
+bitsandbytes cleanup after success and synthetic failure, preflight/output/SKU
+drift rejection and refusal of false orchestration success. Exact command:
+
+```bash
+.venv/bin/pytest -q tests/test_grpo_full_run_runtime_bridge.py
+# 6 passed in 0.06 seconds
+```
+
+The bridge/orchestration/callback/checkpoint focused set passes **37 tests in
+1.15 seconds**. The complete local CPU suite passes **375 tests in 11.66
+seconds**; compile and diff checks pass. The runtime bridge itself has not been
+invoked on Vast because doing so would intentionally start and publish the
+300-step run. The remaining launch work is to persist the bridge's resource and
+runtime summary inside the atomic bundle, add a detached process launcher and
+monitor contract, then explicitly connect the preflight-only CLI branch.
+
+#### Versioned training and resource summary inside the atomic bundle
+
+The completed-bundle manifest now requires a
+`grpo-full-run-summary-v1` record before publication. This removes dependence on
+SSH output or a detached process log for the experiment's core health/resource
+claims. The summary is validated while the run is still under its private
+staging root and is embedded in `manifest.json`; an invalid summary prevents the
+atomic rename.
+
+The persisted training section contains exactly 300 optimizer steps, 2,400
+rollout records, measured `trainer.train()` wall time and the trainer's returned
+metrics. Every nested value must be strict JSON with finite numbers—`NaN`,
+infinity, opaque Python objects and non-string dictionary keys fail before the
+manifest is written.
+
+The model-audit section records trainability before and after training, finite
+post-training parameter evidence and live LoRA SHA-256 values before/after. Both
+trainability snapshots must still contain 18,464,768 parameters across 392
+tensors. The post-training audit must report zero non-finite parameters and the
+two LoRA fingerprints must differ. These checks occur after callback evidence
+is complete but before the model/tokenizer saver, so an unchanged or non-finite
+live policy cannot become a published adapter.
+
+The resource section persists runtime class/version metadata, the preflight disk
+measurement and five CUDA snapshots:
+
+1. before loading the policy;
+2. after loading the policy;
+3. immediately before `trainer.train()`;
+4. immediately after `trainer.train()`; and
+5. after the live model audit, before adapter saving/publication.
+
+Each CUDA snapshot requires one device index/name/capacity plus driver free/used,
+Torch allocated/reserved and peak allocated/reserved bytes. Free plus used must
+equal device capacity; reserved cannot be below allocated; peak reserved cannot
+be below peak allocated; peak allocation cannot be below current allocation;
+and device identity/capacity must remain unchanged across all five snapshots.
+The manifest also stores a compact validation result with maximum observed peak
+allocation/reservation and the preflight disk value. Post-release CUDA state
+cannot be embedded before atomic publication and remains part of the outer
+bridge/process report.
+
+CPU negative tests now reject zero or non-finite duration, wrong summary version,
+identical LoRA hashes, failed parameter finiteness, inconsistent driver-memory
+arithmetic, a changed GPU identity, disk below 3 GiB and non-JSON trainer
+metrics. The focused writer/orchestration/bridge set passes **36 tests in 0.92
+seconds**. The complete local CPU suite passes **384 tests in 11.47 seconds**;
+compilation and `git diff --check` pass. The next launch boundary is a detached
+process/monitor contract that preserves the outer bridge report, PID/exit state
+and post-release GPU/disk measurements even if SSH disconnects.
+
+#### CPU-only detached process control contract
+
+`training/grpo_detached_control.py` now defines the evidence boundary around a
+future detached worker without starting a process or exposing the production
+runtime bridge through the CLI. Reserving `runs/grpo-first-300-control` creates
+an immutable `launch.json` beside the still-absent final output. It locks the
+expected 40-character Git commit, argument-list worker command, `shell=False`,
+new-session behavior, redirected process log and the exact success/failure
+evidence paths. Existing final, control or private staging paths fail closed.
+
+The worker-side writer uses separate records with deliberately different
+lifecycles:
+
+| record | write behavior | purpose |
+|---|---|---|
+| `worker.json` | exclusive, once | bind the PID to a process-start token so PID reuse cannot impersonate the original worker |
+| `progress.json` | atomic replacement | expose strictly increasing optimizer progress without readers observing a partial JSON write |
+| `bridge-report.json` | exclusive, success only | preserve the production bridge's outer publication result |
+| `exit.json` | exclusive, last | make process termination explicit; a missing exit record is never interpreted as success |
+| `process.log` | reserved for redirected stdout/stderr | retain operational diagnostics independently of structured evidence |
+
+Progress is not a loose heartbeat. Step `n` must report exactly `8n` rollout
+records and `n` scalar-log records, up to step 300. Timestamps must follow launch
+preparation, worker start and the previous progress update in order. A successful
+exit requires all **300 optimizer steps, 2,400 rollouts and 300 scalar logs**, a
+published `passed` bridge report and a completed final manifest whose embedded
+run-summary validation passed. Exit code zero by itself is therefore
+insufficient. Negative subprocess return codes, such as `-15` for a terminated
+worker, remain valid auditable failures. On failure, no bridge report or final
+output may exist, while a private staging directory may survive for diagnosis.
+
+The monitor can distinguish `prepared`, live `running`,
+`worker_missing_without_exit_record`, `failed` and `completed`. For a live
+decision it requires both PID and process-start-token identity; checking only a
+PID would be unsafe because an operating system can recycle that number. It also
+revalidates evidence rather than trusting the writer: cross-file timestamp
+order, exact progress arithmetic, worker/exit identity, terminal status, bridge
+publication and the final manifest are checked again. Tests deliberately edit
+otherwise valid-looking JSON—rollout counts, completed-step state, exit status,
+bridge publication, timestamps and final-manifest validation—and prove the
+monitor rejects the contradictions.
+
+The detached contract passes **26 CPU-only tests in 0.06 seconds**. The combined
+detached/evidence/checkpoint/callback/orchestration/runtime-bridge set passes
+**92 tests in 1.19 seconds**. No subprocess, GPU model, trainer or GRPO update is
+started by these tests. The next small boundary is an actual Linux worker and
+launcher that implement this contract, first exercised with a harmless fake
+command before any GPU dispatch.
+
+This launcher is not required by GRPO's learning algorithm: calling the runtime
+bridge directly would train the same policy. It is nevertheless the final
+operational prerequisite for this remote experiment. The earlier W0 smoke took
+roughly 74 minutes, so an SSH interruption during a comparable run must not kill
+the worker or make a disconnected terminal look like success. We therefore
+chose to spend one small gate on detached process survival, PID-reuse-safe
+identity, explicit terminal evidence and retained logs before authorizing the
+GPU run.
+
+#### Linux launcher/worker implementation and harmless remote probe
+
+`training/grpo_detached_runtime.py` now implements the control contract without
+importing Torch or knowing how to invoke GRPO. The launcher freezes the working
+directory and exact workload argument list in `launch.json`, opens a new
+`process.log`, and starts the wrapper with `shell=False`, `stdin=DEVNULL`,
+`stderr=STDOUT`, `start_new_session=True`, `close_fds=True` and unbuffered Python
+output. It waits only for a bounded startup handshake. A worker that exits before
+writing identity, reports a different PID, fails identity verification while
+still alive or misses the timeout is rejected; a timeout process is terminated
+instead of being left as an untracked orphan.
+
+The wrapper checks that its workload is byte-for-byte the argument list frozen
+at launch, records its own identity before spawning the child, and passes the
+control/result paths through dedicated environment variables. Nonzero child
+codes—including negative signal return codes—are preserved. Exit zero is not
+accepted unless the child also produced the declared workload-result handoff;
+that report must still satisfy the existing 300-step progress, bridge and final
+manifest contract. A nominally successful child with missing evidence becomes
+internal worker failure code 70 rather than false success.
+
+Linux process identity is stronger than `kill(pid, 0)`. The token combines:
+
+1. the machine boot ID from `/proc/sys/kernel/random/boot_id`; and
+2. field 22, process start ticks, from `/proc/<pid>/stat`.
+
+Thus the monitor rejects a recycled PID because the replacement process will
+have a different start tick; it also rejects an old token after a machine reboot.
+The parser handles process names containing spaces by locating the final closing
+parenthesis before indexing the stat fields.
+
+Nine new runtime tests cover Linux token parsing, missing/reused identities,
+the exact `Popen` safety arguments, successful startup handshake, startup
+timeout cleanup, exit before identity, workload-command drift, a real harmless
+child returning 7, exit zero with missing evidence and a complete fake success
+handoff. Together with the 26 control tests, **35 detached tests pass in 0.20
+seconds**. The detached plus full-run evidence/checkpoint/callback/orchestration/
+bridge set passes **101 tests in 1.34 seconds**.
+
+After the Linux probe and tracker update, the complete local CPU suite passes
+**419 tests in 12.27 seconds**; Python compilation and `git diff --check` also
+pass.
+
+The actual Linux path was then exercised outside the repository in a fresh
+`/tmp/grpo-detached-probe.3iEwhE` directory on Vast.ai. The workload only slept
+0.2 seconds and returned 7; it imported no GPU libraries. Launch PID **5009** was
+verified live with token
+`linux-proc-v1:72bdb1c3-61d9-4a08-adf1-258eebfc93ba:39061852`. Monitoring after
+exit reported `failed`, preserved exit code 7, marked process identity absent,
+kept progress null and proved both final output and bridge report absent. GPU
+state remained at the established idle baseline: **264 MiB**, **0% utilization**
+and **39°C**; the existing 256 MiB process was unchanged. The isolated temporary
+directory was then removed and its absence verified.
+
+This proves the real Linux detach/identity/failure path, not the GRPO workload.
+The production CLI is still preflight-only. The next small boundary is a
+production workload entry point that reruns preflight, invokes
+`run_full_run_300_gate`, forwards per-step progress to this control plane and
+writes the bridge-result handoff—still tested with injected fakes before the
+one explicit GPU launch.
+
+#### Production detached workload boundary, still CPU-tested only
+
+`training/grpo_full_run_workload.py` now connects the already-tested pieces in
+the only allowed order:
+
+```text
+active detached control
+  -> exact commit/path/environment checks
+  -> read-only 300-step preflight
+  -> real-runtime bridge
+  -> validated per-step progress
+  -> atomic workload-result handoff
+  -> detached wrapper records terminal success
+```
+
+The workload cannot run as an ordinary standalone training command. It requires
+an existing `worker.json` with no `exit.json`, the launch-locked Git commit and
+working directory, the reserved `runs/grpo-first-300` output and exact control/
+result paths injected by the detached wrapper. It then calls the same locked
+preflight with the cap-four data, pool manifest, selection manifest, combined
+SFT checkpoint, 3 GiB disk floor and expected commit. A failed preflight, CUDA
+import during preflight, commit drift or output drift prevents the runtime
+bridge from being called.
+
+Detached progress is emitted from the existing Transformers callback's
+`on_log` event, not reconstructed after training. Before forwarding step `n`,
+the callback now requires:
+
+- the previous forwarded step to be exactly `n - 1`;
+- exactly `n` rollout groups already captured;
+- a valid scalar-log prefix containing exactly steps 1 through `n`; and
+- the locked reward, learning-rate and finite-metric validations to pass.
+
+Only then does it write `optimizer_step=n`, `rollout_records=8n` and
+`scalar_logs=n`. This makes `progress.json` a validated training heartbeat
+rather than a timer. Transformers also emits a final runtime-summary log at
+global step 300; that non-step log is ignored only after all 300 heartbeats have
+already been accepted. A non-step log earlier in the run fails closed, while a
+duplicate optimizer-step log still violates consecutive ordering.
+
+After the bridge atomically publishes the run bundle, the workload reopens
+control evidence and requires the terminal `300 / 2,400 / 300` progress tuple.
+It then writes `workload-result.json` using strict finite JSON, `fsync` and an
+exclusive hard-link publication so an existing result cannot be overwritten.
+The detached wrapper reads this handoff and independently applies the existing
+bridge/final-manifest checks before it may write a zero-code completed
+`exit.json`. Thus bridge success, complete progress, workload handoff and worker
+success are separate evidence boundaries.
+
+CPU fakes prove the complete successful sequence and then hand the result to the
+real detached terminal validator. Negative tests cover command/environment/
+repository drift, failed preflight, preflight CUDA/commit/output drift, bridge
+failure, only 299 progress steps, non-finite JSON, an existing result file,
+progress before its rollout group, duplicate progress and the extra final
+Trainer summary log. The workload/callback/orchestration/bridge focused set
+passes **41 tests in 1.82 seconds**. The complete local suite passes **434 tests
+in 13.32 seconds**.
+
+No Unsloth, Torch, model, GPU or GRPO update was invoked in this gate, and
+`training.train_grpo --full-run-300` remains preflight-only. The remaining launch
+boundary is operational rather than architectural: freeze the exact detached
+production command at a committed clean revision, synchronize that revision to
+Vast.ai, rerun the no-GPU preflight, and only then issue the one explicit GPU
+dispatch.
 
 ### Questions to answer before the first GRPO run
 
@@ -3727,8 +4091,18 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   pieces, simulating 300 updates and atomically publishing the validated bundle.
 - [x] CPU-tested no-training real-runtime construction gate with temporary
   lifecycle output, unchanged-LoRA proof and complete state release.
-- [ ] Run the no-training full-run construction gate against the real Vast.ai
+- [x] Run the no-training full-run construction gate against the real Vast.ai
   Unsloth/TRL stack at an exact clean Git commit.
+- [x] CPU-tested production runtime bridge with pre-publication live-LoRA audit,
+  source-lineage checks and bitsandbytes global-state cleanup.
+- [x] Versioned manifest-embedded run summary for training metrics, LoRA health,
+  runtime identity, five CUDA snapshots and preflight disk evidence.
+- [x] CPU-only detached control-plane contract with PID/start-token identity,
+  monotonic progress, terminal exit evidence and cross-file tamper checks.
+- [x] Linux detached launcher/worker with exact-command lock, bounded startup
+  handshake, real harmless Vast failure probe and unchanged idle GPU state.
+- [x] CPU-tested production detached workload connecting locked preflight,
+  runtime bridge, 300 validated progress handoffs and atomic result evidence.
 - [ ] 300-step training dispatch with bounded checkpoint retention and enforced
   evidence handoffs.
 - [ ] GRPO training curve and resource use.

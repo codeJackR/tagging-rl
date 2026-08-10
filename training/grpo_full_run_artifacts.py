@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -19,6 +20,7 @@ from training.grpo_smoke_artifacts import (
 )
 
 FULL_RUN_LIFECYCLE_VERSION = "grpo-full-run-300-lifecycle-v1"
+FULL_RUN_SUMMARY_VERSION = "grpo-full-run-summary-v1"
 CHECKPOINT_STEPS = (100, 200, 300)
 RETAINED_CHECKPOINT_STEPS = (200, 300)
 EVICTED_CHECKPOINT_STEPS = (100,)
@@ -76,6 +78,171 @@ def _write_jsonl(path: Path, rows: Sequence[dict]) -> None:
     with path.open("x", encoding="utf-8") as handle:
         for row in rows:
             handle.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
+
+
+def _validate_json_finite(value: object, *, label: str) -> None:
+    """Fail unless a nested value can be persisted as strict finite JSON."""
+    if value is None or isinstance(value, (str, bool)):
+        return
+    if isinstance(value, int):
+        return
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError(f"{label} contains a non-finite number")
+        return
+    if isinstance(value, (list, tuple)):
+        for index, item in enumerate(value):
+            _validate_json_finite(item, label=f"{label}[{index}]")
+        return
+    if isinstance(value, dict):
+        if not all(isinstance(key, str) for key in value):
+            raise TypeError(f"{label} contains a non-string dictionary key")
+        for key, item in value.items():
+            _validate_json_finite(item, label=f"{label}.{key}")
+        return
+    raise TypeError(f"{label} contains a non-JSON value: {type(value).__name__}")
+
+
+def _validate_cuda_snapshot(snapshot: object, *, label: str) -> dict:
+    if not isinstance(snapshot, dict):
+        raise TypeError(f"{label} must be a dictionary")
+    required_integer_fields = {
+        "device_index",
+        "device_total_bytes",
+        "driver_free_bytes",
+        "driver_used_bytes",
+        "torch_allocated_bytes",
+        "torch_reserved_bytes",
+        "torch_peak_allocated_bytes",
+        "torch_peak_reserved_bytes",
+    }
+    if required_integer_fields - set(snapshot):
+        raise ValueError(f"{label} is missing CUDA byte measurements")
+    if not isinstance(snapshot.get("device_name"), str) or not snapshot[
+        "device_name"
+    ]:
+        raise ValueError(f"{label} has no CUDA device name")
+    for field in required_integer_fields:
+        value = snapshot[field]
+        if not isinstance(value, int) or value < 0:
+            raise ValueError(f"{label}.{field} must be a nonnegative integer")
+    if snapshot["device_total_bytes"] <= 0:
+        raise ValueError(f"{label} has no device capacity")
+    if snapshot["driver_free_bytes"] + snapshot["driver_used_bytes"] != snapshot[
+        "device_total_bytes"
+    ]:
+        raise ValueError(f"{label} driver memory does not sum to device capacity")
+    if snapshot["torch_reserved_bytes"] < snapshot["torch_allocated_bytes"]:
+        raise ValueError(f"{label} reserved memory is below allocated memory")
+    if snapshot["torch_peak_reserved_bytes"] < snapshot[
+        "torch_peak_allocated_bytes"
+    ]:
+        raise ValueError(f"{label} peak reserved memory is below peak allocated")
+    if snapshot["torch_peak_allocated_bytes"] < snapshot["torch_allocated_bytes"]:
+        raise ValueError(f"{label} peak allocation is below current allocation")
+    return dict(snapshot)
+
+
+def validate_full_run_summary(summary: object) -> dict:
+    """Validate the persisted training, model-health and resource evidence."""
+    if not isinstance(summary, dict):
+        raise TypeError("full-run summary must be a dictionary")
+    if summary.get("version") != FULL_RUN_SUMMARY_VERSION:
+        raise ValueError("unexpected full-run summary version")
+    if summary.get("status") != "completed":
+        raise ValueError("full-run summary is not completed")
+    _validate_json_finite(summary, label="full-run summary")
+
+    training = summary.get("training")
+    if not isinstance(training, dict):
+        raise TypeError("full-run summary has no training section")
+    if training.get("optimizer_steps") != 300:
+        raise ValueError("full-run summary has the wrong optimizer-step count")
+    if training.get("rollout_records") != EXPECTED_FINAL_ROLLOUTS:
+        raise ValueError("full-run summary has the wrong rollout count")
+    train_seconds = training.get("train_seconds")
+    if not isinstance(train_seconds, (int, float)) or train_seconds <= 0:
+        raise ValueError("full-run summary has no positive training duration")
+    if not isinstance(training.get("train_metrics"), dict):
+        raise TypeError("full-run summary training metrics must be a dictionary")
+
+    model_audit = summary.get("model_audit")
+    if not isinstance(model_audit, dict):
+        raise TypeError("full-run summary has no model audit")
+    before_sha = model_audit.get("lora_sha256_before")
+    after_sha = model_audit.get("lora_sha256_after")
+    if not _is_sha256(before_sha) or not _is_sha256(after_sha):
+        raise ValueError("full-run summary has an invalid LoRA SHA-256")
+    if before_sha == after_sha or model_audit.get("trainable_lora_changed") is not True:
+        raise ValueError("full-run summary did not record a LoRA change")
+    before = model_audit.get("trainability_before")
+    after = model_audit.get("trainability_after")
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        raise TypeError("full-run summary trainability evidence is missing")
+    for key, expected in (
+        ("trainable_parameters", 18_464_768),
+        ("trainable_tensors", 392),
+    ):
+        if before.get(key) != expected or after.get(key) != expected:
+            raise ValueError(f"full-run summary trainability drifted for {key}")
+    values = model_audit.get("parameter_values_after")
+    if not isinstance(values, dict) or values.get(
+        "all_trainable_values_finite"
+    ) is not True:
+        raise ValueError("full-run summary did not prove finite trainable values")
+    if values.get("nonfinite_parameters") != 0:
+        raise ValueError("full-run summary contains non-finite trainable values")
+
+    resources = summary.get("resources")
+    if not isinstance(resources, dict):
+        raise TypeError("full-run summary has no resource section")
+    snapshot_names = (
+        "cuda_before_load",
+        "cuda_after_load",
+        "cuda_before_train",
+        "cuda_after_train",
+        "cuda_after_model_audit",
+    )
+    snapshots = {
+        name: _validate_cuda_snapshot(resources.get(name), label=name)
+        for name in snapshot_names
+    }
+    identity = {
+        (
+            snapshot["device_index"],
+            snapshot["device_name"],
+            snapshot["device_total_bytes"],
+        )
+        for snapshot in snapshots.values()
+    }
+    if len(identity) != 1:
+        raise ValueError("full-run CUDA device identity drifted between snapshots")
+    runtime = resources.get("runtime")
+    if not isinstance(runtime, dict) or not runtime:
+        raise ValueError("full-run summary has no runtime metadata")
+    if resources.get("preflight_disk_free_bytes", 0) < MINIMUM_FREE_DISK_BYTES:
+        raise ValueError("full-run summary preflight disk was below the floor")
+
+    return {
+        "version": FULL_RUN_SUMMARY_VERSION,
+        "status": "passed",
+        "optimizer_steps": 300,
+        "rollout_records": EXPECTED_FINAL_ROLLOUTS,
+        "train_seconds": float(train_seconds),
+        "lora_sha256_before": before_sha,
+        "lora_sha256_after": after_sha,
+        "cuda_device": next(iter(identity))[1],
+        "peak_allocated_bytes": max(
+            snapshot["torch_peak_allocated_bytes"]
+            for snapshot in snapshots.values()
+        ),
+        "peak_reserved_bytes": max(
+            snapshot["torch_peak_reserved_bytes"]
+            for snapshot in snapshots.values()
+        ),
+        "preflight_disk_free_bytes": resources["preflight_disk_free_bytes"],
+        "all_values_finite": True,
+    }
 
 
 def create_full_run_staging_output(final_output_dir: str | Path) -> Path:
@@ -422,6 +589,7 @@ class FullRunCheckpointLifecycleWriter:
         trainer_step_logs: Sequence[dict],
         preflight_report: dict,
         config_settings: dict,
+        run_summary: dict,
         disk_usage_fn: Callable[[Path], object] | None = None,
         maximum_bundle_bytes: int = MAX_FINAL_BUNDLE_BYTES,
         minimum_free_bytes: int = MINIMUM_FREE_DISK_BYTES,
@@ -451,6 +619,7 @@ class FullRunCheckpointLifecycleWriter:
         for key, expected in required_config.items():
             if config_settings.get(key) != expected:
                 raise ValueError(f"completed bundle config drifted for {key}")
+        run_summary_validation = validate_full_run_summary(run_summary)
 
         staging = Path(self.plan["staging_dir"])
         final_output = Path(self.plan["final_output_dir"])
@@ -491,6 +660,8 @@ class FullRunCheckpointLifecycleWriter:
             "trainer_step_logs": len(trainer_step_logs),
             "preflight": preflight_report,
             "config": config_settings,
+            "run_summary": run_summary,
+            "run_summary_validation": run_summary_validation,
             "checkpoint_lifecycle_version": FULL_RUN_LIFECYCLE_VERSION,
             "checkpoint_events_before_publication": [
                 dict(event) for event in self.events
@@ -564,6 +735,7 @@ class FullRunCheckpointLifecycleWriter:
             "manifest_sha256": manifest_sha256,
             "rollouts_sha256": artifact_hashes["rollouts_sha256"],
             "trainer_log_sha256": artifact_hashes["trainer_log_sha256"],
+            "run_summary_validation": run_summary_validation,
             "total_bytes": total_bytes,
             "disk_free_after_bytes": free_bytes,
             "lifecycle_validation": lifecycle_validation,

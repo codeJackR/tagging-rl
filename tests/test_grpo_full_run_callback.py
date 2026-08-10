@@ -125,7 +125,7 @@ def step_log(step: int) -> dict:
     }
 
 
-def make_runtime(tmp_path):
+def make_runtime(tmp_path, *, progress_callback=None):
     writer, plan = make_writer(tmp_path)
     collector = FullRunRolloutCollector()
     trainer_class = make_full_run_rollout_capturing_trainer_class(FakeGRPOTrainer)
@@ -134,6 +134,7 @@ def make_runtime(tmp_path):
     callback = callback_class(
         lifecycle_writer=writer,
         rollout_collector=collector,
+        progress_callback=progress_callback,
     )
     return writer, plan, trainer, callback
 
@@ -206,6 +207,46 @@ def test_callback_validates_evidence_before_recording_checkpoint(tmp_path):
         callback.on_save(args, trainer.state, control)
     assert writer.events == []
     assert not Path(plan["step_100_export"]["directory"]).exists()
+
+
+def test_callback_forwards_only_validated_consecutive_progress(tmp_path):
+    progress = []
+    writer, plan, trainer, callback = make_runtime(
+        tmp_path,
+        progress_callback=lambda **values: progress.append(values),
+    )
+    args = trainer_args(plan)
+    control = SimpleNamespace()
+    callback.on_train_begin(args, trainer.state, control)
+
+    run_generated_steps(trainer, 1)
+    assert callback.on_log(args, trainer.state, control) is control
+    assert progress == [
+        {"optimizer_step": 1, "rollout_records": 8, "scalar_logs": 1}
+    ]
+
+    with pytest.raises(RuntimeError, match="expected step 2, found 1"):
+        callback.on_log(args, trainer.state, control)
+    assert len(progress) == 1
+
+
+def test_callback_refuses_progress_before_matching_rollout_group(tmp_path):
+    progress = []
+    writer, plan, trainer, callback = make_runtime(
+        tmp_path,
+        progress_callback=lambda **values: progress.append(values),
+    )
+    callback.on_train_begin(trainer_args(plan), trainer.state, SimpleNamespace())
+    trainer.state.global_step = 1
+    trainer.state.log_history.append(step_log(1))
+
+    with pytest.raises(RuntimeError, match="captured rollout groups"):
+        callback.on_log(
+            trainer_args(plan),
+            trainer.state,
+            SimpleNamespace(),
+        )
+    assert progress == []
 
 
 def test_callback_rejects_checkpoint_when_rollout_prefix_is_incomplete(tmp_path):

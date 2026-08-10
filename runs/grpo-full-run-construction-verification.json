@@ -1,0 +1,111 @@
+{
+  "version": "grpo-full-run-construction-gate-v1",
+  "status": "passed",
+  "git_commit": "39175487803f089a9d667e8a45fc9197939790b2",
+  "environment": {
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "torch": "2.11.0+cu130",
+    "transformers": "4.57.6",
+    "unsloth": "2026.7.5",
+    "vllm": "0.23.0",
+    "bf16_supported": true
+  },
+  "inputs": {
+    "training_data": "data/train_weak_grpo_cap4.jsonl",
+    "training_data_sha256": "3e378187a8147923bae1e0753a750d6e252336e911fa8c91cd57a4a8ddc3a102",
+    "pool_manifest": "runs/sft-difficulty-k8/grpo-pool-cap4-manifest.json",
+    "pool_manifest_sha256": "d166325a0c4ef3d78023ba492881fb3971e290b1b3606ee4ac8cd6aa733175e0",
+    "dataset_rows": 1565,
+    "dataset_columns": [
+      "gold",
+      "prompt",
+      "sku_id"
+    ],
+    "dataset_ordered_sku_sha256": "d6e4df11792fdba9834f14cdf394a9ab282db3684c935c181d06f5bebd6cb4ef",
+    "adapter": "runs/sft-combined-2epoch/checkpoint-406",
+    "adapter_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af"
+  },
+  "runtime": {
+    "base_trainer_class": "UnslothGRPOTrainer",
+    "trainer_class": "FullRunRolloutCapturingUnslothGRPOTrainer",
+    "callback_class": "FullRunCheckpointTrainerCallback",
+    "collector_attached": true,
+    "checkpoint_callback_attached": true,
+    "lifecycle_writer_constructed": true,
+    "reward_names": [
+      "format_validity_reward",
+      "vocab_rule_compliance_reward",
+      "golden_agreement_reward"
+    ],
+    "reward_weights": [
+      1.0,
+      1.0,
+      2.0
+    ],
+    "generation_batch_size": 8,
+    "config_settings_match_locked_contract": true,
+    "construction_seconds": 5.1568172330153175
+  },
+  "trainability": {
+    "total_parameters": 1562179072,
+    "trainable_parameters": 18464768,
+    "trainable_tensors": 392,
+    "trainable_percentage": 1.1819879251333358,
+    "trainable_dtype": "torch.float32",
+    "trainable_device": "cuda:0",
+    "target_modules": [
+      "down_proj",
+      "gate_proj",
+      "k_proj",
+      "o_proj",
+      "q_proj",
+      "up_proj",
+      "v_proj"
+    ],
+    "lora_sha256_before": "1c9f10100bfc250323ad43c0e8b1b170a909d842fb2579903200f95a786e711e",
+    "lora_sha256_after": "1c9f10100bfc250323ad43c0e8b1b170a909d842fb2579903200f95a786e711e",
+    "unchanged_during_construction": true,
+    "source_adapter_unchanged": true
+  },
+  "state_after_construction": {
+    "global_step": 0,
+    "lifecycle_events": 0,
+    "rollouts_generated": 0,
+    "gradients_created": false,
+    "optimizer_constructed": false,
+    "scheduler_constructed": false,
+    "reference_model_constructed": false,
+    "training_dispatched": false
+  },
+  "cuda_bytes": {
+    "before": {
+      "driver_used": 629669888,
+      "torch_allocated": 8519680,
+      "torch_reserved": 20971520
+    },
+    "after_construction": {
+      "driver_used": 3832020992,
+      "torch_allocated": 3190780416,
+      "torch_reserved": 3202351104,
+      "torch_peak_allocated": 3264639488,
+      "torch_peak_reserved": 3275751424
+    },
+    "after_release": {
+      "driver_used": 650641408,
+      "torch_allocated": 12713984,
+      "torch_reserved": 20971520
+    }
+  },
+  "post_release_audit": {
+    "temporary_output_removed": true,
+    "reserved_final_output_absent": true,
+    "model_retained": false,
+    "trainer_retained": false,
+    "tracked_worktree_clean": true,
+    "index_clean": true,
+    "nvidia_smi_memory_used_mib": 264,
+    "nvidia_smi_utilization_percent": 0,
+    "nvidia_smi_temperature_c": 39,
+    "disk_free_bytes": 4766380032
+  }
+}
