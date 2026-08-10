@@ -4,7 +4,9 @@
 Importing this module deliberately performs no Torch, Transformers, TRL, PEFT,
 Unsloth or vLLM import. GPU-capable modes import their stack only after
 ``run_preflight`` succeeds. The five-step mode additionally requires its exact
-commit, output-path, disk-floor and atomic-publication launch controls.
+commit, output-path, disk-floor and atomic-publication launch controls. The
+300-step mode currently validates its launch arguments and then stops before
+preflight or CUDA; training dispatch is intentionally a later gate.
 """
 
 from __future__ import annotations
@@ -34,6 +36,16 @@ from training.grpo_smoke_artifacts import (
     validate_trainer_log_history,
     write_and_publish_smoke_bundle,
 )
+from training.grpo_full_run_artifacts import (
+    FULL_RUN_LIFECYCLE_VERSION,
+    FullRunCheckpointLifecycleWriter,
+    build_full_run_lifecycle_plan,
+    create_full_run_staging_output,
+)
+from training.grpo_full_run_evidence import (
+    validate_full_run_rollout_records,
+    validate_full_run_trainer_log_history,
+)
 
 PREFLIGHT_VERSION = "grpo-smoke-preflight-v1"
 MODEL_LOAD_VERSION = "grpo-smoke-model-load-v1"
@@ -43,11 +55,18 @@ GRADIENT_GATE_VERSION = "grpo-smoke-gradient-gate-v1"
 OPTIMIZER_CONSTRUCTION_VERSION = "grpo-smoke-optimizer-construction-v1"
 ONE_UPDATE_GATE_VERSION = "grpo-smoke-one-update-gate-v1"
 FIVE_STEP_SMOKE_GATE_VERSION = "grpo-five-step-smoke-gate-v1"
+FULL_RUN_300_CONTRACT_VERSION = "grpo-full-run-300-contract-v1"
+FULL_RUN_CONSTRUCTION_GATE_VERSION = "grpo-full-run-construction-gate-v1"
 DEFAULT_FIXTURE_DATA = "data/train_weak_grpo_smoke_v1.jsonl"
 DEFAULT_FIXTURE_MANIFEST = "data/splits/grpo-smoke-v1.json"
+DEFAULT_FULL_RUN_DATA = "data/train_weak_grpo_cap4.jsonl"
+DEFAULT_FULL_RUN_MANIFEST = (
+    "runs/sft-difficulty-k8/grpo-pool-cap4-manifest.json"
+)
 DEFAULT_SELECTION_MANIFEST = "runs/sft-selection.json"
 DEFAULT_ADAPTER = "runs/sft-combined-2epoch/checkpoint-406"
 DEFAULT_OUTPUT_DIR = "runs/grpo-first-smoke"
+DEFAULT_FULL_RUN_OUTPUT_DIR = "runs/grpo-first-300"
 DEFAULT_MINIMUM_FREE_GIB = 3.0
 MODEL_MAX_SEQUENCE_LENGTH = 896
 LOCKED_REWARD_WEIGHTS = (1.0, 1.0, 2.0)
@@ -58,12 +77,27 @@ LOCKED_ADAM_BETAS = (0.9, 0.999)
 LOCKED_ADAM_EPSILON = 1e-8
 LOCKED_WARMUP_RATIO = 0.0
 LOCKED_MAX_GRAD_NORM = 1.0
+FULL_RUN_STEPS = 300
+FULL_RUN_WARMUP_RATIO = 0.1
+FULL_RUN_SAVE_STEPS = 100
+FULL_RUN_SAVE_TOTAL_LIMIT = 2
+FULL_RUN_CHECKPOINT_STEPS = (100, 200, 300)
+FULL_RUN_DATA_ROWS = 1_565
+FULL_RUN_DATA_BYTES = 3_467_347
+FULL_RUN_MAX_IDLE_GPU_MEMORY_MIB = 1_024
+FULL_RUN_MAX_IDLE_GPU_UTILIZATION_PERCENT = 5
 
 LOCKED_FIXTURE_DATA_SHA256 = (
     "268373ceb08c53125976493340d972a47c90e10911e919002716590f75ca4084"
 )
 LOCKED_FIXTURE_MANIFEST_SHA256 = (
     "e898510534d967b9a35367e0aba5a564e6cb564e2c326d45804d0319d528dd05"
+)
+LOCKED_FULL_RUN_DATA_SHA256 = (
+    "3e378187a8147923bae1e0753a750d6e252336e911fa8c91cd57a4a8ddc3a102"
+)
+LOCKED_FULL_RUN_MANIFEST_SHA256 = (
+    "d166325a0c4ef3d78023ba492881fb3971e290b1b3606ee4ac8cd6aa733175e0"
 )
 LOCKED_SELECTION_MANIFEST_SHA256 = (
     "e425635d323b3ffe9e7350fb61a2d9e1848345a95abab6b92032bf64d2718299"
@@ -147,6 +181,92 @@ def grpo_smoke_config_kwargs(
     }
 
 
+def grpo_full_run_300_config_kwargs(
+    *,
+    output_dir: str | Path,
+    reward_weights: Sequence[float] = LOCKED_REWARD_WEIGHTS,
+) -> dict:
+    """Return the locked trainer settings for the first 300-step GRPO run.
+
+    The proven smoke contract remains unchanged.  This longer-run contract
+    deliberately changes only duration, prompt shuffling, warmup, completion
+    table printing, and checkpoint persistence.
+    """
+    config = grpo_smoke_config_kwargs(
+        output_dir=output_dir,
+        reward_weights=reward_weights,
+    )
+    config.update(
+        {
+            "run_name": "grpo-first-300",
+            "max_steps": FULL_RUN_STEPS,
+            "shuffle_dataset": True,
+            "warmup_ratio": FULL_RUN_WARMUP_RATIO,
+            # Scalar metrics still log every step. Avoid printing 2,400 full
+            # completions into the detached process log; rollout artifacts are
+            # captured separately by the audited collector.
+            "log_completions": False,
+            "save_strategy": "steps",
+            "save_steps": FULL_RUN_SAVE_STEPS,
+            "save_total_limit": FULL_RUN_SAVE_TOTAL_LIMIT,
+        }
+    )
+    return config
+
+
+def full_run_300_contract(*, output_dir: str | Path) -> dict:
+    """Describe the CPU-auditable launch contract without enabling training."""
+    resolved_output = Path(output_dir).resolve()
+    config = grpo_full_run_300_config_kwargs(output_dir=resolved_output)
+    checkpoint_steps = tuple(
+        range(FULL_RUN_SAVE_STEPS, FULL_RUN_STEPS + 1, FULL_RUN_SAVE_STEPS)
+    )
+    if checkpoint_steps != FULL_RUN_CHECKPOINT_STEPS:
+        raise RuntimeError("300-step checkpoint schedule drifted")
+
+    return {
+        "version": FULL_RUN_300_CONTRACT_VERSION,
+        "status": "locked_not_launchable",
+        "training": {
+            "optimizer_steps": FULL_RUN_STEPS,
+            "generations_per_step": config["num_generations"],
+            "expected_rollouts": FULL_RUN_STEPS * config["num_generations"],
+            "prompt_data": DEFAULT_FULL_RUN_DATA,
+            "prompt_order": "seeded_shuffle",
+            "seed": config["seed"],
+            "data_seed": config["data_seed"],
+            "warmup_steps": math.ceil(
+                FULL_RUN_STEPS * FULL_RUN_WARMUP_RATIO
+            ),
+        },
+        "checkpointing": {
+            "lifecycle_version": FULL_RUN_LIFECYCLE_VERSION,
+            "events": list(checkpoint_steps),
+            "save_total_limit": FULL_RUN_SAVE_TOTAL_LIMIT,
+            "save_only_model": config["save_only_model"],
+            "optimizer_state_saved": not config["save_only_model"],
+            "step_100_evidence_required_before_eviction": True,
+            "final_adapter_directory": str(resolved_output / "final-adapter"),
+            "final_adapter_must_be_retained": True,
+        },
+        "reporting": {
+            "scalar_logging_steps": config["logging_steps"],
+            "completion_tables_printed": config["log_completions"],
+            "local_trainer_log_required": True,
+            "external_reporting_required": False,
+            "report_to": config["report_to"],
+        },
+        "resources": {
+            "minimum_free_gib_before_launch": DEFAULT_MINIMUM_FREE_GIB,
+            "minimum_free_bytes_before_launch": int(
+                DEFAULT_MINIMUM_FREE_GIB * 1024**3
+            ),
+            "detached_launch_required": True,
+        },
+        "config": config,
+    }
+
+
 def inspect_grpo_config(config: object) -> dict:
     """Assert TRL preserved the locked smoke settings after normalization."""
     expected = grpo_smoke_config_kwargs(output_dir=getattr(config, "output_dir"))
@@ -179,6 +299,43 @@ def inspect_grpo_config(config: object) -> dict:
         "generation_batch_size": generation_batch_size,
         "prompts_per_generation_batch": generation_batch_size
         // expected["num_generations"],
+        "settings_match_locked_contract": True,
+    }
+
+
+def inspect_grpo_full_run_config(config: object) -> dict:
+    """Assert TRL preserved every normalized 300-step trainer setting."""
+    expected = grpo_full_run_300_config_kwargs(
+        output_dir=getattr(config, "output_dir")
+    )
+    normalized = {}
+    for key, expected_value in expected.items():
+        actual = getattr(config, key, None)
+        if key == "report_to":
+            if actual not in ("none", [], ()):
+                raise RuntimeError(
+                    f"full-run config normalized {key} unexpectedly: {actual}"
+                )
+            normalized[key] = [] if actual != "none" else "none"
+            continue
+        if key == "reward_weights":
+            actual = list(actual) if actual is not None else None
+        if actual != expected_value:
+            raise RuntimeError(
+                f"full-run config drift for {key}: "
+                f"{actual!r} != {expected_value!r}"
+            )
+        normalized[key] = actual
+
+    generation_batch_size = getattr(config, "generation_batch_size", None)
+    if generation_batch_size != GENERATIONS_PER_STEP:
+        raise RuntimeError(
+            "full-run generation batch size must be 8, "
+            f"found {generation_batch_size}"
+        )
+    return {
+        "settings": normalized,
+        "generation_batch_size": generation_batch_size,
         "settings_match_locked_contract": True,
     }
 
@@ -443,6 +600,587 @@ def make_rollout_capturing_trainer_class(base_trainer_class: type) -> type:
 
     RolloutCapturingTrainer.__name__ = f"RolloutCapturing{base_trainer_class.__name__}"
     return RolloutCapturingTrainer
+
+
+class FullRunRolloutCollector:
+    """Preserve every shuffled 300-step rollout group before TRL overwrites it."""
+
+    def __init__(self, *, expected_steps: int = FULL_RUN_STEPS):
+        if not isinstance(expected_steps, int) or not 1 <= expected_steps <= FULL_RUN_STEPS:
+            raise ValueError("expected_steps must be between 1 and 300")
+        self.expected_steps = expected_steps
+        self._groups: list[dict] = []
+        self._seen_skus: set[str] = set()
+
+    @property
+    def captured_steps(self) -> int:
+        return len(self._groups)
+
+    @property
+    def records(self) -> list[dict]:
+        return copy.deepcopy(
+            [record for group in self._groups for record in group["records"]]
+        )
+
+    def capture_from_trainer(
+        self,
+        *,
+        trainer: object,
+        inputs: Sequence[dict],
+        prepared: dict,
+    ) -> dict:
+        """Capture one generated eight-completion group from a single GPU."""
+        if not isinstance(prepared, dict):
+            raise TypeError("prepared rollout must be a dictionary")
+        accelerator = getattr(trainer, "accelerator", None)
+        if int(getattr(accelerator, "num_processes", 1)) != 1:
+            raise RuntimeError("full-run rollout capture supports exactly one process")
+        state = getattr(trainer, "state", None)
+        step = int(getattr(state, "global_step", -1)) + 1
+        expected_step = len(self._groups) + 1
+        if step != expected_step or not 1 <= step <= self.expected_steps:
+            raise RuntimeError(
+                f"rollout capture step drifted: {step} != {expected_step}"
+            )
+        if len(inputs) != GENERATIONS_PER_STEP or any(
+            not isinstance(row, dict) for row in inputs
+        ):
+            raise RuntimeError("rollout capture requires eight input rows")
+        input_skus = [row.get("sku_id") for row in inputs]
+        sku_id = input_skus[0]
+        if not isinstance(sku_id, str) or not sku_id.strip():
+            raise RuntimeError(f"rollout input has no SKU at step {step}")
+        if input_skus != [sku_id] * GENERATIONS_PER_STEP:
+            raise RuntimeError(f"rollout input SKU drifted at step {step}")
+        if sku_id in self._seen_skus:
+            raise RuntimeError(f"rollout input SKU repeated across steps: {sku_id}")
+
+        reward_names = list(getattr(trainer, "reward_func_names", ()))
+        if reward_names != list(EXPECTED_REWARD_NAMES):
+            raise RuntimeError("trainer reward names or order drifted")
+        reward_weights = _tensor_like_to_list(
+            getattr(trainer, "reward_weights", None), label="trainer reward weights"
+        )
+        if tuple(float(value) for value in reward_weights) != LOCKED_REWARD_WEIGHTS:
+            raise RuntimeError("trainer reward weights drifted")
+
+        logs = getattr(trainer, "_logs", None)
+        if not isinstance(logs, dict):
+            raise RuntimeError("trainer has no completion logs to capture")
+        logged_rewards = logs.get("rewards", {})
+        if not isinstance(logged_rewards, dict):
+            raise RuntimeError("trainer has no component reward logs to capture")
+        component_rewards = {
+            name: list(logged_rewards.get(name, ())) for name in reward_names
+        }
+
+        mask_rows = _tensor_like_to_list(
+            prepared.get("completion_mask"), label="prepared completion mask"
+        )
+        if len(mask_rows) != GENERATIONS_PER_STEP:
+            raise RuntimeError("prepared completion mask must contain eight rows")
+        effective_completion_tokens = []
+        truncated_and_masked = []
+        for row in mask_rows:
+            values = _tensor_like_to_list(row, label="completion-mask row")
+            if any(value not in (0, 1, False, True) for value in values):
+                raise RuntimeError("completion mask contains a non-binary value")
+            effective_tokens = sum(int(value) for value in values)
+            effective_completion_tokens.append(effective_tokens)
+            truncated_and_masked.append(effective_tokens == 0)
+
+        group = build_rollout_evidence(
+            sku_id=sku_id,
+            completions=list(logs.get("completion", ())),
+            reward_names=reward_names,
+            component_rewards=component_rewards,
+            reward_weights=reward_weights,
+            advantages=list(logs.get("advantages", ())),
+            effective_completion_tokens=effective_completion_tokens,
+            truncated_and_masked=truncated_and_masked,
+        )
+        group["step"] = step
+        group["records"] = [
+            {"step": step, **record} for record in group["records"]
+        ]
+        self._groups.append(group)
+        self._seen_skus.add(sku_id)
+        return {
+            "step": step,
+            "sku_id": sku_id,
+            "records_captured": GENERATIONS_PER_STEP,
+            "total_records_captured": len(self._groups) * GENERATIONS_PER_STEP,
+            "truncated_and_masked_count": group["truncated_and_masked_count"],
+        }
+
+    def snapshot(self, *, expected_step: int) -> dict:
+        """Return a validated immutable prefix for a checkpoint handoff."""
+        if expected_step != len(self._groups):
+            raise RuntimeError(
+                f"rollout snapshot step drifted: {expected_step} != {len(self._groups)}"
+            )
+        records = self.records
+        validation = validate_full_run_rollout_records(
+            records, expected_steps=expected_step
+        )
+        return {
+            "groups": copy.deepcopy(self._groups),
+            "records": records,
+            "validation": validation,
+            "all_groups_captured_before_overwrite": True,
+        }
+
+    def finalize(self) -> dict:
+        """Return the complete validated long-run rollout evidence."""
+        if len(self._groups) != self.expected_steps:
+            raise RuntimeError(
+                f"rollout collector has {len(self._groups)} of {self.expected_steps} groups"
+            )
+        return self.snapshot(expected_step=self.expected_steps)
+
+
+def make_full_run_rollout_capturing_trainer_class(
+    base_trainer_class: type,
+) -> type:
+    """Wrap GRPOTrainer so all long-run groups are copied before reuse."""
+    if not isinstance(base_trainer_class, type):
+        raise TypeError("base trainer must be a class")
+
+    class FullRunRolloutCapturingTrainer(base_trainer_class):
+        def __init__(
+            self,
+            *args,
+            full_run_rollout_collector: FullRunRolloutCollector,
+            **kwargs,
+        ):
+            if not isinstance(full_run_rollout_collector, FullRunRolloutCollector):
+                raise TypeError("trainer requires a FullRunRolloutCollector")
+            self.full_run_rollout_collector = full_run_rollout_collector
+            super().__init__(*args, **kwargs)
+
+        def _generate_and_score_completions(self, inputs):
+            prepared = super()._generate_and_score_completions(inputs)
+            self.full_run_rollout_collector.capture_from_trainer(
+                trainer=self,
+                inputs=inputs,
+                prepared=prepared,
+            )
+            return prepared
+
+    FullRunRolloutCapturingTrainer.__name__ = (
+        f"FullRunRolloutCapturing{base_trainer_class.__name__}"
+    )
+    return FullRunRolloutCapturingTrainer
+
+
+class FullRunCheckpointHandoff:
+    """Bridge Trainer checkpoint events to validated evidence persistence.
+
+    This coordinator is deliberately CPU-only and independent of Transformers.
+    A small factory below mixes it into the installed ``TrainerCallback`` only
+    after the guarded GPU path has imported that class.
+    """
+
+    def __init__(
+        self,
+        *,
+        lifecycle_writer: FullRunCheckpointLifecycleWriter,
+        rollout_collector: FullRunRolloutCollector,
+    ):
+        if not isinstance(lifecycle_writer, FullRunCheckpointLifecycleWriter):
+            raise TypeError("handoff requires a FullRunCheckpointLifecycleWriter")
+        if not isinstance(rollout_collector, FullRunRolloutCollector):
+            raise TypeError("handoff requires a FullRunRolloutCollector")
+        if rollout_collector.expected_steps != FULL_RUN_STEPS:
+            raise ValueError("handoff collector must require exactly 300 steps")
+        self.lifecycle_writer = lifecycle_writer
+        self.rollout_collector = rollout_collector
+        self._begun = False
+        self._ended = False
+        self._processed_checkpoint_steps: list[int] = []
+        self._checkpoint_evidence: dict[int, dict] = {}
+        self._final_evidence: dict | None = None
+
+    @staticmethod
+    def _locked_argument_values(args: object) -> dict:
+        return {
+            "max_steps": int(getattr(args, "max_steps", -1)),
+            "save_steps": int(getattr(args, "save_steps", -1)),
+            "save_total_limit": int(getattr(args, "save_total_limit", -1)),
+            "save_only_model": getattr(args, "save_only_model", None),
+        }
+
+    def on_train_begin(self, args: object, state: object) -> dict:
+        """Verify the callback starts from the untouched locked run state."""
+        if self._begun:
+            raise RuntimeError("full-run checkpoint handoff began more than once")
+        expected_arguments = {
+            "max_steps": FULL_RUN_STEPS,
+            "save_steps": FULL_RUN_SAVE_STEPS,
+            "save_total_limit": FULL_RUN_SAVE_TOTAL_LIMIT,
+            "save_only_model": True,
+        }
+        actual_arguments = self._locked_argument_values(args)
+        if actual_arguments != expected_arguments:
+            raise RuntimeError(
+                "full-run callback trainer arguments drifted: "
+                f"{actual_arguments} != {expected_arguments}"
+            )
+        actual_output = Path(getattr(args, "output_dir", "")).resolve()
+        expected_output = Path(
+            self.lifecycle_writer.plan["trainer_output_dir"]
+        ).resolve()
+        if actual_output != expected_output:
+            raise RuntimeError(
+                f"full-run callback output directory drifted: {actual_output}"
+            )
+        if int(getattr(state, "global_step", -1)) != 0:
+            raise RuntimeError("full-run callback must begin at global step zero")
+        if self.rollout_collector.captured_steps != 0:
+            raise RuntimeError("full-run callback began with captured rollouts")
+        if self.lifecycle_writer.events:
+            raise RuntimeError("full-run callback began with lifecycle events")
+        self._begun = True
+        return {
+            "status": "ready",
+            "trainer_output_dir": str(expected_output),
+            "checkpoint_steps": list(FULL_RUN_CHECKPOINT_STEPS),
+        }
+
+    @staticmethod
+    def _log_history(state: object) -> list[dict]:
+        history = getattr(state, "log_history", None)
+        if not isinstance(history, (list, tuple)) or not all(
+            isinstance(entry, dict) for entry in history
+        ):
+            raise TypeError("trainer state log_history must contain dictionaries")
+        return list(history)
+
+    def on_save(self, state: object) -> dict:
+        """Validate one checkpoint boundary and persist its lifecycle event."""
+        if not self._begun or self._ended:
+            raise RuntimeError("checkpoint save occurred outside active training")
+        step = int(getattr(state, "global_step", -1))
+        expected_index = len(self._processed_checkpoint_steps)
+        expected_step = (
+            FULL_RUN_CHECKPOINT_STEPS[expected_index]
+            if expected_index < len(FULL_RUN_CHECKPOINT_STEPS)
+            else None
+        )
+        if step != expected_step:
+            raise RuntimeError(
+                f"full-run checkpoint callback expected step {expected_step}, found {step}"
+            )
+
+        # Validate all evidence before mutating the lifecycle writer. This keeps
+        # a malformed rollout or scalar log from being recorded as a good save.
+        rollout_snapshot = self.rollout_collector.snapshot(expected_step=step)
+        log_validation = validate_full_run_trainer_log_history(
+            self._log_history(state), expected_steps=step
+        )
+        checkpoint_event = self.lifecycle_writer.record_checkpoint_saved(step)
+        milestone_event = None
+        retention_report = None
+        if step == 100:
+            milestone_event = self.lifecycle_writer.export_step_100(
+                rollout_records=rollout_snapshot["records"],
+                trainer_step_logs=log_validation["step_records"],
+            )
+        elif step == 300:
+            retention_report = (
+                self.lifecycle_writer.verify_retention_after_step_300()
+            )
+
+        report = {
+            "step": step,
+            "checkpoint_event": checkpoint_event,
+            "milestone_event": milestone_event,
+            "retention_report": retention_report,
+            "rollout_validation": copy.deepcopy(rollout_snapshot["validation"]),
+            "trainer_log_validation": {
+                key: copy.deepcopy(value)
+                for key, value in log_validation.items()
+                if key != "step_records"
+            },
+        }
+        self._processed_checkpoint_steps.append(step)
+        self._checkpoint_evidence[step] = report
+        return copy.deepcopy(report)
+
+    def on_train_end(self, state: object) -> dict:
+        """Freeze complete evidence for the later final-adapter publication."""
+        if not self._begun or self._ended:
+            raise RuntimeError("full-run checkpoint handoff ended out of order")
+        if int(getattr(state, "global_step", -1)) != FULL_RUN_STEPS:
+            raise RuntimeError("full-run callback did not end at step 300")
+        if self._processed_checkpoint_steps != list(FULL_RUN_CHECKPOINT_STEPS):
+            raise RuntimeError("full-run callback did not process all checkpoints")
+        if (
+            self.lifecycle_writer.snapshot().get("status")
+            != "checkpoints_ready_for_final_handoff"
+        ):
+            raise RuntimeError("checkpoint lifecycle is not ready for final handoff")
+
+        rollout_snapshot = self.rollout_collector.finalize()
+        log_validation = validate_full_run_trainer_log_history(
+            self._log_history(state)
+        )
+        self._final_evidence = {
+            "rollout_records": rollout_snapshot["records"],
+            "trainer_step_logs": log_validation["step_records"],
+            "rollout_validation": copy.deepcopy(rollout_snapshot["validation"]),
+            "trainer_log_validation": {
+                key: copy.deepcopy(value)
+                for key, value in log_validation.items()
+                if key != "step_records"
+            },
+            "checkpoint_evidence": copy.deepcopy(self._checkpoint_evidence),
+            "lifecycle": self.lifecycle_writer.snapshot(),
+        }
+        self._ended = True
+        return self.final_evidence()
+
+    def final_evidence(self) -> dict:
+        """Return immutable complete evidence only after successful train end."""
+        if self._final_evidence is None or not self._ended:
+            raise RuntimeError("full-run final evidence is not ready")
+        return copy.deepcopy(self._final_evidence)
+
+
+def make_full_run_checkpoint_callback_class(base_callback_class: type) -> type:
+    """Create a Transformers-compatible callback around the CPU handoff."""
+    if not isinstance(base_callback_class, type):
+        raise TypeError("base callback must be a class")
+
+    class FullRunCheckpointCallback(base_callback_class):
+        def __init__(
+            self,
+            *,
+            lifecycle_writer: FullRunCheckpointLifecycleWriter,
+            rollout_collector: FullRunRolloutCollector,
+        ):
+            super().__init__()
+            self.checkpoint_handoff = FullRunCheckpointHandoff(
+                lifecycle_writer=lifecycle_writer,
+                rollout_collector=rollout_collector,
+            )
+
+        def on_train_begin(self, args, state, control, **kwargs):
+            self.checkpoint_handoff.on_train_begin(args, state)
+            return control
+
+        def on_save(self, args, state, control, **kwargs):
+            self.checkpoint_handoff.on_save(state)
+            return control
+
+        def on_train_end(self, args, state, control, **kwargs):
+            self.checkpoint_handoff.on_train_end(state)
+            return control
+
+        def final_evidence(self) -> dict:
+            return self.checkpoint_handoff.final_evidence()
+
+    FullRunCheckpointCallback.__name__ = (
+        f"FullRunCheckpoint{base_callback_class.__name__}"
+    )
+    return FullRunCheckpointCallback
+
+
+def run_full_run_300_orchestration(
+    *,
+    base_trainer_class: type,
+    base_callback_class: type,
+    config_class: type,
+    model: object,
+    tokenizer: object,
+    dataset: object,
+    reward_functions: Sequence[Callable],
+    reward_weights: Sequence[float],
+    source_adapter_file: str | Path,
+    final_output_dir: str | Path,
+    preflight_report: dict,
+    disk_usage_fn: Callable[[Path], object] | None = None,
+    expected_adapter_model_bytes: int = EXPECTED_ADAPTER_MODEL_BYTES,
+) -> dict:
+    """Construct, run and publish the locked full run via injected runtime types.
+
+    This function has no CLI caller. Its dependencies are injected so the
+    complete orchestration can be proven with CPU fakes before GPU dispatch is
+    enabled.
+    """
+    if not all(
+        isinstance(value, type)
+        for value in (base_trainer_class, base_callback_class, config_class)
+    ):
+        raise TypeError("trainer, callback and config dependencies must be classes")
+    if preflight_report.get("status") != "passed":
+        raise ValueError("full-run orchestration requires a passed preflight")
+    if preflight_report.get("cuda_imports_performed") is not False:
+        raise ValueError("full-run preflight CUDA-import evidence drifted")
+
+    final_output = Path(final_output_dir).resolve()
+    preflight_output = Path(
+        preflight_report.get("output", {}).get("path", "")
+    ).resolve()
+    if preflight_output != final_output:
+        raise RuntimeError("full-run output disagrees with preflight")
+    if final_output.exists():
+        raise FileExistsError(f"final full-run output already exists: {final_output}")
+
+    source_adapter = Path(source_adapter_file).resolve()
+    expected_source_sha = preflight_report.get("sft_lock", {}).get(
+        "adapter_sha256"
+    )
+    if not isinstance(expected_source_sha, str) or len(expected_source_sha) != 64:
+        raise ValueError("preflight has no locked SFT adapter SHA-256")
+    if _sha256_file(source_adapter) != expected_source_sha:
+        raise RuntimeError("source adapter disagrees with full-run preflight")
+
+    if len(dataset) != FULL_RUN_DATA_ROWS:
+        raise RuntimeError("full-run dataset must contain exactly 1,565 rows")
+    required_columns = {"prompt", "gold", "sku_id"}
+    if set(getattr(dataset, "column_names", ())) != required_columns:
+        raise RuntimeError("full-run dataset columns drifted")
+    dataset_skus = list(dataset["sku_id"])
+    if len(dataset_skus) != FULL_RUN_DATA_ROWS or any(
+        not isinstance(sku_id, str) or not sku_id.strip()
+        for sku_id in dataset_skus
+    ):
+        raise RuntimeError("full-run dataset contains an invalid SKU")
+    if len(set(dataset_skus)) != FULL_RUN_DATA_ROWS:
+        raise RuntimeError("full-run dataset contains duplicate SKUs")
+    expected_order_sha = preflight_report.get("pool", {}).get(
+        "ordered_sku_sha256"
+    )
+    if _ordered_sku_sha256(dataset_skus) != expected_order_sha:
+        raise RuntimeError("full-run dataset SKU order disagrees with preflight")
+
+    normalized_weights = tuple(float(value) for value in reward_weights)
+    if normalized_weights != LOCKED_REWARD_WEIGHTS:
+        raise RuntimeError("full-run reward weights drifted")
+    reward_names = [
+        getattr(reward, "__name__", type(reward).__name__)
+        for reward in reward_functions
+    ]
+    if tuple(reward_names) != EXPECTED_REWARD_NAMES:
+        raise RuntimeError("full-run reward function names or order drifted")
+    if not all(callable(reward) for reward in reward_functions):
+        raise TypeError("every full-run reward function must be callable")
+
+    model_save = getattr(model, "save_pretrained", None)
+    tokenizer_save = getattr(tokenizer, "save_pretrained", None)
+    if not callable(model_save) or not callable(tokenizer_save):
+        raise TypeError("model and tokenizer must expose save_pretrained()")
+
+    staging = create_full_run_staging_output(final_output)
+    plan = build_full_run_lifecycle_plan(
+        final_output_dir=final_output,
+        staging_dir=staging,
+    )
+    writer = FullRunCheckpointLifecycleWriter(
+        plan=plan,
+        starting_adapter_sha256=expected_source_sha,
+    )
+    config_settings = grpo_full_run_300_config_kwargs(
+        output_dir=plan["trainer_output_dir"],
+        reward_weights=normalized_weights,
+    )
+    config = config_class(**config_settings)
+    config_report = inspect_grpo_full_run_config(config)
+
+    collector = FullRunRolloutCollector()
+    capturing_trainer_class = make_full_run_rollout_capturing_trainer_class(
+        base_trainer_class
+    )
+    trainer = capturing_trainer_class(
+        model=model,
+        reward_funcs=list(reward_functions),
+        args=config,
+        train_dataset=dataset,
+        processing_class=tokenizer,
+        full_run_rollout_collector=collector,
+    )
+    if getattr(trainer, "full_run_rollout_collector", None) is not collector:
+        raise RuntimeError("full-run trainer did not retain its rollout collector")
+    if int(getattr(getattr(trainer, "state", None), "global_step", -1)) != 0:
+        raise RuntimeError("full-run trainer did not start at global step zero")
+    if getattr(trainer, "optimizer", None) is not None:
+        raise RuntimeError("full-run trainer unexpectedly started with an optimizer")
+    if getattr(trainer, "lr_scheduler", None) is not None:
+        raise RuntimeError("full-run trainer unexpectedly started with a scheduler")
+    if list(getattr(trainer, "reward_func_names", ())) != reward_names:
+        raise RuntimeError("full-run trainer reward names drifted")
+    actual_weights = _tensor_like_to_list(
+        getattr(trainer, "reward_weights", None),
+        label="full-run trainer reward weights",
+    )
+    if tuple(float(value) for value in actual_weights) != LOCKED_REWARD_WEIGHTS:
+        raise RuntimeError("full-run trainer reward weights drifted after construction")
+
+    callback_class = make_full_run_checkpoint_callback_class(base_callback_class)
+    callback = callback_class(
+        lifecycle_writer=writer,
+        rollout_collector=collector,
+    )
+    add_callback = getattr(trainer, "add_callback", None)
+    if not callable(add_callback):
+        raise TypeError("full-run trainer does not expose add_callback()")
+    add_callback(callback)
+
+    train_started = time.perf_counter()
+    train_result = trainer.train()
+    train_seconds = time.perf_counter() - train_started
+    completed_step = int(getattr(trainer.state, "global_step", -1))
+    if completed_step != FULL_RUN_STEPS:
+        raise RuntimeError("full-run trainer did not finish exactly 300 updates")
+    if int(getattr(train_result, "global_step", -1)) != FULL_RUN_STEPS:
+        raise RuntimeError("full-run result disagrees with completed global step")
+    evidence = callback.final_evidence()
+    if len(evidence["rollout_records"]) != FULL_RUN_STEPS * GENERATIONS_PER_STEP:
+        raise RuntimeError("full-run callback returned incomplete rollout evidence")
+    if len(evidence["trainer_step_logs"]) != FULL_RUN_STEPS:
+        raise RuntimeError("full-run callback returned incomplete trainer logs")
+
+    def save_live_adapter(adapter_output: Path) -> None:
+        model_save(adapter_output, safe_serialization=True)
+        tokenizer_save(adapter_output)
+
+    final_adapter = writer.save_and_validate_final_adapter(
+        save_adapter_fn=save_live_adapter,
+        source_adapter_file=source_adapter,
+        expected_adapter_model_bytes=expected_adapter_model_bytes,
+    )
+    publication = writer.publish_completed_bundle(
+        rollout_records=evidence["rollout_records"],
+        trainer_step_logs=evidence["trainer_step_logs"],
+        preflight_report=preflight_report,
+        config_settings=config_settings,
+        disk_usage_fn=disk_usage_fn,
+    )
+    if writer.snapshot().get("status") != "completed_and_published":
+        raise RuntimeError("full-run lifecycle did not finish publication")
+
+    return {
+        "status": "passed",
+        "global_step": completed_step,
+        "optimizer_steps": completed_step,
+        "expected_rollouts": FULL_RUN_STEPS * GENERATIONS_PER_STEP,
+        "train_seconds": train_seconds,
+        "train_metrics": dict(getattr(train_result, "metrics", {})),
+        "config": config_report,
+        "dataset_rows": len(dataset),
+        "dataset_order_sha256": expected_order_sha,
+        "reward_names": reward_names,
+        "reward_weights": list(normalized_weights),
+        "rollout_validation": evidence["rollout_validation"],
+        "trainer_log_validation": evidence["trainer_log_validation"],
+        "checkpoint_evidence": evidence["checkpoint_evidence"],
+        "final_adapter": final_adapter,
+        "publication": publication,
+        "lifecycle": writer.snapshot(),
+        "final_output_dir": str(final_output),
+        "published": True,
+    }
 
 
 def inspect_model_trainability(
@@ -1221,6 +1959,11 @@ def _ordered_sku_sha256(sku_ids: Sequence[str]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def _sku_set_sha256(sku_ids: Sequence[str]) -> str:
+    payload = "\n".join(sorted(sku_ids)) + "\n"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def _resolve(repo_root: Path, path: str | Path) -> Path:
     path = Path(path)
     return path.resolve() if path.is_absolute() else (repo_root / path).resolve()
@@ -1607,6 +2350,93 @@ def verify_fixture(
     }
 
 
+def verify_full_run_pool(
+    *,
+    repo_root: Path,
+    data_path: Path,
+    manifest_path: Path,
+    expected_data_sha256: str = LOCKED_FULL_RUN_DATA_SHA256,
+    expected_manifest_sha256: str = LOCKED_FULL_RUN_MANIFEST_SHA256,
+    expected_rows: int = FULL_RUN_DATA_ROWS,
+    expected_bytes: int = FULL_RUN_DATA_BYTES,
+) -> dict:
+    """Verify the complete cap-four prompt pool and its committed lineage."""
+    actual_manifest_sha = _sha256_file(manifest_path)
+    if actual_manifest_sha != expected_manifest_sha256:
+        raise RuntimeError("locked full-run pool manifest checksum mismatch")
+    manifest = _read_json(manifest_path)
+    if manifest.get("version") != "grpo-pool-cap4-v1":
+        raise RuntimeError("unexpected full-run pool manifest version")
+    invariants = manifest.get("invariants")
+    if not isinstance(invariants, dict) or not invariants or not all(
+        invariants.values()
+    ):
+        raise RuntimeError("full-run pool manifest contains a failed invariant")
+
+    output = manifest.get("output", {})
+    manifest_data_path = _resolve(repo_root, output.get("active_dataset", ""))
+    if manifest_data_path != data_path:
+        raise RuntimeError("full-run data path disagrees with pool manifest")
+    actual_data_sha = _sha256_file(data_path)
+    if actual_data_sha != expected_data_sha256:
+        raise RuntimeError("locked full-run data checksum mismatch")
+    if actual_data_sha != output.get("active_dataset_sha256"):
+        raise RuntimeError("full-run data checksum disagrees with pool manifest")
+    if data_path.stat().st_size != expected_bytes:
+        raise RuntimeError("locked full-run data byte size mismatch")
+    if data_path.stat().st_size != output.get("active_dataset_bytes"):
+        raise RuntimeError("full-run data byte size disagrees with pool manifest")
+
+    rows = _read_jsonl_objects(data_path)
+    if len(rows) != expected_rows or len(rows) != output.get("active_dataset_rows"):
+        raise RuntimeError("full-run data must contain exactly 1,565 rows")
+    sku_ids = [row.get("sku_id") for row in rows]
+    if any(not isinstance(sku_id, str) or not sku_id for sku_id in sku_ids):
+        raise RuntimeError("full-run data contains a missing SKU ID")
+    if len(set(sku_ids)) != len(sku_ids):
+        raise RuntimeError("full-run data contains duplicate SKU IDs")
+    if any(row.get("split") != "train" for row in rows):
+        raise RuntimeError("full-run data contains a non-training row")
+    pass_rates = [row.get("difficulty", {}).get("sft_pass_rate") for row in rows]
+    if any(
+        not isinstance(value, (int, float)) or not 0 < float(value) < 1
+        for value in pass_rates
+    ):
+        raise RuntimeError("full-run data contains an ineligible pass rate")
+
+    selection = manifest.get("selection", {})
+    manifest_skus = selection.get("active_skus_in_source_order")
+    if sku_ids != manifest_skus:
+        raise RuntimeError("full-run SKU order disagrees with pool manifest")
+    actual_sku_set_sha = _sku_set_sha256(sku_ids)
+    if actual_sku_set_sha != selection.get("active_sku_set_sha256"):
+        raise RuntimeError("full-run SKU set disagrees with pool manifest")
+    if selection.get("active_rows") != expected_rows:
+        raise RuntimeError("full-run active-row count disagrees with pool manifest")
+
+    policy = manifest.get("policy", {})
+    if (
+        policy.get("family_cap") != 4
+        or policy.get("selection_seed") != 42
+        or policy.get("eligibility_rule") != "0 < sft_pass_rate < 1"
+    ):
+        raise RuntimeError("full-run pool policy drifted")
+
+    return {
+        "data_path": str(data_path),
+        "data_sha256": actual_data_sha,
+        "data_bytes": data_path.stat().st_size,
+        "manifest_path": str(manifest_path),
+        "manifest_sha256": actual_manifest_sha,
+        "rows": len(rows),
+        "ordered_sku_sha256": _ordered_sku_sha256(sku_ids),
+        "sku_set_sha256": actual_sku_set_sha,
+        "family_cap": policy["family_cap"],
+        "selection_seed": policy["selection_seed"],
+        "manifest_invariants": dict(invariants),
+    }
+
+
 def verify_sft_lock(
     *,
     repo_root: Path,
@@ -1769,6 +2599,170 @@ def run_preflight(
         "cuda_imports_performed": False,
         "model_loaded": False,
         "trainer_constructed": False,
+    }
+
+
+def inspect_gpu_idle_state(
+    *,
+    command_runner: Callable[..., object] | None = None,
+) -> dict:
+    """Read one GPU's idle state through nvidia-smi without importing CUDA."""
+    runner = command_runner or subprocess.run
+    command = [
+        "nvidia-smi",
+        "--query-gpu=index,name,memory.used,utilization.gpu,temperature.gpu",
+        "--format=csv,noheader,nounits",
+    ]
+    try:
+        result = runner(command, check=True, capture_output=True, text=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RuntimeError("could not inspect GPU state with nvidia-smi") from exc
+    lines = [line.strip() for line in str(result.stdout).splitlines() if line.strip()]
+    if len(lines) != 1:
+        raise RuntimeError("full-run preflight requires exactly one visible GPU")
+    parts = [part.strip() for part in lines[0].split(",")]
+    if len(parts) != 5:
+        raise RuntimeError("unexpected nvidia-smi output")
+    try:
+        index = int(parts[0])
+        memory_used_mib = int(parts[2])
+        utilization_percent = int(parts[3])
+        temperature_c = int(parts[4])
+    except ValueError as exc:
+        raise RuntimeError("nvidia-smi returned non-numeric GPU measurements") from exc
+    if min(index, memory_used_mib, utilization_percent, temperature_c) < 0:
+        raise RuntimeError("nvidia-smi returned a negative GPU measurement")
+
+    memory_idle = memory_used_mib <= FULL_RUN_MAX_IDLE_GPU_MEMORY_MIB
+    utilization_idle = (
+        utilization_percent <= FULL_RUN_MAX_IDLE_GPU_UTILIZATION_PERCENT
+    )
+    return {
+        "source": "nvidia-smi",
+        "device_index": index,
+        "device_name": parts[1],
+        "memory_used_mib": memory_used_mib,
+        "utilization_percent": utilization_percent,
+        "temperature_c": temperature_c,
+        "maximum_idle_memory_mib": FULL_RUN_MAX_IDLE_GPU_MEMORY_MIB,
+        "maximum_idle_utilization_percent": (
+            FULL_RUN_MAX_IDLE_GPU_UTILIZATION_PERCENT
+        ),
+        "memory_idle": memory_idle,
+        "utilization_idle": utilization_idle,
+        "idle": memory_idle and utilization_idle,
+        "cuda_imports_performed": False,
+    }
+
+
+def run_full_run_300_preflight(
+    *,
+    repo_root: str | Path,
+    training_data: str | Path,
+    pool_manifest: str | Path,
+    selection_manifest: str | Path,
+    adapter: str | Path,
+    output_dir: str | Path,
+    minimum_free_bytes: int,
+    expected_commit: str,
+    expected_data_sha256: str = LOCKED_FULL_RUN_DATA_SHA256,
+    expected_pool_manifest_sha256: str = LOCKED_FULL_RUN_MANIFEST_SHA256,
+    expected_selection_manifest_sha256: str = LOCKED_SELECTION_MANIFEST_SHA256,
+    expected_adapter_sha256: str = LOCKED_ADAPTER_SHA256,
+    expected_rows: int = FULL_RUN_DATA_ROWS,
+    expected_bytes: int = FULL_RUN_DATA_BYTES,
+    git_state_fn: Callable[[Path], dict] | None = None,
+    disk_usage_fn: Callable[[Path], object] | None = None,
+    gpu_state_fn: Callable[[], dict] | None = None,
+    sft_lock_fn: Callable[..., dict] | None = None,
+) -> dict:
+    """Verify all read-only 300-step launch prerequisites before CUDA import."""
+    repo_root = Path(repo_root).resolve()
+    if not repo_root.is_dir():
+        raise FileNotFoundError(repo_root)
+    training_data_path = _resolve(repo_root, training_data)
+    pool_manifest_path = _resolve(repo_root, pool_manifest)
+    selection_manifest_path = _resolve(repo_root, selection_manifest)
+    adapter_path = _resolve(repo_root, adapter)
+    output_path = _resolve(repo_root, output_dir)
+
+    git = (git_state_fn or inspect_git_state)(repo_root)
+    if git.get("tracked_worktree_dirty") or git.get("index_dirty"):
+        raise RuntimeError("tracked Git state must be clean before full GRPO")
+    if git.get("commit") != expected_commit:
+        raise RuntimeError("Git commit disagrees with expected full-run commit")
+    if output_path.exists():
+        raise FileExistsError(f"full GRPO output already exists: {output_path}")
+    staging_pattern = f".{output_path.name}.staging-*"
+    staging_collisions = sorted(
+        str(path) for path in output_path.parent.glob(staging_pattern)
+    )
+    if staging_collisions:
+        raise FileExistsError(
+            "full GRPO staging output already exists: "
+            + ", ".join(staging_collisions)
+        )
+
+    pool = verify_full_run_pool(
+        repo_root=repo_root,
+        data_path=training_data_path,
+        manifest_path=pool_manifest_path,
+        expected_data_sha256=expected_data_sha256,
+        expected_manifest_sha256=expected_pool_manifest_sha256,
+        expected_rows=expected_rows,
+        expected_bytes=expected_bytes,
+    )
+    sft_lock = (sft_lock_fn or verify_sft_lock)(
+        repo_root=repo_root,
+        selection_manifest_path=selection_manifest_path,
+        adapter_path=adapter_path,
+        expected_selection_sha256=expected_selection_manifest_sha256,
+        expected_adapter_sha256=expected_adapter_sha256,
+    )
+
+    if minimum_free_bytes <= 0:
+        raise ValueError("minimum free disk must be positive")
+    disk_probe = _existing_parent(output_path.parent)
+    usage = (disk_usage_fn or shutil.disk_usage)(disk_probe)
+    free_bytes = int(usage.free)
+    if free_bytes < minimum_free_bytes:
+        raise RuntimeError(
+            f"insufficient free disk: {free_bytes} < {minimum_free_bytes} bytes"
+        )
+
+    gpu = (gpu_state_fn or inspect_gpu_idle_state)()
+    if not gpu.get("idle"):
+        raise RuntimeError("GPU is not idle enough for full GRPO launch")
+    if gpu.get("cuda_imports_performed"):
+        raise RuntimeError("GPU preflight unexpectedly imported CUDA")
+
+    contract = full_run_300_contract(output_dir=output_path)
+    return {
+        "version": "grpo-full-run-300-preflight-v1",
+        "status": "passed",
+        "git": git,
+        "pool": pool,
+        "sft_lock": sft_lock,
+        "output": {
+            "path": str(output_path),
+            "collision_free": True,
+            "staging_pattern": staging_pattern,
+            "staging_collision_free": True,
+            "created": False,
+        },
+        "disk": {
+            "probe_path": str(disk_probe),
+            "free_bytes": free_bytes,
+            "minimum_free_bytes": minimum_free_bytes,
+            "passes": True,
+        },
+        "gpu": gpu,
+        "contract_version": contract["version"],
+        "contract_status": contract["status"],
+        "cuda_imports_performed": False,
+        "model_loaded": False,
+        "trainer_constructed": False,
+        "training_dispatch_enabled": False,
     }
 
 
@@ -2627,6 +3621,289 @@ def _load_five_step_runtime() -> dict:
     }
 
 
+def _load_full_run_construction_runtime() -> dict:
+    """Import the real stack only inside the no-training full-run gate."""
+    from unsloth import FastLanguageModel
+
+    import torch
+    from transformers import TrainerCallback
+    from trl import GRPOConfig, GRPOTrainer
+
+    from training.dataset import load_grpo_prompts
+    from training.rewards import (
+        FIRST_RUN_REWARD_FUNCTIONS,
+        FIRST_RUN_REWARD_WEIGHTS,
+    )
+    from verifier import load_pack
+
+    return {
+        "FastLanguageModel": FastLanguageModel,
+        "torch": torch,
+        "TrainerCallback": TrainerCallback,
+        "GRPOConfig": GRPOConfig,
+        "GRPOTrainer": GRPOTrainer,
+        "load_grpo_prompts": load_grpo_prompts,
+        "load_pack": load_pack,
+        "reward_functions": tuple(FIRST_RUN_REWARD_FUNCTIONS),
+        "reward_weights": tuple(FIRST_RUN_REWARD_WEIGHTS),
+    }
+
+
+def run_full_run_300_construction_gate(
+    *,
+    training_data_path: str | Path,
+    adapter_path: str | Path,
+    adapter_file: str | Path,
+    expected_ordered_sku_sha256: str,
+    expected_adapter_sha256: str = LOCKED_ADAPTER_SHA256,
+    runtime_loader: Callable[[], dict] = _load_full_run_construction_runtime,
+    policy_loader_fn: Callable[..., tuple] = _load_locked_policy,
+    trainability_fn: Callable[[object], dict] = inspect_model_trainability,
+    cuda_snapshot_fn: Callable[[object], dict] = _cuda_memory_snapshot,
+) -> dict:
+    """Construct all real full-run components and release them without training."""
+    training_data = Path(training_data_path).resolve()
+    adapter_path = Path(adapter_path).resolve()
+    adapter_file = Path(adapter_file).resolve()
+    if not training_data.is_file():
+        raise FileNotFoundError(training_data)
+    if not adapter_path.is_dir():
+        raise FileNotFoundError(adapter_path)
+    if not adapter_file.is_file():
+        raise FileNotFoundError(adapter_file)
+    if (
+        not isinstance(expected_ordered_sku_sha256, str)
+        or len(expected_ordered_sku_sha256) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in expected_ordered_sku_sha256
+        )
+    ):
+        raise ValueError("expected ordered-SKU SHA-256 is invalid")
+    if _sha256_file(adapter_file) != expected_adapter_sha256:
+        raise RuntimeError("source adapter disagrees before full construction")
+
+    runtime = runtime_loader()
+    required_runtime = {
+        "FastLanguageModel",
+        "torch",
+        "TrainerCallback",
+        "GRPOConfig",
+        "GRPOTrainer",
+        "load_grpo_prompts",
+        "load_pack",
+        "reward_functions",
+        "reward_weights",
+    }
+    if set(runtime) != required_runtime:
+        raise RuntimeError("full-run construction runtime is incomplete or unexpected")
+    reward_functions = tuple(runtime["reward_functions"])
+    reward_weights = tuple(float(value) for value in runtime["reward_weights"])
+    reward_names = tuple(
+        getattr(reward, "__name__", type(reward).__name__)
+        for reward in reward_functions
+    )
+    if reward_weights != LOCKED_REWARD_WEIGHTS:
+        raise RuntimeError("full-run runtime reward weights drifted")
+    if reward_names != EXPECTED_REWARD_NAMES:
+        raise RuntimeError("full-run runtime reward functions drifted")
+
+    torch = runtime["torch"]
+    model = None
+    tokenizer = None
+    dataset = None
+    trainer = None
+    collector = None
+    writer = None
+    callback = None
+    report = None
+    temporary_root = None
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
+    cuda_before = cuda_snapshot_fn(torch)
+    started = time.perf_counter()
+    try:
+        model, tokenizer = policy_loader_fn(
+            runtime["FastLanguageModel"], torch, adapter_path
+        )
+        trainability = trainability_fn(model)
+        lora_sha_before = _trainable_parameter_sha256(model)
+
+        pack = runtime["load_pack"]("packs/vastraa_taste_v1")
+        dataset = runtime["load_grpo_prompts"](
+            pack,
+            training_data,
+            require_pass_rate_band=True,
+        )
+        if len(dataset) != FULL_RUN_DATA_ROWS:
+            raise RuntimeError(
+                f"full-run construction dataset has {len(dataset)} rows"
+            )
+        required_columns = {"prompt", "gold", "sku_id"}
+        if set(dataset.column_names) != required_columns:
+            raise RuntimeError("full-run construction dataset columns drifted")
+        dataset_skus = list(dataset["sku_id"])
+        if len(set(dataset_skus)) != FULL_RUN_DATA_ROWS:
+            raise RuntimeError("full-run construction dataset SKUs are not unique")
+        observed_ordered_sha = _ordered_sku_sha256(dataset_skus)
+        if observed_ordered_sha != expected_ordered_sku_sha256:
+            raise RuntimeError("full-run construction dataset order drifted")
+
+        with tempfile.TemporaryDirectory(
+            prefix="grpo-full-run-construction-"
+        ) as temporary:
+            temporary_root = Path(temporary).resolve()
+            probe_final = temporary_root / "grpo-first-300"
+            staging = create_full_run_staging_output(probe_final)
+            plan = build_full_run_lifecycle_plan(
+                final_output_dir=probe_final,
+                staging_dir=staging,
+            )
+            writer = FullRunCheckpointLifecycleWriter(
+                plan=plan,
+                starting_adapter_sha256=expected_adapter_sha256,
+            )
+            config = runtime["GRPOConfig"](
+                **grpo_full_run_300_config_kwargs(
+                    output_dir=plan["trainer_output_dir"],
+                    reward_weights=reward_weights,
+                )
+            )
+            config_report = inspect_grpo_full_run_config(config)
+            collector = FullRunRolloutCollector()
+            trainer_class = make_full_run_rollout_capturing_trainer_class(
+                runtime["GRPOTrainer"]
+            )
+            trainer = trainer_class(
+                model=model,
+                reward_funcs=list(reward_functions),
+                args=config,
+                train_dataset=dataset,
+                processing_class=tokenizer,
+                full_run_rollout_collector=collector,
+            )
+            callback_class = make_full_run_checkpoint_callback_class(
+                runtime["TrainerCallback"]
+            )
+            callback = callback_class(
+                lifecycle_writer=writer,
+                rollout_collector=collector,
+            )
+            trainer.add_callback(callback)
+            torch.cuda.synchronize()
+
+            actual_reward_names = list(getattr(trainer, "reward_func_names", ()))
+            actual_reward_weights = _tensor_like_to_list(
+                getattr(trainer, "reward_weights", None),
+                label="constructed full-run reward weights",
+            )
+            if actual_reward_names != list(EXPECTED_REWARD_NAMES):
+                raise RuntimeError("constructed full-run reward names drifted")
+            if tuple(float(value) for value in actual_reward_weights) != (
+                LOCKED_REWARD_WEIGHTS
+            ):
+                raise RuntimeError("constructed full-run reward weights drifted")
+            if getattr(trainer, "optimizer", None) is not None:
+                raise RuntimeError("full-run construction created an optimizer")
+            if getattr(trainer, "lr_scheduler", None) is not None:
+                raise RuntimeError("full-run construction created a scheduler")
+            if getattr(trainer, "ref_model", None) is not None:
+                raise RuntimeError("beta-zero full-run constructed a reference model")
+            if int(getattr(trainer.state, "global_step", -1)) != 0:
+                raise RuntimeError("full-run construction advanced global step")
+            if collector.captured_steps != 0:
+                raise RuntimeError("full-run construction generated rollouts")
+            if writer.events:
+                raise RuntimeError("full-run construction wrote lifecycle events")
+            callback_list = list(
+                getattr(getattr(trainer, "callback_handler", None), "callbacks", ())
+            )
+            if callback not in callback_list:
+                raise RuntimeError("full-run checkpoint callback was not attached")
+            if set(trainer.train_dataset.column_names) != required_columns:
+                raise RuntimeError("constructed trainer dropped dataset columns")
+            if list(trainer.train_dataset["sku_id"]) != dataset_skus:
+                raise RuntimeError("constructed trainer changed dataset order")
+            if any(
+                parameter.grad is not None
+                for parameter in model.parameters()
+                if parameter.requires_grad
+            ):
+                raise RuntimeError("full-run construction created gradients")
+
+            lora_sha_after = _trainable_parameter_sha256(model)
+            if lora_sha_after != lora_sha_before:
+                raise RuntimeError("full-run construction changed LoRA weights")
+            if _sha256_file(adapter_file) != expected_adapter_sha256:
+                raise RuntimeError("source adapter changed during full construction")
+            cuda_after = cuda_snapshot_fn(torch)
+            report = {
+                "version": FULL_RUN_CONSTRUCTION_GATE_VERSION,
+                "status": "passed",
+                "training_data_path": str(training_data),
+                "dataset_rows": len(dataset),
+                "dataset_columns": sorted(required_columns),
+                "dataset_ordered_sku_sha256": observed_ordered_sha,
+                "adapter_path": str(adapter_path),
+                "adapter_file": str(adapter_file),
+                "adapter_sha256": expected_adapter_sha256,
+                "source_adapter_unchanged": True,
+                "trainability": trainability,
+                "lora_sha256_before_construction": lora_sha_before,
+                "lora_sha256_after_construction": lora_sha_after,
+                "trainable_lora_unchanged": True,
+                "config": config_report,
+                "trainer_class": type(trainer).__name__,
+                "base_trainer_class": runtime["GRPOTrainer"].__name__,
+                "callback_class": type(callback).__name__,
+                "reward_names": actual_reward_names,
+                "reward_weights": [
+                    float(value) for value in actual_reward_weights
+                ],
+                "collector_attached": (
+                    trainer.full_run_rollout_collector is collector
+                ),
+                "checkpoint_callback_attached": True,
+                "lifecycle_writer_constructed": True,
+                "lifecycle_events": 0,
+                "global_step": 0,
+                "optimizer_constructed": False,
+                "scheduler_constructed": False,
+                "reference_model_constructed": False,
+                "rollouts_generated": 0,
+                "gradients_created": False,
+                "training_dispatched": False,
+                "temporary_output_root": str(temporary_root),
+                "cuda_before": cuda_before,
+                "cuda_after_construction": cuda_after,
+                "construction_seconds": time.perf_counter() - started,
+            }
+        if temporary_root.exists():
+            raise RuntimeError("temporary full-run construction output survived")
+    finally:
+        callback = None
+        writer = None
+        collector = None
+        trainer = None
+        dataset = None
+        model = None
+        tokenizer = None
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+    if report is None:
+        raise RuntimeError("full-run construction gate ended without a report")
+    if _sha256_file(adapter_file) != expected_adapter_sha256:
+        raise RuntimeError("source adapter changed after full construction release")
+    report["temporary_output_removed"] = True
+    report["cuda_after_release"] = cuda_snapshot_fn(torch)
+    report["model_retained"] = False
+    report["trainer_retained"] = False
+    report["training_dispatched"] = False
+    return report
+
+
 def construct_capturing_grpo_trainer(
     *,
     base_trainer_class: type,
@@ -2882,9 +4159,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     mode.add_argument("--optimizer-construction-only", action="store_true")
     mode.add_argument("--one-update-only", action="store_true")
     mode.add_argument("--five-step-smoke", action="store_true")
+    mode.add_argument("--full-run-300", action="store_true")
     parser.add_argument("--repo-root", default=".")
     parser.add_argument("--fixture-data", default=DEFAULT_FIXTURE_DATA)
     parser.add_argument("--fixture-manifest", default=DEFAULT_FIXTURE_MANIFEST)
+    parser.add_argument("--full-run-data", default=DEFAULT_FULL_RUN_DATA)
+    parser.add_argument("--full-run-manifest", default=DEFAULT_FULL_RUN_MANIFEST)
     parser.add_argument("--selection-manifest", default=DEFAULT_SELECTION_MANIFEST)
     parser.add_argument("--adapter", default=DEFAULT_ADAPTER)
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
@@ -2938,8 +4218,103 @@ def validate_five_step_launch_args(args: argparse.Namespace) -> dict:
     }
 
 
+def validate_full_run_300_launch_args(args: argparse.Namespace) -> dict:
+    """Validate the fixed 300-step launch surface without running preflight."""
+    if not args.full_run_300:
+        raise ValueError("full-run launch validation requires --full-run-300")
+
+    commit = args.expected_commit
+    if (
+        not isinstance(commit, str)
+        or len(commit) != 40
+        or any(character not in "0123456789abcdef" for character in commit)
+    ):
+        raise SystemExit(
+            "--full-run-300 requires a full lowercase --expected-commit"
+        )
+
+    repo_root = Path(args.repo_root).resolve()
+    path_locks = {
+        "training_data": (
+            _resolve(repo_root, args.full_run_data),
+            _resolve(repo_root, DEFAULT_FULL_RUN_DATA),
+        ),
+        "pool_manifest": (
+            _resolve(repo_root, args.full_run_manifest),
+            _resolve(repo_root, DEFAULT_FULL_RUN_MANIFEST),
+        ),
+        "selection_manifest": (
+            _resolve(repo_root, args.selection_manifest),
+            _resolve(repo_root, DEFAULT_SELECTION_MANIFEST),
+        ),
+        "adapter": (
+            _resolve(repo_root, args.adapter),
+            _resolve(repo_root, DEFAULT_ADAPTER),
+        ),
+        "output": (
+            _resolve(repo_root, args.output_dir),
+            _resolve(repo_root, DEFAULT_FULL_RUN_OUTPUT_DIR),
+        ),
+    }
+    for name, (requested, locked) in path_locks.items():
+        if requested != locked:
+            raise SystemExit(
+                f"--full-run-300 must use the locked {name} path: {locked}"
+            )
+
+    if (
+        not math.isfinite(args.minimum_free_gib)
+        or args.minimum_free_gib < DEFAULT_MINIMUM_FREE_GIB
+    ):
+        raise SystemExit(
+            "--full-run-300 requires a preflight disk floor of at least 3 GiB"
+        )
+    if args.report_file is not None:
+        raise SystemExit(
+            "--full-run-300 publishes only its declared run artifacts; "
+            "--report-file is forbidden"
+        )
+
+    contract = full_run_300_contract(output_dir=path_locks["output"][0])
+    return {
+        "expected_commit": commit,
+        "repo_root": str(repo_root),
+        "training_data": str(path_locks["training_data"][0]),
+        "pool_manifest": str(path_locks["pool_manifest"][0]),
+        "selection_manifest": str(path_locks["selection_manifest"][0]),
+        "adapter": str(path_locks["adapter"][0]),
+        "reserved_output": str(path_locks["output"][0]),
+        "minimum_free_gib": float(args.minimum_free_gib),
+        "standalone_report_forbidden": True,
+        "contract_version": contract["version"],
+        "contract_status": contract["status"],
+        "training_dispatch_enabled": False,
+        "passed": True,
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.full_run_300:
+        launch_control = validate_full_run_300_launch_args(args)
+        report = run_full_run_300_preflight(
+            repo_root=args.repo_root,
+            training_data=args.full_run_data,
+            pool_manifest=args.full_run_manifest,
+            selection_manifest=args.selection_manifest,
+            adapter=args.adapter,
+            output_dir=args.output_dir,
+            minimum_free_bytes=int(args.minimum_free_gib * 1024**3),
+            expected_commit=args.expected_commit,
+        )
+        report["launch_control"] = launch_control
+        report["preflight_only"] = True
+        report["stop_reason"] = (
+            "full-run preflight passed; model loading and training dispatch "
+            "remain intentionally unavailable"
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
     if not (
         args.preflight_only
         or args.model_load_only

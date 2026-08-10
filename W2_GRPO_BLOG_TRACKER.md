@@ -2978,6 +2978,500 @@ Even a passing smoke does **not** show that GRPO improves the tagger. It proves
 only that the selected SFT policy, prompt pool, rewards and installed trainer can
 perform real policy updates safely enough to justify designing the longer run.
 
+### Transition to the first real GRPO training run
+
+The guarded five-step integration smoke has now passed on the Vast.ai RTX 3090.
+The successful detached run used exact code commit
+`f79ce8cae1c96bf52605fd136f236cc2da82320f` and atomically published
+`runs/grpo-first-smoke`. It completed exactly five optimizer steps and 40
+rollouts, observed reward variance in all five groups, recorded 40 nonzero
+advantages and five positive finite gradient norms, and saved a LoRA adapter
+that differed from the starting SFT adapter while leaving that source adapter
+unchanged. No completion was clipped or truncated. Peak Torch allocation was
+`4,418,153,472` bytes, peak reserved memory was `4,529,848,320` bytes, and the
+manifest recorded `4,767,158,272` free disk bytes after publication.
+
+The published adapter contains a `73,911,112`-byte
+`adapter_model.safetensors` with SHA-256
+`80123000c098b0641748adf4b120eb895c5090021851c4cb7c5e718b2878b301`.
+An independent Transformers + PEFT reload generated one deterministic answer
+for the locked first smoke SKU in 15 seconds. The adapter hash was identical
+before and after inference, the output passed format validity, vocabulary/rule
+compliance and known-gold agreement, and its weighted reward was `4.0 / 4.0`.
+GPU use returned to the 264 MiB idle baseline. The compact evidence record is
+`runs/grpo-first-smoke-reload-verification.json`. This one-product gate proves
+that the saved checkpoint is usable; it is not evidence of general quality or
+of improvement over SFT.
+
+The first SSH-attached launch was interrupted when the remote connection closed
+while printing the large completion table. It exited through SSH with code 255,
+and the trainer died with the session after only the first visible step. Atomic
+publication correctly left no final or staging bundle. The exact locked command
+was then relaunched detached with stdout/stderr redirected to `/tmp`; that run
+completed and published successfully. Longer GRPO launches must therefore be
+detached from SSH and monitored through bounded log summaries.
+
+We chose to postpone copying the three small smoke-bundle evidence files from
+the server and proceed toward the first real GRPO training run. The proposed
+initial contract is:
+
+| setting | proposed value | reason |
+|---|---:|---|
+| optimizer steps | 300 | the plan's minimum meaningful GRPO duration; five steps only tested plumbing |
+| generations per prompt | 8 | preserve the tested group-relative reward geometry |
+| total generated rollouts | 2,400 | `300 × 8` completions |
+| prompt source | deterministic seeded order over the cap-four active pool | retain family-diverse training data and make prompt order reproducible |
+| reward components | format, vocabulary/rules, known-gold agreement | reuse the smoke-tested verifier path |
+| reward weights | `1:1:2` | preserve the predeclared first-run objective |
+| learning rate | `5e-6` | reuse the numerically healthy smoke-tested rate |
+| warmup | `0.1` / 30 steps | ramp into the longer run instead of applying the peak rate immediately |
+| scheduler | cosine | retain the smoke-tested decay shape after warmup |
+| seed / data seed | `42 / 42` | make parameter initialization effects and shuffled prompt order reproducible |
+| prompt shuffling | enabled | avoid training only on the first 300 rows of the 1,565-row pool |
+| scalar logging | every optimizer step | preserve the complete reward/loss/gradient curve locally |
+| completion-table printing | disabled | prevent 2,400 literal completions from flooding the detached process log; raw rollouts remain separate artifacts |
+| external reporting | disabled as a requirement | local artifacts determine correctness even if W&B is unavailable |
+| checkpoint events | steps 100, 200 and 300 | expose an early, middle and final policy for comparison |
+| checkpoint retention | `save_total_limit=2` | bound disk growth on the 4.8 GB-free server |
+| checkpoint contents | model/adapter only | evaluation is required; exact optimizer-state resume is not the goal of this first run |
+| launch disk floor | 3 GiB free | fail before CUDA if the server cannot safely retain bounded outputs |
+| process lifetime | detached from SSH | prevent a network disconnect from terminating training |
+| expected wall time | approximately 60–90 minutes | planning estimate from the prior 300-step W0 run and current smoke timings |
+
+The intended comparison evaluates steps 100, 200 and 300 against the same
+locked 300-product frozen set rather than assuming that the final checkpoint is
+best. Because a retention limit of two can evict step 100 after step 300 is
+saved, the implementation must evaluate or export step 100 before eviction and
+retain its compact metrics/predictions. This is a required launch-contract test,
+not an operational detail to improvise during training.
+
+The pure configuration contract is now implemented in
+`training.train_grpo.full_run_300_contract` without adding a launch flag. It
+locks 300 updates, 2,400 expected rollouts, seeded shuffling, 30 warmup steps,
+per-step scalar logging, bounded model-only checkpointing, local-artifact
+correctness, the 3 GiB floor and detached execution. Five focused contract and
+drift tests pass, the pre-existing smoke configuration tests still pass, and
+the full local CPU suite passes **274 tests**. The returned status is deliberately
+`locked_not_launchable`.
+
+The CLI now recognizes `--full-run-300` only far enough to validate its launch
+arguments. It requires a full lowercase 40-character commit, the exact locked
+cap-four data, selection manifest and SFT adapter paths, the reserved
+`runs/grpo-first-300` output, a disk-floor argument of at least 3 GiB, and no
+standalone report file. Wrong paths, short/uppercase/non-hex commits, finite
+values below 3 GiB, `NaN`, report-file use and simultaneous smoke/full modes all
+fail in CPU-only tests. A valid command returns
+`training_dispatch_enabled: false` and exits explicitly with “training dispatch
+is intentionally unavailable” before preflight, CUDA or model imports.
+
+The read-only full-run preflight is now implemented as
+`run_full_run_300_preflight`, but the CLI does not invoke it yet. It locks the
+cap-four pool to 1,565 rows, 3,467,347 bytes and SHA-256
+`3e378187a8147923bae1e0753a750d6e252336e911fa8c91cd57a4a8ddc3a102`,
+and locks its lineage manifest to SHA-256
+`d166325a0c4ef3d78023ba492881fb3971e290b1b3606ee4ac8cd6aa733175e0`.
+Validation checks all five manifest invariants, exact SKU order, the SKU-set
+hash, unique nonempty IDs, train split, mixed pass rates, family cap four and
+selection seed 42. The same preflight reuses the existing cryptographic SFT
+adapter lock.
+
+Git must be tracked-clean at the exact requested commit. Both the final output
+and any `.grpo-first-300.staging-*` path must be absent. Free disk must meet the
+3 GiB floor. GPU state is read through the external `nvidia-smi` process rather
+than Torch: exactly one visible GPU must use at most 1,024 MiB and at most 5%
+utilization. Ambiguous, malformed, negative or nonnumeric GPU observations fail
+closed, as does any probe claiming it imported CUDA. A passing report explicitly
+records no CUDA import, model, trainer or training dispatch and creates no output.
+
+The CLI is now connected to this read-only preflight. A valid
+`--full-run-300` invocation follows exactly one path: validate the immutable
+arguments, run `run_full_run_300_preflight`, attach the launch-control evidence,
+print one JSON report and return exit code zero. The report explicitly includes
+`preflight_only: true`, `training_dispatch_enabled: false`, no CUDA import, no
+model load and no trainer construction. Its stop reason states that model
+loading and training remain intentionally unavailable. A preflight exception is
+propagated before any success JSON is printed, and a test tripwire proves the
+legacy smoke preflight cannot be called from this branch.
+
+The focused full-run file now passes **30 tests**, including the real committed
+pool, negative Git/hash/collision/disk/GPU cases, successful CLI report emission
+and fail-before-report behavior. The full local suite passes **299 tests**. This
+is still **not an implemented training mode**: exit code zero means only that
+readiness checks passed. The next engineering step is to enforce the step-100
+evidence/export lifecycle and final-adapter handoff before any training dispatch
+is added.
+
+The checkpoint and publication lifecycle is now locked in the separate CPU-only
+module `training/grpo_full_run_artifacts.py` as
+`grpo-full-run-300-lifecycle-v1`. Training will occur under a same-parent
+`.grpo-first-300.staging-*` root rather than exposing a partial final run. The
+trainer writes model-only checkpoints beneath `trainer/`; the completed staging
+tree is validated and then renamed atomically to `runs/grpo-first-300`.
+
+The required event sequence is:
+
+1. save model-only checkpoint 100;
+2. export and verify the durable step-100 milestone;
+3. save model-only checkpoints 200 and 300;
+4. confirm checkpoint 100 was evicted only after its export and that 200/300
+   remain;
+5. save and validate the final adapter at step 300;
+6. validate the complete bundle; and
+7. atomically publish the staging root.
+
+The step-100 milestone must contain adapter weights/config, a manifest, all 800
+raw rollouts through step 100 and exactly 100 trainer step logs. Its adapter hash
+must differ from the starting SFT adapter before checkpoint 100 may disappear.
+This preserves the policy needed for later frozen evaluation; it does **not**
+claim that frozen evaluation runs during training.
+
+The trainer retention set is exactly checkpoints 200 and 300. The final adapter
+must differ from both the starting and step-100 adapters, match the locked PEFT
+file allowlist, and contain neither optimizer nor full-model state. The final
+bundle must contain 2,400 rollouts and 300 step logs, remain at or below 512 MiB,
+leave at least 3 GiB free, and publish through a same-filesystem atomic rename.
+Missing/late step-100 export, incorrect counts or paths, retention drift,
+unchanged/unsafe adapter state, oversized output, low post-run disk and nonatomic
+publication all fail in CPU tests.
+
+The lifecycle version is embedded in the existing 300-step configuration
+contract so later dispatch cannot select the trainer settings while omitting the
+evidence protocol. The two focused full-run files pass **43 tests**, and the full
+local suite passes **312 tests**. No callback, filesystem writer, model load or
+training dispatch has been implemented yet; this step locks what those later
+components must prove.
+
+`FullRunCheckpointLifecycleWriter` now implements the checkpoint-time half of
+that protocol with real CPU filesystem operations and no Torch/TRL imports. A
+collision-safe helper creates the private same-parent run staging root only when
+the final output and every stale staging path are absent. The writer then accepts
+only checkpoints 100, 200 and 300 in order, requires each to contain regular
+PEFT weights/config, and rejects optimizer, scheduler, RNG, trainer-state and
+full-model filenames.
+
+Immediately after checkpoint 100, the writer requires exactly 800 rollout
+objects and 100 trainer-step logs. It copies only
+`adapter_model.safetensors` and `adapter_config.json`, writes the rollout JSONL,
+trainer-log JSON and milestone manifest into a private `.step-100.staging-*`
+directory, re-hashes source and copies, checks the exact five-file inventory,
+and atomically renames the completed milestone to `milestones/step-100`. The
+source checkpoint must remain byte-identical during export and the exported
+weights must differ from the starting SFT adapter.
+
+After checkpoint 300, the writer refuses to record retention success unless
+checkpoint 100 is absent, checkpoints 200/300 are present and the durable
+step-100 milestone still exists. Its six-event snapshot then reports
+`checkpoints_ready_for_final_handoff` while explicitly leaving
+`final_adapter_saved` and `bundle_published` false. The filesystem tests prove
+the happy path and fail closed on final/staging collisions, out-of-order saves,
+forbidden optimizer state, 799 rollouts, 99 logs, checkpoint 100 surviving the
+retention limit, or either retained checkpoint disappearing.
+
+The three focused full-run files now pass **49 tests**, and the complete local
+suite passes **318 tests**. This is a lifecycle writer designed for a future
+Trainer callback, not the callback itself: no trainer, model, GPU, final adapter
+or final bundle is touched. The next persistence step is the CPU-tested final
+adapter/bundle handoff that consumes this six-event snapshot and completes the
+remaining four lifecycle events.
+
+The final-adapter and completed-bundle handoff is now implemented on the same
+CPU-only writer. Before saving, it re-hashes the immutable SFT adapter and
+requires the exact starting checksum. An injected future model/tokenizer saver
+writes `final-adapter`; the existing strict PEFT validator then enforces the
+ten-file adapter/tokenizer allowlist, exact LoRA configuration and weight
+footprint, no optimizer/full-model state, and a final weight hash different from
+both the starting SFT and step-100 adapters. The SFT source is re-hashed after
+the save so an accidental in-place mutation fails closed.
+
+The bundle handoff requires exactly 2,400 rollout objects, 300 trainer-step logs,
+a passed preflight and the locked 300-step checkpoint settings. It rechecks that
+the trainer directory contains only checkpoints 200/300, that the sole milestone
+is step 100 and that the validated final adapter still exists. It writes and
+hashes root rollout/log artifacts plus a manifest, rejects symlinks and unexpected
+root entries, enforces the 512 MiB bundle cap and 3 GiB post-write floor, validates
+all ten lifecycle events, and only then renames staging to
+`runs/grpo-first-300`. A failed validation leaves the final path absent.
+
+Inspection of the installed Transformers 4.57.6 implementation clarified one
+checkpoint detail: `save_only_model=True` suppresses optimizer, scheduler, RNG
+and trainer-state saves, but `_save()` still writes `training_args.bin` as small
+configuration metadata. Intermediate-checkpoint validation therefore permits
+that file while continuing to reject resumable state and full-model weights.
+This is different from the final adapter, whose stricter ten-file allowlist
+still excludes `training_args.bin`.
+
+The happy-path filesystem test now completes all ten events and proves the
+staging directory disappears as the completed final directory appears. Negative
+tests cover source drift, a final adapter identical to SFT, 2,399 rollouts, 299
+logs, oversized output, low disk and `save_total_limit` drift. The three focused
+full-run files pass **54 tests**, and the complete local suite passes **323
+tests**. This finishes the persistence machinery, but it is still called only by
+CPU fakes. At that point, no Trainer callback, full rollout collector, model or
+GPU dispatch was connected.
+
+The 300-group evidence layer is now implemented without enabling model loading
+or training dispatch. `FullRunRolloutCollector` wraps the future GRPO trainer at
+the generation boundary and copies each eight-completion group immediately,
+before TRL replaces its rolling `_logs` buffers with the next group. Unlike the
+five-row smoke collector, it does not assume a predeclared prompt order because
+the full run shuffles the pool. Instead, it records the observed SKU order,
+requires one nonempty SKU repeated exactly eight times within each step, rejects
+any SKU reused across the 300 steps, and binds every record to its contiguous
+step and rollout index.
+
+The completed collector must preserve exactly 300 groups and 2,400 raw outputs.
+Its step-100 snapshot makes an independent deep copy of exactly 100 groups and
+800 records for the checkpoint writer, so later generations or accidental
+caller mutation cannot change the milestone evidence. Runtime checks also lock
+single-process execution, the exact reward-function order, `1:1:2` weights,
+aligned reward/advantage arrays and binary completion masks. A CPU fake proves
+that all 2,400 outputs survive even though the simulated trainer's own `_logs`
+contains only step 300 by the end.
+
+Long-run rollout validation lives separately in
+`training/grpo_full_run_evidence.py`, preserving the stricter smoke acceptance
+rules unchanged. Each component reward must be finite and binary, each weighted
+total must exactly recompute from the three components, and every advantage must
+be finite. Completion-token counts must remain from 0 through the locked
+170-token maximum. A zero count is valid only when explicitly marked as a
+truncated-and-masked rollout. The validator reports the observed SKU-order
+SHA-256, reward-variance versus zero-variance groups, nonzero advantages,
+completion lengths and masked-truncation count. It permits individual
+zero-variance groups or masked completions as measured training events, but the
+entire evidence set fails if it contains no varying reward group or no nonzero
+advantage. This avoids discarding a long run for one expected noisy event while
+still refusing a run from which GRPO could not learn at all.
+
+The scalar-log validator requires exactly one complete finite metric row for
+every optimizer step. It checks loss, gradient norm, learning rate, aggregate
+reward and standard deviation, zero-reward-variance fraction, completion
+length/clipping, policy clip ratios, and the mean and standard deviation of all
+three reward components. Binary reward means and all ratios must remain within
+`[0, 1]`; standard deviations and gradient norms cannot be negative; completion
+lengths cannot exceed 170. Occasional zero gradient, reward zero-variance or
+clipping is recorded by step rather than automatically rejected, but at least
+one positive gradient norm is required across the validated run.
+
+The learning-rate audit reproduces the installed Transformers step alignment,
+where a row logged as step `N` contains the scheduler value for internal step
+`N - 1`. Therefore step 1 logs `0`, step 30 logs `29/30 × 5e-6`, step 31 reaches
+the peak `5e-6`, and the remaining schedule follows cosine decay over the full
+300-step horizon. A step-100 milestone is validated against the same 300-step
+schedule rather than incorrectly treating 100 as the end of cosine decay.
+
+The new focused evidence/collector tests cover complete preservation, immutable
+step-100 snapshots, shuffled-SKU uniqueness, reward-name/weight drift,
+multiprocess refusal, malformed totals, nonbinary or nonfinite rewards,
+truncation-marker disagreement, missing/nonfinite/out-of-range trainer metrics,
+learning-rate drift and complete absence of gradient or group-relative signal.
+The evidence and original smoke-collector files pass **25 tests**, and the full
+local CPU suite passes **343 tests** in 9.94 seconds. No GPU/model code ran. The
+remaining boundary is a Trainer callback that hands the validated step-100 and
+step-300 evidence to the already-tested lifecycle writer; only after that should
+the guarded 300-step dispatch be enabled.
+
+#### Reproducibility record for the full-run evidence layer
+
+| implementation surface | responsibility |
+|---|---|
+| `training/train_grpo.py::FullRunRolloutCollector` | capture each generated group before TRL overwrites its latest-group buffers |
+| `training/train_grpo.py::make_full_run_rollout_capturing_trainer_class` | inject capture at `_generate_and_score_completions` without changing the underlying trainer result |
+| `training/grpo_full_run_evidence.py::validate_full_run_rollout_records` | verify the ordered 300 × 8 raw-rollout evidence and summarize usable versus zero-variance signal |
+| `training/grpo_full_run_evidence.py::expected_full_run_learning_rates` | reconstruct the locked 30-step warmup and 270-step cosine schedule using Transformers' logged-step alignment |
+| `training/grpo_full_run_evidence.py::validate_full_run_trainer_log_history` | require one finite scalar record per optimizer step and preserve clipping/zero-signal telemetry |
+| `tests/test_grpo_full_run_evidence.py` | exercise the full collector and validators entirely on CPU |
+
+The exact focused verification command was:
+
+```bash
+.venv/bin/pytest -q \
+  tests/test_grpo_full_run_evidence.py \
+  tests/test_grpo_rollout_collector.py
+```
+
+Result: **25 passed in 0.10 seconds**. The compile check was:
+
+```bash
+.venv/bin/python -m py_compile \
+  training/grpo_full_run_evidence.py \
+  training/train_grpo.py \
+  tests/test_grpo_full_run_evidence.py
+```
+
+The exact regression command was `.venv/bin/pytest -q`; result: **343 passed in
+9.94 seconds**. `git diff --check` also passed. These are local CPU verification
+results, not measurements from the Vast.ai GPU and not evidence that the
+300-step policy has trained successfully. The run remains deliberately
+unlaunchable until the callback-to-lifecycle handoff is implemented and tested.
+
+#### CPU-tested Trainer callback to checkpoint-writer handoff
+
+The callback-to-lifecycle boundary is now implemented while the GPU launch path
+remains disabled. `FullRunCheckpointHandoff` is a CPU-only coordinator; a small
+factory later subclasses the installed Transformers `TrainerCallback` without
+importing Transformers during ordinary tests. This separation lets the exact
+event logic run against fake trainer state and real temporary files before it is
+allowed near the model or GPU.
+
+At training start, the callback fails unless all persistence settings still
+match the locked run: `max_steps=300`, `save_steps=100`,
+`save_total_limit=2`, `save_only_model=True`, and the trainer output path under
+the private lifecycle staging directory. It also requires global step zero, an
+empty rollout collector and no prior writer events. This prevents attaching the
+evidence protocol halfway through a run or writing checkpoints outside the
+atomic bundle.
+
+Transformers invokes `on_save` after it has written the checkpoint and applied
+checkpoint rotation. The callback uses that boundary as follows:
+
+1. At step 100, validate the 100-group/800-rollout prefix and all 100 scalar
+   logs before recording the save. Then atomically export the checkpoint-100
+   adapter and its evidence milestone.
+2. At step 200, validate the complete 200-group/1,600-rollout and 200-log
+   prefixes before recording checkpoint 200.
+3. At step 300, validate all 300 groups, 2,400 rollouts and 300 logs before
+   recording checkpoint 300. Then require checkpoint 100 to be absent,
+   checkpoints 200/300 to remain, and the durable step-100 milestone to remain.
+4. At `on_train_end`, require global step 300 and all three checkpoint events,
+   revalidate the complete evidence, and freeze deep-copied rollout/log records
+   for final-adapter saving and atomic bundle publication.
+
+Evidence validation deliberately occurs before each new writer event. A bad
+learning rate, missing rollout group or malformed metric therefore cannot be
+recorded as a successful checkpoint handoff. The final evidence accessor is
+unavailable before successful training end and returns defensive copies, so a
+later consumer cannot mutate the callback's retained audit trail.
+
+The integration test simulates all 300 generation/update boundaries with a
+trainer whose native `_logs` retains only the latest eight completions. It uses
+real temporary checkpoint directories and the real lifecycle writer, exports
+the 800-row step-100 milestone, simulates Transformers evicting checkpoint 100,
+verifies retention at step 300, and produces exactly 2,400 final rollout rows,
+300 scalar logs and six ordered lifecycle events. It also preserves and reports
+one zero-variance group, one zero-gradient step and one masked/clipped rollout.
+
+Negative tests reject trainer-argument/output-path drift, malformed learning
+rates before writer mutation, an incomplete rollout prefix, an unexpected first
+save at step 200, early training end, incorrect dependency types and a collector
+configured for fewer than 300 steps. Exact callback test command and result:
+
+```bash
+.venv/bin/pytest -q tests/test_grpo_full_run_callback.py
+# 10 passed in 0.26 seconds
+```
+
+The callback, evidence and checkpoint-writer focused set passes **41 tests in
+0.43 seconds**. The complete local CPU suite now passes **353 tests in 10.40
+seconds**; compilation and `git diff --check` also pass. This proves the
+checkpoint/evidence orchestration with CPU fakes, not real training. The next
+small boundary at that point was a guarded full-run orchestration function that
+would construct the staging plan, collector, wrapped trainer and callback, then
+perform final adapter save/publication after `trainer.train()` without exposing
+it from the CLI until an end-to-end CPU fake passed.
+
+#### CPU-tested end-to-end 300-step orchestration shell
+
+`run_full_run_300_orchestration` now connects every previously isolated piece,
+but it still has no CLI caller. All runtime classes—the GRPO trainer,
+Transformers callback and GRPO config—are injected, allowing the complete path
+to run against CPU fakes while preserving the same interfaces the GPU stack will
+use.
+
+Before creating staging state, the orchestration requires a passed preflight
+whose final output path and source-adapter checksum match the supplied files. It
+requires exactly 1,565 dataset rows with only `prompt`, `gold` and `sku_id`
+columns, nonempty unique SKUs and an ordered-SKU SHA-256 identical to preflight.
+The three reward callables must appear in the exact format, vocabulary/rules,
+golden-agreement order and retain weights `1:1:2`. Model and tokenizer savers
+must also be present before training can begin.
+
+It then creates the collision-safe private staging root and lifecycle plan,
+builds the complete 300-step configuration against `staging/trainer`, and checks
+every normalized value after config construction. This includes generation and
+batch geometry, seeds, seeded shuffling, optimizer settings, 30-step warmup,
+cosine scheduling, generation controls, DAPO/GRPO settings, per-step scalar
+logging, disabled completion-table printing, model-only saves every 100 steps
+and retention limit two. The normalized generation batch must remain eight.
+
+Next it creates the 300-group collector, wraps the injected GRPO trainer at its
+generation method, constructs the trainer, verifies reward order/weights and
+that no optimizer or scheduler exists yet, creates the checkpoint callback and
+attaches it through `trainer.add_callback`. Only then does it invoke
+`trainer.train()`.
+
+After training returns, both the trainer state and returned result must report
+exactly 300 optimizer steps. The callback must already have produced complete
+validated evidence: 2,400 rollout rows, 300 scalar logs, checkpoint reports for
+100/200/300 and six lifecycle events through retention verification. The
+orchestration then saves the live model plus tokenizer into `final-adapter`,
+reuses the strict adapter/source integrity validator, writes the full evidence
+bundle and requires all ten lifecycle events before atomic staging-to-final
+publication.
+
+The happy-path CPU integration test performs all 300 simulated generation and
+update boundaries. The fake trainer fires real callback interfaces, writes real
+temporary model-only checkpoints, exports the real 800-row step-100 milestone,
+evicts checkpoint 100 before the step-300 callback, retains checkpoints 200/300,
+saves a strict ten-file final adapter and publishes a 2,400-row final bundle.
+The final staging path disappears and the completed final path appears only
+after all validation succeeds.
+
+Failure behavior is intentionally asymmetric:
+
+- Invalid preflight, reward weights, dataset length or SKU-order hash fails
+  before a staging directory exists.
+- A 299-step run or a trainer that omits save callbacks leaves the final output
+  absent and does not call the model saver. Its private staging directory remains
+  for diagnosis and prevents an accidental clean retry until reviewed.
+- A final adapter byte-identical to the SFT source fails strict adapter
+  validation and is never published, although its failed private staging tree is
+  retained as evidence.
+
+Exact orchestration test command and result:
+
+```bash
+.venv/bin/pytest -q tests/test_grpo_full_run_orchestration.py
+# 8 passed in 0.41 seconds
+```
+
+The orchestration, callback, evidence and checkpoint-writer focused set passes
+**49 tests in 0.86 seconds**. The complete local CPU suite passes **361 tests in
+11.04 seconds**; compilation and `git diff --check` pass. No Torch, CUDA,
+Unsloth, TRL model or Vast.ai GPU was used by this test. The implementation can
+now prove a complete fake run, but `--full-run-300` still exits after read-only
+preflight. The next small gate is constructing the real full-run model, dataset,
+trainer and callback on Vast.ai without calling `trainer.train()`.
+
+#### No-training real-runtime construction gate prepared locally
+
+`run_full_run_300_construction_gate` now defines that next remote boundary. It
+imports Unsloth before Torch/TRL, loads the locked SFT adapter as trainable LoRA,
+loads the complete cap-four prompt file through the production dataset renderer,
+and requires exactly 1,565 unique SKUs with the preflight-locked ordered-SKU
+SHA-256. It then uses a temporary lifecycle root—not the reserved final run
+path—to construct the full 300-step GRPO config, capturing trainer, 300-group
+collector, checkpoint lifecycle writer and real Transformers callback.
+
+The gate must observe global step zero, no optimizer, scheduler or beta-zero
+reference model, no gradients, no generated rollouts and no lifecycle events.
+It verifies the callback is actually present in the trainer callback handler,
+that trainer construction preserved all hidden reward/audit columns and dataset
+order, and that both the live LoRA fingerprint and source adapter checksum are
+unchanged. It records CUDA memory before loading, after construction and after
+release, then destroys the temporary output and releases model/trainer state.
+There is no call to `trainer.train()`, no checkpoint save and no reserved-output
+mutation.
+
+Six CPU tests exercise the real-runtime interface through injected fakes. They
+cover the complete construction/release path, dataset-order drift, a 1,564-row
+dataset, accidental eager optimizer creation, source-adapter drift before heavy
+imports and reward-weight drift. Together with orchestration and callback tests,
+the focused command passes **24 tests in 0.82 seconds**. The complete local suite
+passes **367 tests in 11.24 seconds**; compilation and `git diff --check` pass.
+The gate has not yet run on Vast.ai. Both repositories remain at commit
+`f79ce8cae1c96bf52605fd136f236cc2da82320f`, so these new files must be committed,
+pushed and pulled before remote evidence can be tied to an exact clean commit.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
@@ -2991,9 +3485,10 @@ perform real policy updates safely enough to justify designing the longer run.
 - [x] How will gold-unknown fields be handled consistently in the reward
   function? Exclude them from golden agreement, retain the existing abstention
   telemetry and report the stricter unknown-aware metric separately.
-- What checkpoint frequency fits the remaining disk budget? Smoke policy is
-  locked to no intermediate checkpoint and one final model-only adapter; the
-  full-run interval remains pending measured smoke footprint and runtime.
+- [x] What checkpoint frequency fits the remaining disk budget? The proposed
+  300-step run saves model-only checkpoints at steps 100, 200 and 300 with
+  `save_total_limit=2`. Step 100 must be evaluated or exported before eviction,
+  and compact metrics/predictions from all three checkpoints must survive.
 - [x] What is the smallest GRPO smoke that proves reward variance, nonzero
   gradients and stable memory? Five deterministic prompts, eight completions per
   prompt and five optimizer steps, with the ten acceptance gates above.
@@ -3207,8 +3702,35 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   reserved output, 3 GiB floor, preflight-before-GPU dispatch and CPU tests.
 - [x] Remote preflight-only readiness audit with exact hashes, output/staging
   absence, 4.55 GiB free disk and unchanged idle GPU state.
-- [ ] Five-step GRPO smoke with optimizer construction and real parameter
-  updates.
+- [x] Five-step GRPO smoke with optimizer construction, real parameter updates,
+  an atomic adapter bundle and an independent deterministic reload gate.
+- [x] CPU-only 300-step configuration contract locking warmup, seeded shuffling,
+  logging, reporting independence, checkpoint cadence/retention and disk floor;
+  superseded full local suite at 298 passing tests.
+- [x] Fail-closed `--full-run-300` argument validator with exact commit/path/disk
+  locks, mutually exclusive mode parsing and explicit pre-dispatch refusal.
+- [x] CPU-only read-only 300-step preflight for Git, pool/manifest/SFT hashes,
+  row/order/policy checks, output/staging collisions, disk and idle GPU state.
+- [x] Connect `--full-run-300` to the read-only preflight, emit explicit JSON
+  readiness evidence and stop before model loading or training.
+- [x] CPU-only lifecycle contract for step-100 evidence export, bounded
+  checkpoint eviction, final-adapter validation and atomic run publication.
+- [x] CPU-only checkpoint lifecycle writer with atomic step-100 export and real
+  checkpoint-200/300 retention auditing.
+- [x] CPU-only final-adapter validation and completed-bundle handoff producing
+  all ten lifecycle events and atomic final publication.
+- [x] Implement the 300-group rollout collector and per-step trainer-log
+  validation needed by the real callback and bundle writer.
+- [x] CPU-only Trainer callback handoff validating evidence before each
+  checkpoint event, exporting step 100 and verifying step-300 retention.
+- [x] CPU-only end-to-end 300-step orchestration shell constructing all runtime
+  pieces, simulating 300 updates and atomically publishing the validated bundle.
+- [x] CPU-tested no-training real-runtime construction gate with temporary
+  lifecycle output, unchanged-LoRA proof and complete state release.
+- [ ] Run the no-training full-run construction gate against the real Vast.ai
+  Unsloth/TRL stack at an exact clean Git commit.
+- [ ] 300-step training dispatch with bounded checkpoint retention and enforced
+  evidence handoffs.
 - [ ] GRPO training curve and resource use.
 - [ ] Locked frozen evaluation after GRPO.
 - [ ] SFT-versus-GRPO uncertainty estimate.
