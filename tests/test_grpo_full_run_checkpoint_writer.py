@@ -22,6 +22,24 @@ from training.grpo_full_run_artifacts import (
 STARTING_SHA = hashlib.sha256(b"starting SFT adapter").hexdigest()
 
 
+def trainer_state(step: int) -> dict:
+    return {
+        "global_step": step,
+        "max_steps": 300,
+        "num_train_epochs": 1,
+        "train_batch_size": 8,
+        "logging_steps": 1,
+        "save_steps": 100,
+        "is_local_process_zero": True,
+        "is_world_process_zero": True,
+        "epoch": step / 1_565,
+        "log_history": [
+            {"step": index, "loss": 0.0}
+            for index in range(1, step + 1)
+        ],
+    }
+
+
 def make_checkpoint(path: Path, step: int):
     path.mkdir(parents=True)
     weights = f"updated adapter at step {step}".encode()
@@ -32,6 +50,10 @@ def make_checkpoint(path: Path, step: int):
     # Transformers 4.57.6 writes this small metadata file even with
     # save_only_model=True; resumable optimizer/scheduler/RNG state stays absent.
     (path / "training_args.bin").write_bytes(b"metadata")
+    (path / "trainer_state.json").write_text(
+        json.dumps(trainer_state(step)),
+        encoding="utf-8",
+    )
     return hashlib.sha256(weights).hexdigest()
 
 
@@ -232,6 +254,109 @@ def test_writer_requires_ordered_model_only_checkpoints(tmp_path):
     checkpoint_100 = Path(plan["checkpoint_paths"]["100"])
     make_checkpoint(checkpoint_100, 100)
     (checkpoint_100 / "optimizer.pt").write_bytes(b"forbidden")
+    with pytest.raises(ValueError, match="forbidden state"):
+        writer.record_checkpoint_saved(100)
+
+
+def test_writer_accepts_real_transformers_model_only_inventory(tmp_path):
+    writer, plan = make_writer(tmp_path)
+    checkpoint = Path(plan["checkpoint_paths"]["100"])
+    make_checkpoint(checkpoint, 100)
+    for name in (
+        "README.md",
+        "added_tokens.json",
+        "chat_template.jinja",
+        "merges.txt",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "vocab.json",
+    ):
+        (checkpoint / name).write_text("metadata\n", encoding="utf-8")
+
+    event = writer.record_checkpoint_saved(100)
+
+    assert event["trainer_state_global_step"] == 100
+    assert event["trainer_state_step_logs"] == 100
+    assert len(event["trainer_state_sha256"]) == 64
+    assert event["contains_optimizer_scheduler_or_rng_state"] is False
+    assert not (checkpoint / "optimizer.pt").exists()
+    assert not (checkpoint / "scheduler.pt").exists()
+    assert not (checkpoint / "rng_state.pth").exists()
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda state: state.update(global_step=99), "global_step drifted"),
+        (lambda state: state.update(max_steps=301), "max_steps drifted"),
+        (lambda state: state.update(train_batch_size=16), "train_batch_size drifted"),
+        (lambda state: state.update(logging_steps=2), "logging_steps drifted"),
+        (lambda state: state.update(save_steps=50), "save_steps drifted"),
+        (
+            lambda state: state["log_history"].pop(),
+            "exactly 100 step logs",
+        ),
+        (
+            lambda state: state["log_history"][-1].update(step=99),
+            "step-log order drifted",
+        ),
+        (lambda state: state.update(epoch=float("nan")), "non-finite"),
+    ],
+)
+def test_writer_strictly_validates_trainer_state_metadata(
+    tmp_path,
+    mutate,
+    message,
+):
+    writer, plan = make_writer(tmp_path)
+    checkpoint = Path(plan["checkpoint_paths"]["100"])
+    make_checkpoint(checkpoint, 100)
+    state_path = checkpoint / "trainer_state.json"
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    mutate(state)
+    state_path.write_text(json.dumps(state), encoding="utf-8")
+
+    with pytest.raises((TypeError, ValueError), match=message):
+        writer.record_checkpoint_saved(100)
+    assert writer.events == []
+
+
+def test_writer_requires_valid_regular_trainer_state_file(tmp_path):
+    writer, plan = make_writer(tmp_path)
+    checkpoint = Path(plan["checkpoint_paths"]["100"])
+    make_checkpoint(checkpoint, 100)
+    state_path = checkpoint / "trainer_state.json"
+    state_path.write_text("not JSON", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="invalid JSON"):
+        writer.record_checkpoint_saved(100)
+    state_path.unlink()
+    with pytest.raises(FileNotFoundError, match="trainer_state.json"):
+        writer.record_checkpoint_saved(100)
+
+
+@pytest.mark.parametrize(
+    "forbidden_name",
+    [
+        "optimizer.pt",
+        "scheduler.pt",
+        "scaler.pt",
+        "rng_state.pth",
+        "rng_state_0.pth",
+        "model.safetensors",
+        "pytorch_model-00001-of-00002.bin",
+    ],
+)
+def test_writer_still_rejects_resumable_or_full_model_state(
+    tmp_path,
+    forbidden_name,
+):
+    writer, plan = make_writer(tmp_path)
+    checkpoint = Path(plan["checkpoint_paths"]["100"])
+    make_checkpoint(checkpoint, 100)
+    (checkpoint / forbidden_name).write_bytes(b"forbidden")
+
     with pytest.raises(ValueError, match="forbidden state"):
         writer.record_checkpoint_saved(100)
 

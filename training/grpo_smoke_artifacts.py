@@ -42,6 +42,7 @@ FORBIDDEN_BASENAMES = {
     "optimizer.pt",
     "optimizer.bin",
     "scheduler.pt",
+    "scaler.pt",
     "trainer_state.json",
     "training_args.bin",
     "rng_state.pth",

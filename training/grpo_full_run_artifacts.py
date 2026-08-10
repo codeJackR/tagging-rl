@@ -28,7 +28,10 @@ GENERATIONS_PER_STEP = 8
 EXPECTED_FINAL_ROLLOUTS = 300 * GENERATIONS_PER_STEP
 EXPECTED_STEP_100_ROLLOUTS = 100 * GENERATIONS_PER_STEP
 MAX_FINAL_BUNDLE_BYTES = 512 * 1024**2
-CHECKPOINT_FORBIDDEN_BASENAMES = FORBIDDEN_BASENAMES - {"training_args.bin"}
+CHECKPOINT_ALLOWED_METADATA = {"trainer_state.json", "training_args.bin"}
+CHECKPOINT_FORBIDDEN_BASENAMES = (
+    FORBIDDEN_BASENAMES - CHECKPOINT_ALLOWED_METADATA
+)
 STEP_100_EXPORT_FILES = {
     "adapter/adapter_config.json",
     "adapter/adapter_model.safetensors",
@@ -101,6 +104,81 @@ def _validate_json_finite(value: object, *, label: str) -> None:
             _validate_json_finite(item, label=f"{label}.{key}")
         return
     raise TypeError(f"{label} contains a non-JSON value: {type(value).__name__}")
+
+
+def _validate_checkpoint_trainer_state(checkpoint: Path, *, step: int) -> dict:
+    """Validate Transformers' non-resumable checkpoint metadata."""
+    trainer_state = checkpoint / "trainer_state.json"
+    if not trainer_state.is_file() or trainer_state.is_symlink():
+        raise FileNotFoundError(
+            f"checkpoint-{step} lacks regular trainer_state.json metadata"
+        )
+    duplicate_locations = [
+        path
+        for path in checkpoint.rglob("trainer_state.json")
+        if path != trainer_state
+    ]
+    if duplicate_locations:
+        raise ValueError(f"checkpoint-{step} has nested trainer-state metadata")
+    try:
+        state = json.loads(trainer_state.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            f"checkpoint-{step} trainer_state.json is invalid JSON"
+        ) from exc
+    if not isinstance(state, dict):
+        raise TypeError(f"checkpoint-{step} trainer state must be a JSON object")
+    _validate_json_finite(state, label=f"checkpoint-{step} trainer state")
+
+    expected_fields = {
+        "global_step": step,
+        "max_steps": 300,
+        "num_train_epochs": 1,
+        "train_batch_size": 8,
+        "logging_steps": 1,
+        "save_steps": 100,
+        "is_local_process_zero": True,
+        "is_world_process_zero": True,
+    }
+    for field, expected in expected_fields.items():
+        if state.get(field) != expected:
+            raise ValueError(
+                f"checkpoint-{step} trainer state {field} drifted: "
+                f"{state.get(field)!r} != {expected!r}"
+            )
+    epoch = state.get("epoch")
+    if (
+        not isinstance(epoch, (int, float))
+        or isinstance(epoch, bool)
+        or not math.isfinite(float(epoch))
+        or not 0.0 <= float(epoch) <= 1.0
+    ):
+        raise ValueError(f"checkpoint-{step} trainer state epoch is invalid")
+    log_history = state.get("log_history")
+    if not isinstance(log_history, list) or not all(
+        isinstance(entry, dict) for entry in log_history
+    ):
+        raise TypeError(
+            f"checkpoint-{step} trainer state log_history is invalid"
+        )
+    step_logs = [entry for entry in log_history if "loss" in entry]
+    if len(log_history) != step or len(step_logs) != step:
+        raise ValueError(
+            f"checkpoint-{step} trainer state must contain exactly {step} "
+            "step logs"
+        )
+    if [entry.get("step") for entry in step_logs] != list(range(1, step + 1)):
+        raise ValueError(
+            f"checkpoint-{step} trainer state step-log order drifted"
+        )
+    return {
+        "path": str(trainer_state),
+        "sha256": _sha256_file(trainer_state),
+        "global_step": step,
+        "max_steps": 300,
+        "step_logs": step,
+        "contains_optimizer_scheduler_or_rng_state": False,
+    }
 
 
 def _validate_cuda_snapshot(snapshot: object, *, label: str) -> dict:
@@ -383,6 +461,7 @@ class FullRunCheckpointLifecycleWriter:
             if path.is_file()
             and (
                 path.name in CHECKPOINT_FORBIDDEN_BASENAMES
+                or path.name.startswith("rng_state")
                 or path.name.startswith("model-")
                 or path.name.startswith("pytorch_model-")
             )
@@ -391,11 +470,19 @@ class FullRunCheckpointLifecycleWriter:
             raise ValueError(
                 f"checkpoint-{step} contains forbidden state: {forbidden[0].name}"
             )
+        trainer_state = _validate_checkpoint_trainer_state(
+            checkpoint,
+            step=step,
+        )
         event = {
             "event": f"checkpoint_saved_{step}",
             "step": step,
             "path": str(checkpoint),
             "save_only_model": True,
+            "trainer_state_sha256": trainer_state["sha256"],
+            "trainer_state_global_step": trainer_state["global_step"],
+            "trainer_state_step_logs": trainer_state["step_logs"],
+            "contains_optimizer_scheduler_or_rng_state": False,
         }
         self.events.append(event)
         return dict(event)
@@ -793,6 +880,14 @@ def validate_full_run_lifecycle_events(
             raise ValueError(f"checkpoint-{step} path drifted")
         if event.get("save_only_model") is not True:
             raise ValueError(f"checkpoint-{step} is not model-only")
+        if not _is_sha256(event.get("trainer_state_sha256")):
+            raise ValueError(f"checkpoint-{step} trainer-state hash is invalid")
+        if event.get("trainer_state_global_step") != step:
+            raise ValueError(f"checkpoint-{step} trainer-state step drifted")
+        if event.get("trainer_state_step_logs") != step:
+            raise ValueError(f"checkpoint-{step} trainer-state logs drifted")
+        if event.get("contains_optimizer_scheduler_or_rng_state") is not False:
+            raise ValueError(f"checkpoint-{step} contains resumable state")
 
     milestone = by_name["milestone_exported_100"]
     expected_milestone = plan["step_100_export"]

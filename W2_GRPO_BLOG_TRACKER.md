@@ -3836,6 +3836,180 @@ production command at a committed clean revision, synchronize that revision to
 Vast.ai, rerun the no-GPU preflight, and only then issue the one explicit GPU
 dispatch.
 
+#### First production dispatch: fail-closed at the step-100 handoff
+
+The launch-readiness implementation and evidence were committed as
+`10b10f88363a44251ecebee319a8bae14edb34ad` (`Prepare detached 300-step GRPO
+launch`). The scoped commit contained 14 GRPO files and passed **434 local tests
+in 13.57 seconds** after commit. Unrelated local `.gitignore`, blog, SFT README
+and HTML changes were not committed. The commit was pushed to `master`, and the
+Vast.ai checkout at `/workspace/tagging-rl` was fast-forwarded from `3917548` to
+the identical full hash with a clean tracked worktree and index. Existing model
+and run directories remained untracked and untouched.
+
+The first no-GPU preflight attempt omitted `--output-dir`. Because the shared
+parser defaults to the five-step smoke output, the full-run launch validator
+stopped immediately with:
+
+```text
+--full-run-300 must use the locked output path:
+/workspace/tagging-rl/runs/grpo-first-300
+```
+
+This was a safe argument-validation failure: it created no control, staging or
+output directory and imported no CUDA stack. The corrected frozen preflight was:
+
+```bash
+cd /workspace/tagging-rl
+/venv/rl/bin/python -m training.train_grpo \
+  --full-run-300 \
+  --repo-root /workspace/tagging-rl \
+  --output-dir runs/grpo-first-300 \
+  --expected-commit 10b10f88363a44251ecebee319a8bae14edb34ad
+```
+
+That preflight passed. It reverified 1,565 rows, ordered-SKU SHA-256
+`d6e4df11792fdba9834f14cdf394a9ab282db3684c935c181d06f5bebd6cb4ef`,
+data SHA-256 `3e378187a8147923bae1e0753a750d6e252336e911fa8c91cd57a4a8ddc3a102`,
+pool-manifest SHA-256
+`d166325a0c4ef3d78023ba492881fb3971e290b1b3606ee4ac8cd6aa733175e0`,
+selection-manifest SHA-256
+`e425635d323b3ffe9e7350fb61a2d9e1848345a95abab6b92032bf64d2718299`
+and source-adapter SHA-256
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+Disk had 4,765,696,000 bytes free against the 3 GiB floor. The RTX 3090 was
+idle at 264 MiB and 0% utilization; output and staging collisions were absent;
+no model or trainer was constructed.
+
+The exact production command was then dispatched:
+
+```bash
+cd /workspace/tagging-rl
+/venv/rl/bin/python -m training.grpo_detached_runtime launch \
+  --final-output-dir /workspace/tagging-rl/runs/grpo-first-300 \
+  --expected-commit 10b10f88363a44251ecebee319a8bae14edb34ad \
+  --repo-root /workspace/tagging-rl \
+  --python-executable /venv/rl/bin/python \
+  -- /venv/rl/bin/python -m training.grpo_full_run_workload \
+  --control-dir /workspace/tagging-rl/runs/grpo-first-300-control \
+  --repo-root /workspace/tagging-rl \
+  --expected-commit 10b10f88363a44251ecebee319a8bae14edb34ad
+```
+
+The launcher verified detached worker PID **5254** with Linux token
+`linux-proc-v1:72bdb1c3-61d9-4a08-adf1-258eebfc93ba:40649090`. Real training
+loaded Qwen2.5-1.5B with 18,464,768 trainable LoRA parameters out of
+1,562,179,072 total, used batch eight with no accumulation and began all 300
+declared steps. At the initial health snapshot, the GPU child used 4,460 MiB;
+total GPU usage was 4,727 MiB at 100% utilization, 67°C and about 270 W. Disk
+remained essentially unchanged before the first checkpoint.
+
+Progress remained exact through optimizer step **100**: 800 rollout records and
+100 scalar logs. The loop reached step 100 in about **8 minutes 26 seconds**.
+Logs showed finite losses and gradient norms; zero gradient appeared only on
+some zero-reward-variance groups, while many other groups had nonzero reward
+standard deviation and positive gradient norm. Completion lengths remained
+below the 170-token cap in the inspected logs.
+
+Transformers successfully wrote `checkpoint-100`, including a 73,911,112-byte
+LoRA adapter with SHA-256
+`e239205c97609b68e53d909220f8b616acae6a6d0ca1b22429ea76e26e2f6c29`.
+The callback then failed before milestone export:
+
+```text
+ValueError: checkpoint-100 contains forbidden state: trainer_state.json
+```
+
+The detached wrapper preserved the child return code as exit **1**, marked the
+run `failed`, removed GPU/model state and left the final output absent. GPU
+returned to 264 MiB and 0% utilization. The private staging directory
+`runs/.grpo-first-300.staging-6n62t52f` survived for diagnosis at 89,922,200
+bytes; disk still had 4,644,454,400 bytes free. No `bridge-report.json`,
+`workload-result.json`, completed manifest or step-100 milestone was published.
+
+The failure evidence is independently hashable:
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `runs/grpo-first-300-control/launch.json` | 2,024 | `81cc8fc7e66a2b3a9ea770281255cec438231a9c772d69078404028b9c48b93e` |
+| `runs/grpo-first-300-control/worker.json` | 291 | `d345b41ec7972516eb404d8f5857a76c1194bd75c4164349f4429fd35da481e7` |
+| `runs/grpo-first-300-control/progress.json` | 196 | `cd163a504657c771ed5739ccc97093a75ba9f0c96ea3085c2859e83fa2742ce4` |
+| `runs/grpo-first-300-control/exit.json` | 307 | `decb7cc54e2fcf3cbfabe5219d6f42b31e8d8e828cff4d41d5fc9d12c9c67366` |
+| `runs/grpo-first-300-control/process.log` | 113,852 | `94424300fe4ae71bde775244f2706e838aa70f3150ada3beb1697003819f14dd` |
+| `checkpoint-100/adapter_config.json` | 1,242 | `28b0f2df72e1fd85ede412d8ff81f10f84eb247da79af1939a0d1636e3cba9ba` |
+| `checkpoint-100/adapter_model.safetensors` | 73,911,112 | `e239205c97609b68e53d909220f8b616acae6a6d0ca1b22429ea76e26e2f6c29` |
+| `checkpoint-100/trainer_state.json` | 115,926 | `76b2bd7689b89b6dbae9c83f8f9fd6bd16340868f4f81e3ae876604a49e553a6` |
+
+The source SFT adapter was re-hashed after failure and remained unchanged at
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+
+##### Root cause and test gap
+
+This was an evidence-contract bug, not a model, CUDA, memory or optimizer
+failure. In Transformers 4.57.6, `_save_checkpoint` skips optimizer, scheduler,
+scaler and RNG files when `save_only_model=True`, but separately and
+unconditionally writes `trainer_state.json` whenever `should_save` is true. The
+real checkpoint correctly contained no `optimizer.pt`, `scheduler.pt` or
+`rng_state.pth`. Its trainer state reported `global_step=100`, `max_steps=300`
+and 100 log-history entries.
+
+Our lifecycle tests modeled `training_args.bin` as the one extra metadata file
+but omitted `trainer_state.json`; the production allowlist therefore rejected a
+normal Transformers checkpoint. The validator failed before recording
+`checkpoint_saved_100`, so the next atomic export never persisted the 800 raw
+rollouts or 100-log milestone. The rollout records had existed in process memory
+but were lost when the process exited. The 100 scalar logs survive inside
+`trainer_state.json`, and the step-100 LoRA can be evaluated as a diagnostic
+partial policy.
+
+The run cannot be resumed as the same auditable experiment. `save_only_model`
+correctly omitted optimizer moments, scheduler state and RNG state, so restarting
+from the step-100 adapter would change optimizer history, prompt order and random
+generation. The compliant path is to preserve this failed run, update the
+checkpoint contract to allow and strictly validate `trainer_state.json` while
+continuing to forbid resumable/full-model state, add a real-inventory regression
+test, commit a new hash and restart the 300-step run from the locked SFT adapter.
+
+##### Corrected checkpoint contract prepared locally
+
+The minimal correction now treats `trainer_state.json` and `training_args.bin`
+as allowed checkpoint metadata, not as resumable optimizer state. Unlike
+`training_args.bin`, trainer state is mandatory and receives semantic validation
+before a checkpoint event can be recorded. For checkpoint step `n`, the writer
+now requires:
+
+- a regular, non-symlink top-level `trainer_state.json` with no nested duplicate;
+- finite valid JSON whose root is an object;
+- `global_step=n`, `max_steps=300`, one epoch and train batch eight;
+- `logging_steps=1` and `save_steps=100`;
+- both local/world process-zero flags true;
+- a finite epoch value inside `[0, 1]`; and
+- exactly `n` loss-log entries ordered as steps `1..n`, with no extra summary
+  entry at checkpoint time.
+
+The trainer-state SHA-256, global step and log count are copied into each
+`checkpoint_saved_{100,200,300}` lifecycle event and revalidated during final
+bundle publication. This turns the previously surprising metadata into positive
+audit evidence rather than merely ignoring it.
+
+The forbidden-state check remains strict. It still rejects optimizer and
+scheduler files, mixed-precision scaler state, both single- and distributed-name
+RNG files (`rng_state.pth`, `rng_state_0.pth`, etc.), full-model safetensors and
+PyTorch model shards. Therefore accepting `trainer_state.json` does not make the
+model-only checkpoints exactly resumable or weaken the disk policy.
+
+Seventeen new CPU cases reproduce the real Transformers checkpoint inventory,
+accept and hash valid trainer metadata, and reject malformed JSON, wrong global/
+maximum step, batch/log/save drift, missing or reordered step logs, non-finite
+metadata, missing trainer state, optimizer, scheduler, scaler, RNG and full-model
+files. The lifecycle fixtures also carry the new trainer-state event evidence.
+The focused lifecycle/checkpoint/callback/orchestration set passes **73 tests in
+1.87 seconds**; the complete local suite passes **451 tests in 13.10 seconds**.
+
+This correction is local and uncommitted at this point. It has not been pushed
+to Vast.ai or used to restart training. The failed `10b10f8` control directory,
+step-100 checkpoint and staging evidence remain unchanged.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
@@ -4103,6 +4277,9 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   handshake, real harmless Vast failure probe and unchanged idle GPU state.
 - [x] CPU-tested production detached workload connecting locked preflight,
   runtime bridge, 300 validated progress handoffs and atomic result evidence.
+- [x] First exact-commit production dispatch reached step 100 and failed closed
+  on the documented `trainer_state.json` checkpoint-contract mismatch, with
+  source/checkpoint/control hashes and private staging preserved.
 - [ ] 300-step training dispatch with bounded checkpoint retention and enforced
   evidence handoffs.
 - [ ] GRPO training curve and resource use.

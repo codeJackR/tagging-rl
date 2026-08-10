@@ -190,6 +190,25 @@ class FakeGRPOTrainer:
             json.dumps({"r": 16, "step": step}), encoding="utf-8"
         )
         (checkpoint / "training_args.bin").write_bytes(b"metadata")
+        (checkpoint / "trainer_state.json").write_text(
+            json.dumps(
+                {
+                    "global_step": step,
+                    "max_steps": 300,
+                    "num_train_epochs": 1,
+                    "train_batch_size": 8,
+                    "logging_steps": 1,
+                    "save_steps": 100,
+                    "is_local_process_zero": True,
+                    "is_world_process_zero": True,
+                    "epoch": step / 1_565,
+                    "log_history": [
+                        step_log(index) for index in range(1, step + 1)
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
         if step == 300:
             shutil.rmtree(Path(self.args.output_dir) / "checkpoint-100")
 
