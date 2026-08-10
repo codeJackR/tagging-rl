@@ -1,0 +1,165 @@
+{
+  "version": "grpo-first-300-failure-evidence-v1",
+  "status": "training_completed_publication_failed",
+  "captured_at": "2026-08-10T12:46:21.707275Z",
+  "repo_commit": "961113a1efe629bab482c7c7a667adf1022af28c",
+  "capture_method": {
+    "file_hash": "SHA-256 over file bytes",
+    "tree_hash": "SHA-256 over sorted relative_path\\0bytes\\0file_sha256\\n records",
+    "large_artifacts_committed_to_git": false,
+    "large_artifacts_preserved_on_vast": true
+  },
+  "attempt": {
+    "started_at": "2026-08-10T12:05:21.689578Z",
+    "ended_at": "2026-08-10T12:28:40.551526Z",
+    "worker_pid": 6133,
+    "process_start_token": "linux-proc-v1:72bdb1c3-61d9-4a08-adf1-258eebfc93ba:41153794",
+    "exit_code": 1,
+    "control_status": "failed",
+    "final_output_exists": false,
+    "bridge_report_exists": false,
+    "workload_result_exists": false
+  },
+  "training_completion": {
+    "optimizer_steps": 300,
+    "rollout_records_observed_in_process": 2400,
+    "scalar_logs_observed_in_process": 300,
+    "progress_status": "training_complete",
+    "trainer_state_global_step": 300,
+    "trainer_state_step_logs": 300,
+    "train_runtime_seconds": 1372.4223,
+    "train_samples_per_second": 1.749,
+    "train_steps_per_second": 0.219,
+    "train_loss": 0.00003393977085428768,
+    "reported_epoch_fraction": 0.19
+  },
+  "publication_failure": {
+    "exception_type": "RuntimeError",
+    "message": "trainer checkpoint retention inventory drifted",
+    "source_location": "training/grpo_full_run_artifacts.py:728",
+    "expected_trainer_entries": [
+      "checkpoint-200",
+      "checkpoint-300"
+    ],
+    "observed_trainer_entries": [
+      "README.md",
+      "checkpoint-200",
+      "checkpoint-300"
+    ],
+    "unexpected_entries": [
+      "README.md"
+    ],
+    "unexpected_entry_evidence": {
+      "path": "runs/.grpo-first-300.staging-qt69wfbq/trainer/README.md",
+      "bytes": 1991,
+      "sha256": "386b73be8446d2184d24120e457e271e17597b8896bfce453689b658a968d049"
+    },
+    "classification": "evidence-contract failure after successful training"
+  },
+  "durability": {
+    "step_100_rollout_lines": 800,
+    "step_100_trainer_logs": 100,
+    "root_rollouts_exists": false,
+    "root_trainer_log_exists": false,
+    "durable_full_rollout_records": false,
+    "strict_completed_bundle_published": false,
+    "diagnostic_final_adapter_available": true,
+    "auditable_rerun_required": true
+  },
+  "control_files": [
+    {
+      "path": "runs/grpo-first-300-control/launch.json",
+      "bytes": 2024,
+      "sha256": "51181fb183b011c2ecedbdc38d364a7cb7cba172c277311c9222d6ce18d152a3"
+    },
+    {
+      "path": "runs/grpo-first-300-control/worker.json",
+      "bytes": 291,
+      "sha256": "875239d650301477cf18bec3663977778259b3fe9088ab693404ba78807441e8"
+    },
+    {
+      "path": "runs/grpo-first-300-control/progress.json",
+      "bytes": 207,
+      "sha256": "4cb84a9eca7f9fc5828eddfd161b2cc4a09fdd3a7cb83e7613fdcb907b4f9b15"
+    },
+    {
+      "path": "runs/grpo-first-300-control/exit.json",
+      "bytes": 307,
+      "sha256": "98c3c74af547317b0523a46210976e81846c31c0d7f98db0f376eedd75ffd46d"
+    },
+    {
+      "path": "runs/grpo-first-300-control/process.log",
+      "bytes": 335379,
+      "sha256": "02f2162b6b40630c3167dd1a70e4d035ccfc699b745ad58765c600bac03d504f"
+    }
+  ],
+  "preserved_artifacts": {
+    "step_100_milestone": {
+      "path": "runs/.grpo-first-300.staging-qt69wfbq/milestones/step-100",
+      "files": 5,
+      "regular_file_bytes": 74621932,
+      "tree_sha256": "b6d89e60b3870475f6e8da78fe758bfcfcc45e163c9170bffa52ceeaac20e184",
+      "adapter_model_sha256": "e239205c97609b68e53d909220f8b616acae6a6d0ca1b22429ea76e26e2f6c29",
+      "rollouts_sha256": "09f380f3fd5607f588dec6f49060a14df4da887ddb70dc986799b5ed5428568b",
+      "trainer_log_sha256": "937ee6d8c70958a804b12f0597c2838be3533131e23edc16764eaebe99fb4f17"
+    },
+    "checkpoint_200": {
+      "path": "runs/.grpo-first-300.staging-qt69wfbq/trainer/checkpoint-200",
+      "files": 12,
+      "regular_file_bytes": 90034639,
+      "tree_sha256": "9316ba2f1e062f28a80ca8b82f34dcd28fd80d186023067a034b708beb339c0d",
+      "adapter_model_bytes": 73911112,
+      "adapter_model_sha256": "7e8f30783e399376718d29781556daaa2177f0477c239ef9a51b435acfcfa0a2",
+      "trainer_state_bytes": 230356,
+      "trainer_state_sha256": "7eee4be28ec4d12d0fce71c897d0f210acfcf2061bf420b068e620cc85659d53"
+    },
+    "checkpoint_300": {
+      "path": "runs/.grpo-first-300.staging-qt69wfbq/trainer/checkpoint-300",
+      "files": 12,
+      "regular_file_bytes": 90149755,
+      "tree_sha256": "72fa58a8d618e54b24a62aeae371d00434d85dacd351f9fb0ee1c00f1855d223",
+      "adapter_model_bytes": 73911112,
+      "adapter_model_sha256": "741a189a23f948248a6c9067c401d66dde9187328748ea815441307241ab9d3c",
+      "trainer_state_bytes": 345472,
+      "trainer_state_sha256": "b00470f162d343a32f1d04d1db608a1140e0050d835daa4f98a375efcde0f8a6",
+      "global_step": 300,
+      "step_logs": 300,
+      "contains_optimizer_scheduler_or_rng_state": false
+    },
+    "final_adapter": {
+      "path": "runs/.grpo-first-300.staging-qt69wfbq/final-adapter",
+      "files": 10,
+      "regular_file_bytes": 89796777,
+      "tree_sha256": "571a4e224dec58a4c24ab6be7bca017aae0c57d2e4469b06247efdddfc1a1dd2",
+      "adapter_model_bytes": 73911112,
+      "adapter_model_sha256": "741a189a23f948248a6c9067c401d66dde9187328748ea815441307241ab9d3c",
+      "matches_checkpoint_300_adapter": true
+    },
+    "active_staging_tree": {
+      "path": "runs/.grpo-first-300.staging-qt69wfbq",
+      "files": 40,
+      "regular_file_bytes": 344605094,
+      "disk_usage_bytes": 344605094,
+      "tree_sha256": "5fbb47495e31a52dc3b553ae5dba51f262b41e016d2bd4045bd28ea949d9d137"
+    }
+  },
+  "source_adapter": {
+    "path": "runs/sft-combined-2epoch/checkpoint-406/adapter_model.safetensors",
+    "bytes": 73911112,
+    "sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+    "unchanged_after_attempt": true,
+    "differs_from_final_grpo_adapter": true
+  },
+  "resources_at_capture": {
+    "disk_free_bytes": 4299051008,
+    "minimum_required_free_bytes": 3221225472,
+    "disk_floor_passes": true,
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 3090",
+      "memory_used_mib": 264,
+      "utilization_percent": 0,
+      "temperature_c": 51,
+      "power_watts": 13.84
+    }
+  }
+}

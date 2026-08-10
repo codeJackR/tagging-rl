@@ -4010,6 +4010,94 @@ This correction is local and uncommitted at this point. It has not been pushed
 to Vast.ai or used to restart training. The failed `10b10f8` control directory,
 step-100 checkpoint and staging evidence remain unchanged.
 
+#### Corrected restart completed training but failed final publication
+
+The checkpoint-contract correction was committed as
+`961113a1efe629bab482c7c7a667adf1022af28c` (`Validate Transformers trainer
+state in GRPO checkpoints`) after the complete local suite passed **451 tests**.
+It was pushed to `master`, synchronized to Vast.ai and applied directly to the
+preserved real step-100 checkpoint. The corrected validator accepted its
+`global_step=100`, 100 ordered scalar logs and trainer-state SHA-256
+`76b2bd7689b89b6dbae9c83f8f9fd6bd16340868f4f81e3ae876604a49e553a6`,
+while independently confirming that optimizer, scheduler, scaler, RNG and full-
+model state were absent.
+
+The first failed attempt was moved without deletion to
+`runs/grpo-first-300-failed-10b10f8-step100`. All checked control, adapter and
+trainer-state hashes remained unchanged after the move. A fresh exact-commit
+preflight then passed with 4,644,114,432 bytes free, an idle RTX 3090 at 264 MiB
+and 0% utilization, the locked 1,565-row prompt pool and source-adapter SHA
+unchanged, and no output/control/staging collision.
+
+The corrected run launched at `2026-08-10T12:05:21.689578Z` under detached
+worker PID 6133 and process token
+`linux-proc-v1:72bdb1c3-61d9-4a08-adf1-258eebfc93ba:41153794`. At the first
+read-only health check it had advanced to step 144 with exactly 1,152 rollouts
+and 144 scalar logs. The corrected step-100 checkpoint callback had survived and
+published its private milestone. Recent zero gradients occurred only for groups
+whose eight completions all earned the same reward; groups with reward variance
+had finite nonzero gradient norms. Completion lengths were roughly 100–115
+tokens with zero clipping against the 170-token cap. A live sample showed 5,153
+MiB GPU memory, 48% utilization, 73°C and 247.91 W, while disk remained above the
+3 GiB floor.
+
+Training subsequently reached **300/300 optimizer steps**, **2,400 in-process
+rollout records** and **300 scalar logs**. TRL reported 1,372.4223 seconds of
+training time (22 minutes 52 seconds), 1.749 samples/second, 0.219 steps/second
+and aggregate train loss `3.393977085428768e-05`. The final step retained finite
+loss and gradient norm, nonzero reward variance and zero completion clipping.
+Checkpoint retention itself worked: checkpoint 100 was evicted after its durable
+milestone export, and checkpoints 200 and 300 remained. The final adapter was
+saved and its weights matched checkpoint 300.
+
+Final publication nevertheless failed closed with exit code 1:
+
+```text
+RuntimeError: trainer checkpoint retention inventory drifted
+```
+
+The publication validator required the trainer output directory to contain
+exactly `checkpoint-200` and `checkpoint-300`. The real trainer correctly
+contained those two directories **plus a harmless root `README.md`**. That
+1,991-byte metadata file has SHA-256
+`386b73be8446d2184d24120e457e271e17597b8896bfce453689b658a968d049`.
+This is another evidence-contract mismatch, not a training, model, gradient,
+CUDA, optimizer or retention failure.
+
+The failure matters because bundle publication validates the directory before
+writing root `rollouts.jsonl` and `trainer-log.json`. When the process exited,
+checkpoint 300 preserved all 300 scalar logs in `trainer_state.json`, but the
+complete rollout buffer was lost. Only the step-100 milestone's first **800
+rollout records** and 100 scalar logs are durable. The final adapter is useful
+for diagnostic evaluation, but this attempt cannot satisfy the strict audit
+contract and cannot be labeled the completed production run.
+
+The compact forensic manifest
+`runs/grpo-first-300-failure-step300-manifest.json` records the exact commit,
+worker identity, timestamps, completion counts, error, disk/GPU state, control-
+file hashes and deterministic tree hashes for the step-100 milestone,
+checkpoints 200/300, final adapter and complete 344,605,094-byte staging tree.
+Key preserved hashes are:
+
+| artifact | SHA-256 |
+|---|---|
+| process log | `02f2162b6b40630c3167dd1a70e4d035ccfc699b745ad58765c600bac03d504f` |
+| step-100 milestone tree | `b6d89e60b3870475f6e8da78fe758bfcfcc45e163c9170bffa52ceeaac20e184` |
+| checkpoint-200 tree | `9316ba2f1e062f28a80ca8b82f34dcd28fd80d186023067a034b708beb339c0d` |
+| checkpoint-300 tree | `72fa58a8d618e54b24a62aeae371d00434d85dacd351f9fb0ee1c00f1855d223` |
+| checkpoint-300/final adapter weights | `741a189a23f948248a6c9067c401d66dde9187328748ea815441307241ab9d3c` |
+| final-adapter tree | `571a4e224dec58a4c24ab6be7bca017aae0c57d2e4469b06247efdddfc1a1dd2` |
+| complete staging tree | `5fbb47495e31a52dc3b553ae5dba51f262b41e016d2bd4045bd28ea949d9d137` |
+
+At evidence capture, the source SFT adapter remained unchanged at
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`,
+the final GRPO adapter differed from it, disk had 4,299,051,008 bytes free, and
+the RTX 3090 had returned to 264 MiB and 0% utilization. The failed control and
+staging directories remain untouched on Vast.ai. Before another dispatch, the
+next correction must be driven by a CPU regression test reproducing the exact
+three-entry trainer inventory and must validate the allowed root README rather
+than simply ignoring arbitrary files.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
