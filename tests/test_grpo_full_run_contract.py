@@ -101,6 +101,17 @@ def test_full_run_contract_records_rollouts_retention_and_disk_gate(tmp_path):
     )
     assert contract["reporting"]["local_trainer_log_required"]
     assert not contract["reporting"]["external_reporting_required"]
+    assert contract["reporting"]["phase_timing_required"]
+    assert contract["reporting"]["phase_timing_boundaries"] == [
+        "generation",
+        "reward",
+        "forward_loss",
+        "backward",
+        "optimizer",
+    ]
+    assert contract["reporting"]["phase_timing_cuda_synchronized"]
+    assert contract["reporting"]["phase_timing_durable_steps"] == [100, 200, 300]
+    assert contract["reporting"]["phase_timing_observer_effect_recorded"]
     assert contract["resources"]["minimum_free_gib_before_launch"] == (
         DEFAULT_MINIMUM_FREE_GIB
     )

@@ -11,6 +11,10 @@ import tempfile
 from pathlib import Path
 from typing import Callable, Sequence
 
+from training.grpo_phase_profiler import (
+    validate_phase_profile_summary,
+    validate_phase_timing_report,
+)
 from training.grpo_smoke_artifacts import (
     EXPECTED_ADAPTER_MODEL_BYTES,
     EXPECTED_ADAPTER_FILES,
@@ -40,11 +44,13 @@ STEP_100_EXPORT_FILES = {
     "adapter/adapter_config.json",
     "adapter/adapter_model.safetensors",
     "manifest.json",
+    "phase-timings.json",
     "rollouts.jsonl",
     "trainer-log.json",
 }
 ROLLING_EVIDENCE_FILES = {
     "manifest.json",
+    "phase-timings.json",
     "rollouts.jsonl",
     "trainer-log.json",
 }
@@ -294,6 +300,11 @@ def validate_full_run_summary(summary: object) -> dict:
         raise ValueError("full-run summary has no positive training duration")
     if not isinstance(training.get("train_metrics"), dict):
         raise TypeError("full-run summary training metrics must be a dictionary")
+    profiling_validation = validate_phase_profile_summary(
+        summary.get("profiling"),
+        expected_steps=300,
+        train_seconds=float(train_seconds),
+    )
 
     model_audit = summary.get("model_audit")
     if not isinstance(model_audit, dict):
@@ -371,6 +382,7 @@ def validate_full_run_summary(summary: object) -> dict:
         ),
         "preflight_disk_free_bytes": resources["preflight_disk_free_bytes"],
         "all_values_finite": True,
+        "profiling_validation": profiling_validation,
     }
 
 
@@ -437,6 +449,7 @@ def build_full_run_lifecycle_plan(
             "required_files": sorted(STEP_100_EXPORT_FILES),
             "rollout_records": EXPECTED_STEP_100_ROLLOUTS,
             "trainer_step_logs": 100,
+            "phase_timing_steps": 100,
         },
         "rolling_evidence_exports": {
             str(step): {
@@ -444,6 +457,7 @@ def build_full_run_lifecycle_plan(
                 "required_files": sorted(ROLLING_EVIDENCE_FILES),
                 "rollout_records": step * GENERATIONS_PER_STEP,
                 "trainer_step_logs": step,
+                "phase_timing_steps": step,
                 "checkpoint_retained": True,
                 "adapter_copy_required": False,
             }
@@ -454,8 +468,10 @@ def build_full_run_lifecycle_plan(
             "manifest": str(staging / "manifest.json"),
             "rollouts": str(staging / "rollouts.jsonl"),
             "trainer_log": str(staging / "trainer-log.json"),
+            "phase_timings": str(staging / "phase-timings.json"),
             "rollout_records": EXPECTED_FINAL_ROLLOUTS,
             "trainer_step_logs": 300,
+            "phase_timing_steps": 300,
         },
         "publication": {
             "method": "same_filesystem_atomic_rename",
@@ -564,6 +580,7 @@ class FullRunCheckpointLifecycleWriter:
         *,
         rollout_records: Sequence[dict],
         trainer_step_logs: Sequence[dict],
+        phase_timing_report: dict,
     ) -> dict:
         if [event["event"] for event in self.events] != ["checkpoint_saved_100"]:
             raise RuntimeError("step-100 export must immediately follow checkpoint 100")
@@ -575,6 +592,9 @@ class FullRunCheckpointLifecycleWriter:
             raise TypeError("step-100 rollouts must be JSON objects")
         if not all(isinstance(row, dict) for row in trainer_step_logs):
             raise TypeError("step-100 trainer logs must be JSON objects")
+        phase_validation = validate_phase_timing_report(
+            phase_timing_report, expected_steps=100
+        )
 
         checkpoint = self._checkpoint_path(100)
         source_weights = checkpoint / "adapter_model.safetensors"
@@ -597,6 +617,8 @@ class FullRunCheckpointLifecycleWriter:
         shutil.copy2(source_config, adapter_output / source_config.name)
         _write_jsonl(temporary / "rollouts.jsonl", rollout_records)
         _write_json(temporary / "trainer-log.json", list(trainer_step_logs))
+        _write_json(temporary / "phase-timings.json", phase_timing_report)
+        phase_timing_sha = _sha256_file(temporary / "phase-timings.json")
         manifest = {
             "version": "grpo-full-run-step-100-export-v1",
             "status": "completed",
@@ -606,6 +628,8 @@ class FullRunCheckpointLifecycleWriter:
             "adapter_config_sha256": config_sha,
             "rollout_records": len(rollout_records),
             "trainer_step_logs": len(trainer_step_logs),
+            "phase_timing_steps": phase_validation["steps"],
+            "phase_timings_sha256": phase_timing_sha,
             "files": sorted(STEP_100_EXPORT_FILES),
             "source_adapter_unchanged_by_export": True,
         }
@@ -637,6 +661,8 @@ class FullRunCheckpointLifecycleWriter:
             "files": sorted(actual_files),
             "rollout_records": len(rollout_records),
             "trainer_step_logs": len(trainer_step_logs),
+            "phase_timing_steps": phase_validation["steps"],
+            "phase_timings_sha256": phase_timing_sha,
             "adapter_model_sha256": weights_sha,
             "adapter_config_sha256": config_sha,
         }
@@ -649,6 +675,7 @@ class FullRunCheckpointLifecycleWriter:
         step: int,
         rollout_records: Sequence[dict],
         trainer_step_logs: Sequence[dict],
+        phase_timing_report: dict,
     ) -> dict:
         """Atomically persist cumulative evidence for a retained checkpoint."""
         if step not in ROLLING_EVIDENCE_STEPS:
@@ -685,6 +712,9 @@ class FullRunCheckpointLifecycleWriter:
             raise TypeError(f"step-{step} rollouts must be JSON objects")
         if not all(isinstance(row, dict) for row in trainer_step_logs):
             raise TypeError(f"step-{step} trainer logs must be JSON objects")
+        phase_validation = validate_phase_timing_report(
+            phase_timing_report, expected_steps=step
+        )
 
         checkpoint = self._checkpoint_path(step)
         checkpoint_weights = checkpoint / "adapter_model.safetensors"
@@ -707,10 +737,13 @@ class FullRunCheckpointLifecycleWriter:
         )
         rollout_output = temporary / "rollouts.jsonl"
         trainer_log_output = temporary / "trainer-log.json"
+        phase_timing_output = temporary / "phase-timings.json"
         _write_jsonl(rollout_output, rollout_records)
         _write_json(trainer_log_output, list(trainer_step_logs))
+        _write_json(phase_timing_output, phase_timing_report)
         rollout_sha = _sha256_file(rollout_output)
         trainer_log_sha = _sha256_file(trainer_log_output)
+        phase_timing_sha = _sha256_file(phase_timing_output)
         manifest = {
             "version": "grpo-full-run-rolling-evidence-v1",
             "status": "completed",
@@ -722,8 +755,10 @@ class FullRunCheckpointLifecycleWriter:
             "checkpoint_trainer_state_sha256": trainer_state_sha,
             "rollout_records": len(rollout_records),
             "trainer_step_logs": len(trainer_step_logs),
+            "phase_timing_steps": phase_validation["steps"],
             "rollouts_sha256": rollout_sha,
             "trainer_log_sha256": trainer_log_sha,
+            "phase_timings_sha256": phase_timing_sha,
             "files": sorted(ROLLING_EVIDENCE_FILES),
         }
         _write_json(temporary / "manifest.json", manifest)
@@ -756,8 +791,10 @@ class FullRunCheckpointLifecycleWriter:
             "files": sorted(actual_files),
             "rollout_records": len(rollout_records),
             "trainer_step_logs": len(trainer_step_logs),
+            "phase_timing_steps": phase_validation["steps"],
             "rollouts_sha256": rollout_sha,
             "trainer_log_sha256": trainer_log_sha,
+            "phase_timings_sha256": phase_timing_sha,
             "checkpoint_adapter_model_sha256": weights_sha,
             "checkpoint_trainer_state_sha256": trainer_state_sha,
             "checkpoint_retained": True,
@@ -808,6 +845,7 @@ class FullRunCheckpointLifecycleWriter:
             "adapter_copy_required": False,
             "rollout_records": step * GENERATIONS_PER_STEP,
             "trainer_step_logs": step,
+            "phase_timing_steps": step,
             "files": sorted(ROLLING_EVIDENCE_FILES),
         }
         for field, expected in expected_manifest.items():
@@ -818,6 +856,17 @@ class FullRunCheckpointLifecycleWriter:
 
         rollout_sha = _sha256_file(milestone / "rollouts.jsonl")
         trainer_log_sha = _sha256_file(milestone / "trainer-log.json")
+        phase_timing_path = milestone / "phase-timings.json"
+        phase_timing_sha = _sha256_file(phase_timing_path)
+        try:
+            phase_timing_report = json.loads(
+                phase_timing_path.read_text(encoding="utf-8")
+            )
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ValueError(f"step-{step} phase timings are invalid") from exc
+        phase_timing_validation = validate_phase_timing_report(
+            phase_timing_report, expected_steps=step
+        )
         checkpoint_weights_sha = _sha256_file(
             self._checkpoint_path(step) / "adapter_model.safetensors"
         )
@@ -827,6 +876,7 @@ class FullRunCheckpointLifecycleWriter:
         hash_fields = {
             "rollouts_sha256": rollout_sha,
             "trainer_log_sha256": trainer_log_sha,
+            "phase_timings_sha256": phase_timing_sha,
             "checkpoint_adapter_model_sha256": checkpoint_weights_sha,
             "checkpoint_trainer_state_sha256": checkpoint_state_sha,
         }
@@ -845,6 +895,7 @@ class FullRunCheckpointLifecycleWriter:
             **hash_fields,
             "rollout_records": step * GENERATIONS_PER_STEP,
             "trainer_step_logs": step,
+            "phase_timing_steps": phase_timing_validation["steps"],
             "validated": True,
         }
 
@@ -967,6 +1018,7 @@ class FullRunCheckpointLifecycleWriter:
         *,
         rollout_records: Sequence[dict],
         trainer_step_logs: Sequence[dict],
+        phase_timing_report: dict,
         preflight_report: dict,
         config_settings: dict,
         run_summary: dict,
@@ -987,6 +1039,9 @@ class FullRunCheckpointLifecycleWriter:
             raise TypeError("full-run rollouts must be JSON objects")
         if not all(isinstance(row, dict) for row in trainer_step_logs):
             raise TypeError("full-run trainer logs must be JSON objects")
+        phase_timing_validation = validate_phase_timing_report(
+            phase_timing_report, expected_steps=300
+        )
         if preflight_report.get("status") != "passed":
             raise ValueError("completed bundle requires a passed preflight")
         required_config = {
@@ -1010,6 +1065,7 @@ class FullRunCheckpointLifecycleWriter:
         root_files = {
             "rollouts.jsonl": staging / "rollouts.jsonl",
             "trainer-log.json": staging / "trainer-log.json",
+            "phase-timings.json": staging / "phase-timings.json",
             "manifest.json": staging / "manifest.json",
         }
         if any(path.exists() for path in root_files.values()):
@@ -1034,9 +1090,13 @@ class FullRunCheckpointLifecycleWriter:
 
         _write_jsonl(root_files["rollouts.jsonl"], rollout_records)
         _write_json(root_files["trainer-log.json"], list(trainer_step_logs))
+        _write_json(root_files["phase-timings.json"], phase_timing_report)
         artifact_hashes = {
             "rollouts_sha256": _sha256_file(root_files["rollouts.jsonl"]),
             "trainer_log_sha256": _sha256_file(root_files["trainer-log.json"]),
+            "phase_timings_sha256": _sha256_file(
+                root_files["phase-timings.json"]
+            ),
         }
         step_300_evidence = rolling_evidence["300"]
         if (
@@ -1044,6 +1104,8 @@ class FullRunCheckpointLifecycleWriter:
             != step_300_evidence["rollouts_sha256"]
             or artifact_hashes["trainer_log_sha256"]
             != step_300_evidence["trainer_log_sha256"]
+            or artifact_hashes["phase_timings_sha256"]
+            != step_300_evidence["phase_timings_sha256"]
         ):
             raise RuntimeError(
                 "completed bundle evidence differs from durable step-300 snapshot"
@@ -1054,6 +1116,7 @@ class FullRunCheckpointLifecycleWriter:
             "steps": 300,
             "rollout_records": len(rollout_records),
             "trainer_step_logs": len(trainer_step_logs),
+            "phase_timing_steps": phase_timing_validation["steps"],
             "preflight": preflight_report,
             "config": config_settings,
             "run_summary": run_summary,
@@ -1076,6 +1139,7 @@ class FullRunCheckpointLifecycleWriter:
             "final-adapter",
             "rollouts.jsonl",
             "trainer-log.json",
+            "phase-timings.json",
             "manifest.json",
         }
         if {path.name for path in staging.iterdir()} != expected_root_entries:
@@ -1101,6 +1165,7 @@ class FullRunCheckpointLifecycleWriter:
             "path": str(staging),
             "rollout_records": len(rollout_records),
             "trainer_step_logs": len(trainer_step_logs),
+            "phase_timing_steps": phase_timing_validation["steps"],
             "total_bytes": total_bytes,
             "disk_free_after_bytes": free_bytes,
         }
@@ -1133,6 +1198,7 @@ class FullRunCheckpointLifecycleWriter:
             "manifest_sha256": manifest_sha256,
             "rollouts_sha256": artifact_hashes["rollouts_sha256"],
             "trainer_log_sha256": artifact_hashes["trainer_log_sha256"],
+            "phase_timings_sha256": artifact_hashes["phase_timings_sha256"],
             "trainer_root_metadata": trainer_root_metadata,
             "rolling_evidence_validation": rolling_evidence,
             "run_summary_validation": run_summary_validation,
@@ -1217,11 +1283,15 @@ def validate_full_run_lifecycle_events(
         raise ValueError("step-100 export has the wrong rollout count")
     if milestone.get("trainer_step_logs") != 100:
         raise ValueError("step-100 export has the wrong trainer-log count")
+    if milestone.get("phase_timing_steps") != 100:
+        raise ValueError("step-100 export has the wrong phase-timing count")
     step_100_sha = milestone.get("adapter_model_sha256")
     if not _is_sha256(step_100_sha) or step_100_sha == starting_adapter_sha256:
         raise ValueError("step-100 adapter hash is invalid or unchanged")
     if not _is_sha256(milestone.get("adapter_config_sha256")):
         raise ValueError("step-100 adapter-config hash is invalid")
+    if not _is_sha256(milestone.get("phase_timings_sha256")):
+        raise ValueError("step-100 phase-timing hash is invalid")
 
     for step in ROLLING_EVIDENCE_STEPS:
         rolling = by_name[f"milestone_exported_{step}"]
@@ -1236,9 +1306,12 @@ def validate_full_run_lifecycle_events(
             raise ValueError(f"step-{step} evidence has the wrong rollout count")
         if rolling.get("trainer_step_logs") != step:
             raise ValueError(f"step-{step} evidence has the wrong trainer-log count")
+        if rolling.get("phase_timing_steps") != step:
+            raise ValueError(f"step-{step} evidence has the wrong phase-timing count")
         for field in (
             "rollouts_sha256",
             "trainer_log_sha256",
+            "phase_timings_sha256",
             "checkpoint_adapter_model_sha256",
             "checkpoint_trainer_state_sha256",
         ):
@@ -1303,6 +1376,8 @@ def validate_full_run_lifecycle_events(
         raise ValueError("final bundle has the wrong rollout count")
     if bundle.get("trainer_step_logs") != 300:
         raise ValueError("final bundle has the wrong trainer-log count")
+    if bundle.get("phase_timing_steps") != 300:
+        raise ValueError("final bundle has the wrong phase-timing count")
     total_bytes = bundle.get("total_bytes")
     if not isinstance(total_bytes, int) or not 0 < total_bytes <= MAX_FINAL_BUNDLE_BYTES:
         raise ValueError("final bundle exceeds its size bound")

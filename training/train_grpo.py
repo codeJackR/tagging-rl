@@ -47,6 +47,11 @@ from training.grpo_full_run_evidence import (
     validate_full_run_rollout_records,
     validate_full_run_trainer_log_history,
 )
+from training.grpo_phase_profiler import (
+    FullRunPhaseProfiler,
+    PROFILE_PHASES,
+    make_phase_profiler_callback_class,
+)
 
 PREFLIGHT_VERSION = "grpo-smoke-preflight-v1"
 MODEL_LOAD_VERSION = "grpo-smoke-model-load-v1"
@@ -258,6 +263,11 @@ def full_run_300_contract(*, output_dir: str | Path) -> dict:
             "local_trainer_log_required": True,
             "external_reporting_required": False,
             "report_to": config["report_to"],
+            "phase_timing_required": True,
+            "phase_timing_boundaries": list(PROFILE_PHASES),
+            "phase_timing_cuda_synchronized": True,
+            "phase_timing_durable_steps": list(FULL_RUN_CHECKPOINT_STEPS),
+            "phase_timing_observer_effect_recorded": True,
         },
         "resources": {
             "minimum_free_gib_before_launch": DEFAULT_MINIMUM_FREE_GIB,
@@ -789,6 +799,7 @@ class FullRunCheckpointHandoff:
         *,
         lifecycle_writer: FullRunCheckpointLifecycleWriter,
         rollout_collector: FullRunRolloutCollector,
+        phase_timing_snapshot_fn: Callable[[int], dict],
         progress_callback: Callable[..., object] | None = None,
     ):
         if not isinstance(lifecycle_writer, FullRunCheckpointLifecycleWriter):
@@ -797,10 +808,13 @@ class FullRunCheckpointHandoff:
             raise TypeError("handoff requires a FullRunRolloutCollector")
         if rollout_collector.expected_steps != FULL_RUN_STEPS:
             raise ValueError("handoff collector must require exactly 300 steps")
+        if not callable(phase_timing_snapshot_fn):
+            raise TypeError("handoff requires a phase-timing snapshot function")
         if progress_callback is not None and not callable(progress_callback):
             raise TypeError("handoff progress callback must be callable")
         self.lifecycle_writer = lifecycle_writer
         self.rollout_collector = rollout_collector
+        self.phase_timing_snapshot_fn = phase_timing_snapshot_fn
         self.progress_callback = progress_callback
         self._begun = False
         self._ended = False
@@ -886,6 +900,7 @@ class FullRunCheckpointHandoff:
         log_validation = validate_full_run_trainer_log_history(
             self._log_history(state), expected_steps=step
         )
+        phase_timing_report = self.phase_timing_snapshot_fn(step)
         checkpoint_event = self.lifecycle_writer.record_checkpoint_saved(step)
         milestone_event = None
         retention_report = None
@@ -893,12 +908,14 @@ class FullRunCheckpointHandoff:
             milestone_event = self.lifecycle_writer.export_step_100(
                 rollout_records=rollout_snapshot["records"],
                 trainer_step_logs=log_validation["step_records"],
+                phase_timing_report=phase_timing_report,
             )
         else:
             milestone_event = self.lifecycle_writer.export_rolling_evidence(
                 step=step,
                 rollout_records=rollout_snapshot["records"],
                 trainer_step_logs=log_validation["step_records"],
+                phase_timing_report=phase_timing_report,
             )
         if step == 300:
             retention_report = (
@@ -916,6 +933,7 @@ class FullRunCheckpointHandoff:
                 for key, value in log_validation.items()
                 if key != "step_records"
             },
+            "phase_timing_steps": phase_timing_report["steps"],
         }
         self._processed_checkpoint_steps.append(step)
         self._checkpoint_evidence[step] = report
@@ -1000,6 +1018,7 @@ class FullRunCheckpointHandoff:
                 for key, value in log_validation.items()
                 if key != "step_records"
             },
+            "phase_timing_report": self.phase_timing_snapshot_fn(FULL_RUN_STEPS),
             "checkpoint_evidence": copy.deepcopy(self._checkpoint_evidence),
             "lifecycle": self.lifecycle_writer.snapshot(),
         }
@@ -1024,12 +1043,14 @@ def make_full_run_checkpoint_callback_class(base_callback_class: type) -> type:
             *,
             lifecycle_writer: FullRunCheckpointLifecycleWriter,
             rollout_collector: FullRunRolloutCollector,
+            phase_timing_snapshot_fn: Callable[[int], dict],
             progress_callback: Callable[..., object] | None = None,
         ):
             super().__init__()
             self.checkpoint_handoff = FullRunCheckpointHandoff(
                 lifecycle_writer=lifecycle_writer,
                 rollout_collector=rollout_collector,
+                phase_timing_snapshot_fn=phase_timing_snapshot_fn,
                 progress_callback=progress_callback,
             )
 
@@ -1076,6 +1097,7 @@ def run_full_run_300_orchestration(
     fingerprint_fn: Callable[[object], str] | None = None,
     runtime_context: dict | None = None,
     cuda_snapshot_fn: Callable[[], dict] | None = None,
+    phase_synchronize_fn: Callable[[], object] | None = None,
     disk_usage_fn: Callable[[Path], object] | None = None,
     progress_callback: Callable[..., object] | None = None,
     expected_adapter_model_bytes: int = EXPECTED_ADAPTER_MODEL_BYTES,
@@ -1106,6 +1128,8 @@ def run_full_run_300_orchestration(
         raise ValueError("full-run orchestration requires locked runtime context")
     if not callable(cuda_snapshot_fn):
         raise TypeError("full-run orchestration requires CUDA snapshots")
+    if not callable(phase_synchronize_fn):
+        raise TypeError("full-run orchestration requires phase synchronization")
 
     final_output = Path(final_output_dir).resolve()
     preflight_output = Path(
@@ -1208,21 +1232,35 @@ def run_full_run_300_orchestration(
     if tuple(float(value) for value in actual_weights) != LOCKED_REWARD_WEIGHTS:
         raise RuntimeError("full-run trainer reward weights drifted after construction")
 
+    phase_profiler = FullRunPhaseProfiler(
+        expected_steps=FULL_RUN_STEPS,
+        synchronize_fn=phase_synchronize_fn,
+    )
+    phase_profiler.instrument_trainer(trainer)
+    profiler_callback_class = make_phase_profiler_callback_class(
+        base_callback_class
+    )
+    profiler_callback = profiler_callback_class(phase_profiler=phase_profiler)
     callback_class = make_full_run_checkpoint_callback_class(base_callback_class)
     callback = callback_class(
         lifecycle_writer=writer,
         rollout_collector=collector,
+        phase_timing_snapshot_fn=(
+            lambda step: phase_profiler.snapshot(expected_steps=step)
+        ),
         progress_callback=progress_callback,
     )
     add_callback = getattr(trainer, "add_callback", None)
     if not callable(add_callback):
         raise TypeError("full-run trainer does not expose add_callback()")
+    add_callback(profiler_callback)
     add_callback(callback)
 
     cuda_before_train = cuda_snapshot_fn()
     train_started = time.perf_counter()
     train_result = trainer.train()
     train_seconds = time.perf_counter() - train_started
+    phase_profile_summary = phase_profiler.finalize(train_seconds=train_seconds)
     cuda_after_train = cuda_snapshot_fn()
     completed_step = int(getattr(trainer.state, "global_step", -1))
     if completed_step != FULL_RUN_STEPS:
@@ -1278,6 +1316,7 @@ def run_full_run_300_orchestration(
             "cuda_after_train": cuda_after_train,
             "cuda_after_model_audit": cuda_after_model_audit,
         },
+        "profiling": phase_profile_summary,
     }
 
     def save_live_adapter(adapter_output: Path) -> None:
@@ -1292,6 +1331,7 @@ def run_full_run_300_orchestration(
     publication = writer.publish_completed_bundle(
         rollout_records=evidence["rollout_records"],
         trainer_step_logs=evidence["trainer_step_logs"],
+        phase_timing_report=evidence["phase_timing_report"],
         preflight_report=preflight_report,
         config_settings=config_settings,
         run_summary=run_summary,
@@ -1307,6 +1347,8 @@ def run_full_run_300_orchestration(
         "expected_rollouts": FULL_RUN_STEPS * GENERATIONS_PER_STEP,
         "train_seconds": train_seconds,
         "train_metrics": train_metrics,
+        "phase_profile": phase_profile_summary,
+        "phase_timing_report": evidence["phase_timing_report"],
         "run_summary": run_summary,
         "trainability_before": trainability_before,
         "trainability_after": trainability_after,
@@ -3871,6 +3913,8 @@ def run_full_run_300_construction_gate(
     collector = None
     writer = None
     callback = None
+    phase_profiler = None
+    profiler_callback = None
     report = None
     temporary_root = None
     torch.cuda.empty_cache()
@@ -3937,12 +3981,27 @@ def run_full_run_300_construction_gate(
                 processing_class=tokenizer,
                 full_run_rollout_collector=collector,
             )
+            phase_profiler = FullRunPhaseProfiler(
+                expected_steps=FULL_RUN_STEPS,
+                synchronize_fn=torch.cuda.synchronize,
+            )
+            phase_profiler.instrument_trainer(trainer)
+            profiler_callback_class = make_phase_profiler_callback_class(
+                runtime["TrainerCallback"]
+            )
+            profiler_callback = profiler_callback_class(
+                phase_profiler=phase_profiler
+            )
+            trainer.add_callback(profiler_callback)
             callback_class = make_full_run_checkpoint_callback_class(
                 runtime["TrainerCallback"]
             )
             callback = callback_class(
                 lifecycle_writer=writer,
                 rollout_collector=collector,
+                phase_timing_snapshot_fn=(
+                    lambda step: phase_profiler.snapshot(expected_steps=step)
+                ),
             )
             trainer.add_callback(callback)
             torch.cuda.synchronize()
@@ -3975,6 +4034,8 @@ def run_full_run_300_construction_gate(
             )
             if callback not in callback_list:
                 raise RuntimeError("full-run checkpoint callback was not attached")
+            if profiler_callback not in callback_list:
+                raise RuntimeError("full-run profiling callback was not attached")
             if set(trainer.train_dataset.column_names) != required_columns:
                 raise RuntimeError("constructed trainer dropped dataset columns")
             if list(trainer.train_dataset["sku_id"]) != dataset_skus:
@@ -4019,6 +4080,8 @@ def run_full_run_300_construction_gate(
                     trainer.full_run_rollout_collector is collector
                 ),
                 "checkpoint_callback_attached": True,
+                "phase_profiler_attached": True,
+                "phase_profiler_steps": 0,
                 "lifecycle_writer_constructed": True,
                 "lifecycle_events": 0,
                 "global_step": 0,
@@ -4036,6 +4099,8 @@ def run_full_run_300_construction_gate(
         if temporary_root.exists():
             raise RuntimeError("temporary full-run construction output survived")
     finally:
+        profiler_callback = None
+        phase_profiler = None
         callback = None
         writer = None
         collector = None
@@ -4206,6 +4271,7 @@ def run_full_run_300_gate(
             fingerprint_fn=fingerprint_fn,
             runtime_context=runtime_context,
             cuda_snapshot_fn=lambda: cuda_snapshot_fn(torch),
+            phase_synchronize_fn=lambda: torch.cuda.synchronize(),
             disk_usage_fn=disk_usage_fn,
             progress_callback=progress_callback,
             expected_adapter_model_bytes=expected_adapter_model_bytes,

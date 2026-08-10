@@ -18,6 +18,12 @@ from training.grpo_full_run_artifacts import (
     create_full_run_staging_output,
     validate_full_run_summary,
 )
+from training.grpo_phase_profiler import (
+    PHASE_PROFILER_VERSION,
+    PHASE_TIMING_REPORT_VERSION,
+    PROFILE_PHASES,
+    validate_phase_timing_report,
+)
 
 STARTING_SHA = hashlib.sha256(b"starting SFT adapter").hexdigest()
 
@@ -80,6 +86,72 @@ def logs(count=100):
     return [{"step": index + 1, "loss": 0.0} for index in range(count)]
 
 
+def phase_timings(count: int) -> dict:
+    """Build deterministic, internally reconciled timing evidence for fixtures."""
+    phase_seconds = {phase: 0.01 for phase in PROFILE_PHASES}
+    return {
+        "version": PHASE_TIMING_REPORT_VERSION,
+        "status": "completed_prefix",
+        "steps": count,
+        "phases": list(PROFILE_PHASES),
+        "clock": "time.perf_counter",
+        "synchronized_boundaries": True,
+        "records": [
+            {
+                "step": step,
+                "step_wall_seconds": 0.06,
+                "phase_seconds": dict(phase_seconds),
+                "phase_calls": {phase: 1 for phase in PROFILE_PHASES},
+                "accounted_seconds": 0.05,
+                "other_seconds": 0.01,
+            }
+            for step in range(1, count + 1)
+        ],
+    }
+
+
+def phase_profile_summary(*, train_seconds: float = 90.0) -> dict:
+    timings = phase_timings(300)
+    validation = validate_phase_timing_report(timings, expected_steps=300)
+    per_phase_total = 3.0
+    phase_total = per_phase_total * len(PROFILE_PHASES)
+    step_wall_total = 18.0
+    statistics = {
+        phase: {
+            "calls": 300,
+            "total_seconds": per_phase_total,
+            "mean_seconds": 0.01,
+            "min_seconds": 0.01,
+            "p50_seconds": 0.01,
+            "p95_seconds": 0.01,
+            "max_seconds": 0.01,
+            "percent_of_train": per_phase_total / train_seconds * 100.0,
+        }
+        for phase in PROFILE_PHASES
+    }
+    return {
+        "version": PHASE_PROFILER_VERSION,
+        "status": "completed",
+        "measurement": {
+            "clock": "time.perf_counter",
+            "cuda_synchronized_boundaries": True,
+            "synchronization_calls": 300 * (2 * len(PROFILE_PHASES) + 2),
+            "observer_effect": "deterministic test fixture",
+        },
+        "phase_definitions": {},
+        "steps": 300,
+        "train_seconds": train_seconds,
+        "phase_statistics": statistics,
+        "phase_total_seconds": phase_total,
+        "step_wall_total_seconds": step_wall_total,
+        "other_within_steps_seconds": step_wall_total - phase_total,
+        "outside_steps_seconds": train_seconds - step_wall_total,
+        "unattributed_total_seconds": train_seconds - phase_total,
+        "accounted_percent": phase_total / train_seconds * 100.0,
+        "timing_report_validation": validation,
+    }
+
+
 def make_ready_writer(tmp_path):
     writer, plan = make_writer(tmp_path)
     checkpoint_100 = Path(plan["checkpoint_paths"]["100"])
@@ -87,13 +159,18 @@ def make_ready_writer(tmp_path):
     checkpoint_300 = Path(plan["checkpoint_paths"]["300"])
     make_checkpoint(checkpoint_100, 100)
     writer.record_checkpoint_saved(100)
-    writer.export_step_100(rollout_records=rollouts(), trainer_step_logs=logs())
+    writer.export_step_100(
+        rollout_records=rollouts(),
+        trainer_step_logs=logs(),
+        phase_timing_report=phase_timings(100),
+    )
     make_checkpoint(checkpoint_200, 200)
     writer.record_checkpoint_saved(200)
     writer.export_rolling_evidence(
         step=200,
         rollout_records=rollouts(1_600),
         trainer_step_logs=logs(200),
+        phase_timing_report=phase_timings(200),
     )
     make_checkpoint(checkpoint_300, 300)
     writer.record_checkpoint_saved(300)
@@ -101,6 +178,7 @@ def make_ready_writer(tmp_path):
         step=300,
         rollout_records=rollouts(2_400),
         trainer_step_logs=logs(300),
+        phase_timing_report=phase_timings(300),
     )
     shutil.rmtree(checkpoint_100)
     writer.verify_retention_after_step_300()
@@ -200,6 +278,7 @@ def run_summary():
             "cuda_after_train": cuda_snapshot(),
             "cuda_after_model_audit": cuda_snapshot(),
         },
+        "profiling": phase_profile_summary(),
     }
 
 
@@ -212,6 +291,7 @@ def test_step_100_is_exported_atomically_before_bounded_eviction(tmp_path):
     export = writer.export_step_100(
         rollout_records=rollouts(),
         trainer_step_logs=logs(),
+        phase_timing_report=phase_timings(100),
     )
 
     milestone = Path(plan["step_100_export"]["directory"])
@@ -232,6 +312,7 @@ def test_step_100_is_exported_atomically_before_bounded_eviction(tmp_path):
         step=200,
         rollout_records=rollouts(1_600),
         trainer_step_logs=logs(200),
+        phase_timing_report=phase_timings(200),
     )
     make_checkpoint(checkpoint_300, 300)
     writer.record_checkpoint_saved(300)
@@ -239,6 +320,7 @@ def test_step_100_is_exported_atomically_before_bounded_eviction(tmp_path):
         step=300,
         rollout_records=rollouts(2_400),
         trainer_step_logs=logs(300),
+        phase_timing_report=phase_timings(300),
     )
     shutil.rmtree(checkpoint_100)
     retention = writer.verify_retention_after_step_300()
@@ -263,6 +345,7 @@ def test_steps_200_and_300_export_cumulative_evidence_without_adapter_copies(
     writer.export_step_100(
         rollout_records=rollouts(800),
         trainer_step_logs=logs(100),
+        phase_timing_report=phase_timings(100),
     )
 
     checkpoint_200 = Path(plan["checkpoint_paths"]["200"])
@@ -272,6 +355,7 @@ def test_steps_200_and_300_export_cumulative_evidence_without_adapter_copies(
         step=200,
         rollout_records=rollouts(1_600),
         trainer_step_logs=logs(200),
+        phase_timing_report=phase_timings(200),
     )
 
     checkpoint_300 = Path(plan["checkpoint_paths"]["300"])
@@ -281,6 +365,7 @@ def test_steps_200_and_300_export_cumulative_evidence_without_adapter_copies(
         step=300,
         rollout_records=rollouts(2_400),
         trainer_step_logs=logs(300),
+        phase_timing_report=phase_timings(300),
     )
 
     for step, event, expected_rollouts in (
@@ -290,6 +375,7 @@ def test_steps_200_and_300_export_cumulative_evidence_without_adapter_copies(
         milestone = Path(plan["rolling_evidence_exports"][str(step)]["directory"])
         assert {path.name for path in milestone.iterdir()} == {
             "manifest.json",
+            "phase-timings.json",
             "rollouts.jsonl",
             "trainer-log.json",
         }
@@ -298,6 +384,8 @@ def test_steps_200_and_300_export_cumulative_evidence_without_adapter_copies(
             expected_rollouts
         )
         assert len(json.loads((milestone / "trainer-log.json").read_text())) == step
+        timings = json.loads((milestone / "phase-timings.json").read_text())
+        assert timings["steps"] == step
         manifest = json.loads((milestone / "manifest.json").read_text())
         assert manifest["step"] == step
         assert manifest["rollout_records"] == expected_rollouts
@@ -327,6 +415,7 @@ def test_step_300_evidence_survives_final_publication_failure(tmp_path):
         writer.publish_completed_bundle(
             rollout_records=rollouts(2_400),
             trainer_step_logs=logs(300),
+            phase_timing_report=phase_timings(300),
             preflight_report={"status": "passed", "cuda_imports_performed": False},
             config_settings=locked_config(),
             run_summary=run_summary(),
@@ -349,6 +438,7 @@ def test_retention_revalidates_rolling_evidence_hashes(tmp_path):
     writer.export_step_100(
         rollout_records=rollouts(800),
         trainer_step_logs=logs(100),
+        phase_timing_report=phase_timings(100),
     )
     for step in (200, 300):
         make_checkpoint(Path(plan["checkpoint_paths"][str(step)]), step)
@@ -357,6 +447,7 @@ def test_retention_revalidates_rolling_evidence_hashes(tmp_path):
             step=step,
             rollout_records=rollouts(step * 8),
             trainer_step_logs=logs(step),
+            phase_timing_report=phase_timings(step),
         )
     shutil.rmtree(checkpoint_100)
     step_300 = Path(plan["rolling_evidence_exports"]["300"]["directory"])
@@ -364,6 +455,37 @@ def test_retention_revalidates_rolling_evidence_hashes(tmp_path):
         handle.write('{"tampered": true}\n')
 
     with pytest.raises(ValueError, match="hash drifted for rollouts_sha256"):
+        writer.verify_retention_after_step_300()
+
+
+def test_retention_revalidates_phase_timing_hash(tmp_path):
+    writer, plan = make_writer(tmp_path)
+    checkpoint_100 = Path(plan["checkpoint_paths"]["100"])
+    make_checkpoint(checkpoint_100, 100)
+    writer.record_checkpoint_saved(100)
+    writer.export_step_100(
+        rollout_records=rollouts(800),
+        trainer_step_logs=logs(100),
+        phase_timing_report=phase_timings(100),
+    )
+    for step in (200, 300):
+        make_checkpoint(Path(plan["checkpoint_paths"][str(step)]), step)
+        writer.record_checkpoint_saved(step)
+        writer.export_rolling_evidence(
+            step=step,
+            rollout_records=rollouts(step * 8),
+            trainer_step_logs=logs(step),
+            phase_timing_report=phase_timings(step),
+        )
+    shutil.rmtree(checkpoint_100)
+    step_300 = Path(plan["rolling_evidence_exports"]["300"]["directory"])
+    timing_path = step_300 / "phase-timings.json"
+    timing_path.write_text(
+        timing_path.read_text(encoding="utf-8") + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="hash drifted for phase_timings_sha256"):
         writer.verify_retention_after_step_300()
 
 
@@ -513,6 +635,7 @@ def test_step_100_export_rejects_incomplete_evidence(
         writer.export_step_100(
             rollout_records=records,
             trainer_step_logs=step_logs,
+            phase_timing_report=phase_timings(100),
         )
     assert not Path(plan["step_100_export"]["directory"]).exists()
 
@@ -524,13 +647,18 @@ def test_retention_refuses_eviction_without_milestone_or_missing_survivor(tmp_pa
     checkpoint_300 = Path(plan["checkpoint_paths"]["300"])
     make_checkpoint(checkpoint_100, 100)
     writer.record_checkpoint_saved(100)
-    writer.export_step_100(rollout_records=rollouts(), trainer_step_logs=logs())
+    writer.export_step_100(
+        rollout_records=rollouts(),
+        trainer_step_logs=logs(),
+        phase_timing_report=phase_timings(100),
+    )
     make_checkpoint(checkpoint_200, 200)
     writer.record_checkpoint_saved(200)
     writer.export_rolling_evidence(
         step=200,
         rollout_records=rollouts(1_600),
         trainer_step_logs=logs(200),
+        phase_timing_report=phase_timings(200),
     )
     make_checkpoint(checkpoint_300, 300)
     writer.record_checkpoint_saved(300)
@@ -538,6 +666,7 @@ def test_retention_refuses_eviction_without_milestone_or_missing_survivor(tmp_pa
         step=300,
         rollout_records=rollouts(2_400),
         trainer_step_logs=logs(300),
+        phase_timing_report=phase_timings(300),
     )
 
     with pytest.raises(RuntimeError, match="was not evicted"):
@@ -563,6 +692,7 @@ def test_final_adapter_and_complete_bundle_publish_atomically(tmp_path):
     report = writer.publish_completed_bundle(
         rollout_records=rollouts(2_400),
         trainer_step_logs=logs(300),
+        phase_timing_report=phase_timings(300),
         preflight_report={"status": "passed", "cuda_imports_performed": False},
         config_settings=locked_config(),
         run_summary=run_summary(),
@@ -580,12 +710,15 @@ def test_final_adapter_and_complete_bundle_publish_atomically(tmp_path):
         "final-adapter",
         "rollouts.jsonl",
         "trainer-log.json",
+        "phase-timings.json",
         "manifest.json",
     }
     manifest = json.loads((final / "manifest.json").read_text())
     assert manifest["status"] == "completed"
     assert manifest["rollout_records"] == 2_400
     assert manifest["trainer_step_logs"] == 300
+    assert manifest["phase_timing_steps"] == 300
+    assert len(manifest["artifacts"]["phase_timings_sha256"]) == 64
     assert len(manifest["checkpoint_events_before_publication"]) == 10
     assert manifest["run_summary"]["version"] == "grpo-full-run-summary-v1"
     assert manifest["run_summary_validation"]["status"] == "passed"
@@ -617,6 +750,7 @@ def test_bundle_publication_accepts_real_trainer_root_readme(tmp_path):
     report = writer.publish_completed_bundle(
         rollout_records=rollouts(2_400),
         trainer_step_logs=logs(300),
+        phase_timing_report=phase_timings(300),
         preflight_report={"status": "passed", "cuda_imports_performed": False},
         config_settings=locked_config(),
         run_summary=run_summary(),
@@ -656,6 +790,7 @@ def publish_ready_bundle(writer):
     return writer.publish_completed_bundle(
         rollout_records=rollouts(2_400),
         trainer_step_logs=logs(300),
+        phase_timing_report=phase_timings(300),
         preflight_report={"status": "passed", "cuda_imports_performed": False},
         config_settings=locked_config(),
         run_summary=run_summary(),
@@ -805,6 +940,7 @@ def test_bundle_handoff_rejects_incomplete_evidence(
         writer.publish_completed_bundle(
             rollout_records=rollouts(rollout_count),
             trainer_step_logs=logs(log_count),
+            phase_timing_report=phase_timings(300),
             preflight_report={"status": "passed"},
             config_settings=locked_config(),
             run_summary=run_summary(),
@@ -823,6 +959,7 @@ def test_bundle_handoff_rejects_size_disk_or_config_drift(tmp_path):
         writer.publish_completed_bundle(
             rollout_records=rollouts(2_400),
             trainer_step_logs=logs(300),
+            phase_timing_report=phase_timings(300),
             preflight_report={"status": "passed"},
             config_settings=locked_config(),
             run_summary=run_summary(),
@@ -841,6 +978,7 @@ def test_bundle_handoff_rejects_size_disk_or_config_drift(tmp_path):
         writer.publish_completed_bundle(
             rollout_records=rollouts(2_400),
             trainer_step_logs=logs(300),
+            phase_timing_report=phase_timings(300),
             preflight_report={"status": "passed"},
             config_settings=locked_config(),
             run_summary=run_summary(),
@@ -859,6 +997,7 @@ def test_bundle_handoff_rejects_size_disk_or_config_drift(tmp_path):
         writer.publish_completed_bundle(
             rollout_records=rollouts(2_400),
             trainer_step_logs=logs(300),
+            phase_timing_report=phase_timings(300),
             preflight_report={"status": "passed"},
             config_settings=config,
             run_summary=run_summary(),

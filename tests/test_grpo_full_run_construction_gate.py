@@ -94,6 +94,13 @@ class FakeCallback:
     pass
 
 
+class FakeAccelerator:
+    num_processes = 1
+
+    def backward(self, loss):
+        raise AssertionError("construction gate must not run backward")
+
+
 class FakeTrainer:
     construct_optimizer = False
 
@@ -117,11 +124,20 @@ class FakeTrainer:
         self.lr_scheduler = None
         self.ref_model = None
         self.state = SimpleNamespace(global_step=0, log_history=[])
-        self.accelerator = SimpleNamespace(num_processes=1)
+        self.accelerator = FakeAccelerator()
         self.callback_handler = SimpleNamespace(callbacks=[])
 
     def add_callback(self, callback):
         self.callback_handler.callbacks.append(callback)
+
+    def _generate(self):
+        raise AssertionError("construction gate must not generate")
+
+    def _calculate_rewards(self):
+        raise AssertionError("construction gate must not score rewards")
+
+    def compute_loss(self):
+        raise AssertionError("construction gate must not compute loss")
 
     def _generate_and_score_completions(self, inputs):
         raise AssertionError("construction gate must not generate")
@@ -208,6 +224,8 @@ def test_full_run_construction_gate_builds_everything_without_training(tmp_path)
     assert report["config"]["settings_match_locked_contract"]
     assert report["collector_attached"]
     assert report["checkpoint_callback_attached"]
+    assert report["phase_profiler_attached"]
+    assert report["phase_profiler_steps"] == 0
     assert report["lifecycle_writer_constructed"]
     assert report["lifecycle_events"] == 0
     assert report["global_step"] == report["rollouts_generated"] == 0

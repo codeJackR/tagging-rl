@@ -17,6 +17,7 @@ from training.grpo_full_run_artifacts import (
 )
 from training.grpo_full_run_evidence import expected_full_run_learning_rates
 from training.grpo_smoke_artifacts import EXPECTED_REWARD_NAMES
+from training.grpo_phase_profiler import PHASE_TIMING_REPORT_VERSION, PROFILE_PHASES
 from training.train_grpo import (
     FullRunCheckpointHandoff,
     FullRunRolloutCollector,
@@ -144,6 +145,29 @@ def step_log(step: int) -> dict:
     }
 
 
+def phase_timings(count: int) -> dict:
+    phase_seconds = {phase: 0.01 for phase in PROFILE_PHASES}
+    return {
+        "version": PHASE_TIMING_REPORT_VERSION,
+        "status": "completed_prefix",
+        "steps": count,
+        "phases": list(PROFILE_PHASES),
+        "clock": "time.perf_counter",
+        "synchronized_boundaries": True,
+        "records": [
+            {
+                "step": step,
+                "step_wall_seconds": 0.06,
+                "phase_seconds": dict(phase_seconds),
+                "phase_calls": {phase: 1 for phase in PROFILE_PHASES},
+                "accounted_seconds": 0.05,
+                "other_seconds": 0.01,
+            }
+            for step in range(1, count + 1)
+        ],
+    }
+
+
 def make_runtime(tmp_path, *, progress_callback=None):
     writer, plan = make_writer(tmp_path)
     collector = FullRunRolloutCollector()
@@ -153,6 +177,7 @@ def make_runtime(tmp_path, *, progress_callback=None):
     callback = callback_class(
         lifecycle_writer=writer,
         rollout_collector=collector,
+        phase_timing_snapshot_fn=phase_timings,
         progress_callback=progress_callback,
     )
     return writer, plan, trainer, callback
@@ -325,16 +350,21 @@ def test_handoff_and_callback_factory_require_exact_dependencies(tmp_path):
     collector = FullRunRolloutCollector()
     with pytest.raises(TypeError, match="LifecycleWriter"):
         FullRunCheckpointHandoff(
-            lifecycle_writer=object(), rollout_collector=collector
+            lifecycle_writer=object(),
+            rollout_collector=collector,
+            phase_timing_snapshot_fn=phase_timings,
         )
     with pytest.raises(TypeError, match="FullRunRolloutCollector"):
         FullRunCheckpointHandoff(
-            lifecycle_writer=writer, rollout_collector=object()
+            lifecycle_writer=writer,
+            rollout_collector=object(),
+            phase_timing_snapshot_fn=phase_timings,
         )
     with pytest.raises(ValueError, match="exactly 300 steps"):
         FullRunCheckpointHandoff(
             lifecycle_writer=writer,
             rollout_collector=FullRunRolloutCollector(expected_steps=100),
+            phase_timing_snapshot_fn=phase_timings,
         )
     with pytest.raises(TypeError, match="base callback must be a class"):
         make_full_run_checkpoint_callback_class(object())

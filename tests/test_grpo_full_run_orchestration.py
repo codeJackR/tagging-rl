@@ -65,7 +65,29 @@ class FakeGRPOConfig:
 
 
 class FakeTrainerCallback:
-    pass
+    def on_train_begin(self, args, state, control, **kwargs):
+        return control
+
+    def on_log(self, args, state, control, **kwargs):
+        return control
+
+    def on_save(self, args, state, control, **kwargs):
+        return control
+
+    def on_train_end(self, args, state, control, **kwargs):
+        return control
+
+
+class FakeOptimizer:
+    def step(self):
+        return None
+
+
+class FakeAccelerator:
+    num_processes = 1
+
+    def backward(self, loss):
+        return None
 
 
 class FakeModel:
@@ -147,7 +169,7 @@ class FakeGRPOTrainer:
         self.train_dataset = train_dataset
         self.processing_class = processing_class
         self.state = SimpleNamespace(global_step=0, log_history=[])
-        self.accelerator = SimpleNamespace(num_processes=1)
+        self.accelerator = FakeAccelerator()
         self.reward_func_names = [reward.__name__ for reward in reward_funcs]
         self.reward_weights = list(args.reward_weights)
         self.optimizer = None
@@ -158,7 +180,18 @@ class FakeGRPOTrainer:
     def add_callback(self, callback):
         self.callbacks.append(callback)
 
+    def _generate(self):
+        return None
+
+    def _calculate_rewards(self):
+        return None
+
+    def compute_loss(self):
+        return 0.0
+
     def _generate_and_score_completions(self, inputs):
+        self._generate()
+        self._calculate_rewards()
         step = self.state.global_step + 1
         agreement = [float(index % 2) for index in range(8)]
         if step == 2:
@@ -214,14 +247,33 @@ class FakeGRPOTrainer:
 
     def train(self):
         control = SimpleNamespace()
+        self.optimizer = FakeOptimizer()
+        self.lr_scheduler = object()
         for callback in self.callbacks:
-            callback.on_train_begin(self.args, self.state, control)
+            callback.on_train_begin(
+                self.args,
+                self.state,
+                control,
+                optimizer=self.optimizer,
+                lr_scheduler=self.lr_scheduler,
+            )
         for step in range(1, self.steps_to_run + 1):
+            for callback in self.callbacks:
+                handler = getattr(callback, "on_step_begin", None)
+                if handler is not None:
+                    handler(self.args, self.state, control)
             sku_id = self.train_dataset.sku_ids[step - 1]
             self._generate_and_score_completions(
                 [{"sku_id": sku_id} for _ in range(8)]
             )
+            loss = self.compute_loss()
+            self.accelerator.backward(loss)
+            self.optimizer.step()
             self.state.global_step = step
+            for callback in self.callbacks:
+                handler = getattr(callback, "on_step_end", None)
+                if handler is not None:
+                    handler(self.args, self.state, control)
             self.state.log_history.append(step_log(step))
             for callback in self.callbacks:
                 callback.on_log(self.args, self.state, control)
@@ -235,8 +287,6 @@ class FakeGRPOTrainer:
         for callback in self.callbacks:
             callback.on_log(self.args, self.state, control)
         self.model.updated = self.steps_to_run > 0
-        self.optimizer = object()
-        self.lr_scheduler = object()
         for callback in self.callbacks:
             callback.on_train_end(self.args, self.state, control)
         return SimpleNamespace(
@@ -317,6 +367,7 @@ def orchestration_kwargs(tmp_path, **overrides):
             "cuda_after_load": cuda_snapshot(),
         },
         "cuda_snapshot_fn": cuda_snapshot,
+        "phase_synchronize_fn": lambda: None,
         "disk_usage_fn": lambda _: SimpleNamespace(free=4 * 1024**3),
         "expected_adapter_model_bytes": len(FINAL_WEIGHTS),
     }
