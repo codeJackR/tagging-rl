@@ -90,8 +90,18 @@ def make_ready_writer(tmp_path):
     writer.export_step_100(rollout_records=rollouts(), trainer_step_logs=logs())
     make_checkpoint(checkpoint_200, 200)
     writer.record_checkpoint_saved(200)
+    writer.export_rolling_evidence(
+        step=200,
+        rollout_records=rollouts(1_600),
+        trainer_step_logs=logs(200),
+    )
     make_checkpoint(checkpoint_300, 300)
     writer.record_checkpoint_saved(300)
+    writer.export_rolling_evidence(
+        step=300,
+        rollout_records=rollouts(2_400),
+        trainer_step_logs=logs(300),
+    )
     shutil.rmtree(checkpoint_100)
     writer.verify_retention_after_step_300()
     source_adapter = tmp_path / "source-adapter.safetensors"
@@ -218,18 +228,143 @@ def test_step_100_is_exported_atomically_before_bounded_eviction(tmp_path):
     checkpoint_300 = Path(plan["checkpoint_paths"]["300"])
     make_checkpoint(checkpoint_200, 200)
     writer.record_checkpoint_saved(200)
+    writer.export_rolling_evidence(
+        step=200,
+        rollout_records=rollouts(1_600),
+        trainer_step_logs=logs(200),
+    )
     make_checkpoint(checkpoint_300, 300)
     writer.record_checkpoint_saved(300)
+    writer.export_rolling_evidence(
+        step=300,
+        rollout_records=rollouts(2_400),
+        trainer_step_logs=logs(300),
+    )
     shutil.rmtree(checkpoint_100)
     retention = writer.verify_retention_after_step_300()
 
     assert retention["retention"]["retained_steps"] == [200, 300]
     snapshot = writer.snapshot()
     assert snapshot["status"] == "checkpoints_ready_for_final_handoff"
-    assert snapshot["event_count"] == 6
+    assert snapshot["event_count"] == 8
     assert snapshot["step_100_exported_before_eviction"]
+    assert snapshot["durable_evidence_steps"] == [100, 200, 300]
     assert not snapshot["final_adapter_saved"]
     assert not snapshot["bundle_published"]
+
+
+def test_steps_200_and_300_export_cumulative_evidence_without_adapter_copies(
+    tmp_path,
+):
+    writer, plan = make_writer(tmp_path)
+    checkpoint_100 = Path(plan["checkpoint_paths"]["100"])
+    make_checkpoint(checkpoint_100, 100)
+    writer.record_checkpoint_saved(100)
+    writer.export_step_100(
+        rollout_records=rollouts(800),
+        trainer_step_logs=logs(100),
+    )
+
+    checkpoint_200 = Path(plan["checkpoint_paths"]["200"])
+    make_checkpoint(checkpoint_200, 200)
+    writer.record_checkpoint_saved(200)
+    event_200 = writer.export_rolling_evidence(
+        step=200,
+        rollout_records=rollouts(1_600),
+        trainer_step_logs=logs(200),
+    )
+
+    checkpoint_300 = Path(plan["checkpoint_paths"]["300"])
+    make_checkpoint(checkpoint_300, 300)
+    writer.record_checkpoint_saved(300)
+    event_300 = writer.export_rolling_evidence(
+        step=300,
+        rollout_records=rollouts(2_400),
+        trainer_step_logs=logs(300),
+    )
+
+    for step, event, expected_rollouts in (
+        (200, event_200, 1_600),
+        (300, event_300, 2_400),
+    ):
+        milestone = Path(plan["rolling_evidence_exports"][str(step)]["directory"])
+        assert {path.name for path in milestone.iterdir()} == {
+            "manifest.json",
+            "rollouts.jsonl",
+            "trainer-log.json",
+        }
+        assert not (milestone / "adapter").exists()
+        assert len((milestone / "rollouts.jsonl").read_text().splitlines()) == (
+            expected_rollouts
+        )
+        assert len(json.loads((milestone / "trainer-log.json").read_text())) == step
+        manifest = json.loads((milestone / "manifest.json").read_text())
+        assert manifest["step"] == step
+        assert manifest["rollout_records"] == expected_rollouts
+        assert manifest["trainer_step_logs"] == step
+        assert manifest["checkpoint_retained"]
+        assert event["rollouts_sha256"] == manifest["rollouts_sha256"]
+        assert event["trainer_log_sha256"] == manifest["trainer_log_sha256"]
+        assert not list(milestone.parent.glob(f".step-{step}.staging-*"))
+
+
+def test_step_300_evidence_survives_final_publication_failure(tmp_path):
+    writer, plan, source_adapter = make_ready_writer(tmp_path)
+    writer.save_and_validate_final_adapter(
+        save_adapter_fn=save_fake_final_adapter,
+        source_adapter_file=source_adapter,
+        expected_adapter_model_bytes=len(b"final adapter at step 300"),
+    )
+    trainer = Path(plan["trainer_output_dir"])
+    (trainer / "unexpected.txt").write_text("force fail-closed", encoding="utf-8")
+    step_300 = Path(plan["rolling_evidence_exports"]["300"]["directory"])
+    rollouts_path = step_300 / "rollouts.jsonl"
+    logs_path = step_300 / "trainer-log.json"
+    rollouts_sha_before = hashlib.sha256(rollouts_path.read_bytes()).hexdigest()
+    logs_sha_before = hashlib.sha256(logs_path.read_bytes()).hexdigest()
+
+    with pytest.raises(RuntimeError, match="retention inventory drifted"):
+        writer.publish_completed_bundle(
+            rollout_records=rollouts(2_400),
+            trainer_step_logs=logs(300),
+            preflight_report={"status": "passed", "cuda_imports_performed": False},
+            config_settings=locked_config(),
+            run_summary=run_summary(),
+            disk_usage_fn=lambda _: SimpleNamespace(free=4 * 1024**3),
+        )
+
+    assert not Path(plan["final_output_dir"]).exists()
+    assert not (Path(plan["staging_dir"]) / "rollouts.jsonl").exists()
+    assert len(rollouts_path.read_text().splitlines()) == 2_400
+    assert len(json.loads(logs_path.read_text())) == 300
+    assert hashlib.sha256(rollouts_path.read_bytes()).hexdigest() == rollouts_sha_before
+    assert hashlib.sha256(logs_path.read_bytes()).hexdigest() == logs_sha_before
+
+
+def test_retention_revalidates_rolling_evidence_hashes(tmp_path):
+    writer, plan = make_writer(tmp_path)
+    checkpoint_100 = Path(plan["checkpoint_paths"]["100"])
+    make_checkpoint(checkpoint_100, 100)
+    writer.record_checkpoint_saved(100)
+    writer.export_step_100(
+        rollout_records=rollouts(800),
+        trainer_step_logs=logs(100),
+    )
+    for step in (200, 300):
+        make_checkpoint(Path(plan["checkpoint_paths"][str(step)]), step)
+        writer.record_checkpoint_saved(step)
+        writer.export_rolling_evidence(
+            step=step,
+            rollout_records=rollouts(step * 8),
+            trainer_step_logs=logs(step),
+        )
+    shutil.rmtree(checkpoint_100)
+    step_300 = Path(plan["rolling_evidence_exports"]["300"]["directory"])
+    with (step_300 / "rollouts.jsonl").open("a", encoding="utf-8") as handle:
+        handle.write('{"tampered": true}\n')
+
+    with pytest.raises(ValueError, match="hash drifted for rollouts_sha256"):
+        writer.verify_retention_after_step_300()
 
 
 def test_staging_creation_refuses_final_or_stale_collision(tmp_path):
@@ -392,8 +527,18 @@ def test_retention_refuses_eviction_without_milestone_or_missing_survivor(tmp_pa
     writer.export_step_100(rollout_records=rollouts(), trainer_step_logs=logs())
     make_checkpoint(checkpoint_200, 200)
     writer.record_checkpoint_saved(200)
+    writer.export_rolling_evidence(
+        step=200,
+        rollout_records=rollouts(1_600),
+        trainer_step_logs=logs(200),
+    )
     make_checkpoint(checkpoint_300, 300)
     writer.record_checkpoint_saved(300)
+    writer.export_rolling_evidence(
+        step=300,
+        rollout_records=rollouts(2_400),
+        trainer_step_logs=logs(300),
+    )
 
     with pytest.raises(RuntimeError, match="was not evicted"):
         writer.verify_retention_after_step_300()
@@ -441,13 +586,13 @@ def test_final_adapter_and_complete_bundle_publish_atomically(tmp_path):
     assert manifest["status"] == "completed"
     assert manifest["rollout_records"] == 2_400
     assert manifest["trainer_step_logs"] == 300
-    assert len(manifest["checkpoint_events_before_publication"]) == 8
+    assert len(manifest["checkpoint_events_before_publication"]) == 10
     assert manifest["run_summary"]["version"] == "grpo-full-run-summary-v1"
     assert manifest["run_summary_validation"]["status"] == "passed"
     assert manifest["run_summary_validation"]["peak_allocated_bytes"] == 30
     assert manifest["trainer_root_metadata"] == {"readme_present": False}
     assert writer.snapshot()["status"] == "completed_and_published"
-    assert writer.snapshot()["event_count"] == 10
+    assert writer.snapshot()["event_count"] == 12
 
 
 def test_bundle_publication_accepts_real_trainer_root_readme(tmp_path):

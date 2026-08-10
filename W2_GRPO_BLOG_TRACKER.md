@@ -4098,6 +4098,62 @@ next correction must be driven by a CPU regression test reproducing the exact
 three-entry trainer inventory and must validate the allowed root README rather
 than simply ignoring arbitrary files.
 
+##### Durable rolling evidence before a third dispatch
+
+The README correction was first expressed as a failing CPU regression test with
+the real trainer-root inventory: `README.md`, `checkpoint-200` and
+`checkpoint-300`. It failed at the same publication line and with the same
+`trainer checkpoint retention inventory drifted` message as production. The
+narrow correction makes the README optional, but when present requires a
+non-empty, non-symlink regular UTF-8 file no larger than 64 KiB and records its
+size and SHA-256 in the final manifest. Arbitrary root files, directories,
+symlinks, invalid UTF-8, NUL-containing text and oversized README files remain
+fail-closed. The complete suite passed **459 tests**. Commit
+`1ceb9b3309ec48fb9c3e8af1b254f5d3d36a7008` was pushed to Vast and the helper
+accepted the preserved real 1,991-byte README with SHA-256
+`386b73be8446d2184d24120e457e271e17597b8896bfce453689b658a968d049`
+without modifying the three-entry directory.
+
+The second completed training attempt also exposed a broader durability gap:
+the full 2,400-record rollout list existed only in process memory until final
+publication. Fixing the known README mismatch would not protect against a
+different final-handoff bug. Before another paid GPU dispatch, lifecycle v2 now
+makes every checkpoint boundary a durable evidence boundary:
+
+| step | durable rollout records | durable scalar logs | adapter handling |
+|---:|---:|---:|---|
+| 100 | 800 | 100 | copy adapter/config because checkpoint 100 is later evicted |
+| 200 | 1,600 | 200 | reference retained checkpoint 200; do not copy adapter |
+| 300 | 2,400 | 300 | reference retained checkpoint 300; do not copy adapter |
+
+Steps 200 and 300 each write `rollouts.jsonl`, `trainer-log.json` and
+`manifest.json` into a same-parent temporary directory, hash the evidence and
+the source checkpoint, verify that the checkpoint did not change during export,
+and atomically rename the temporary directory into `milestones/step-{n}`. Their
+manifests bind the cumulative evidence to both the checkpoint adapter SHA-256
+and `trainer_state.json` SHA-256. They explicitly record that the checkpoint is
+retained and that no adapter copy is required. This avoids adding two more
+roughly 74 MB LoRA copies; based on the observed evidence sizes, the cumulative
+JSON overhead should be only a few megabytes.
+
+Retention reopens and re-hashes both rolling milestones before declaring
+checkpoint 100 safely evicted. Final publication revalidates them again and
+requires the root `rollouts.jsonl` and `trainer-log.json` hashes to byte-match
+the durable step-300 snapshot. The lifecycle contract is bumped from
+`grpo-full-run-300-lifecycle-v1` to `grpo-full-run-300-lifecycle-v2` and expands
+from 10 to 12 completed events by adding `milestone_exported_200` and
+`milestone_exported_300`.
+
+The red/green CPU sequence proved the new method was initially absent, then
+proved atomic inventories and exact 1,600/200 and 2,400/300 counts. Negative
+tests reject bad counts, hashes, checkpoint bindings, symlinks, inventory drift
+and accidental adapter copies. A simulated final-publication failure verifies
+that all 2,400 step-300 rollouts and 300 logs remain byte-identical and readable
+while the final output stays absent. Tampering with the durable rollout file is
+detected before retention. The focused writer/callback/lifecycle/orchestration
+set passes **90 tests** and the complete CPU suite passes **468 tests**. These
+changes are local and uncommitted at this point; no third GPU run has started.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.

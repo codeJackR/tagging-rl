@@ -187,7 +187,10 @@ def test_callback_hands_validated_step_100_and_final_evidence_to_writer(tmp_path
     run_generated_steps(trainer, 200)
     make_checkpoint(plan, 200)
     callback.on_save(args, trainer.state, control)
-    assert writer.snapshot()["event_count"] == 3
+    assert writer.snapshot()["event_count"] == 4
+    step_200 = Path(plan["rolling_evidence_exports"]["200"]["directory"])
+    assert len((step_200 / "rollouts.jsonl").read_text().splitlines()) == 1_600
+    assert len(json.loads((step_200 / "trainer-log.json").read_text())) == 200
 
     run_generated_steps(trainer, 300)
     make_checkpoint(plan, 300)
@@ -195,6 +198,9 @@ def test_callback_hands_validated_step_100_and_final_evidence_to_writer(tmp_path
     shutil.rmtree(Path(plan["checkpoint_paths"]["100"]))
     callback.on_save(args, trainer.state, control)
     assert writer.snapshot()["status"] == "checkpoints_ready_for_final_handoff"
+    step_300 = Path(plan["rolling_evidence_exports"]["300"]["directory"])
+    assert len((step_300 / "rollouts.jsonl").read_text().splitlines()) == 2_400
+    assert len(json.loads((step_300 / "trainer-log.json").read_text())) == 300
 
     assert callback.on_train_end(args, trainer.state, control) is control
     evidence = callback.final_evidence()
@@ -205,7 +211,8 @@ def test_callback_hands_validated_step_100_and_final_evidence_to_writer(tmp_path
     assert evidence["trainer_log_validation"]["zero_gradient_steps"] == [2]
     assert evidence["trainer_log_validation"]["clipped_steps"] == [3]
     assert set(evidence["checkpoint_evidence"]) == {100, 200, 300}
-    assert evidence["lifecycle"]["event_count"] == 6
+    assert evidence["lifecycle"]["event_count"] == 8
+    assert evidence["lifecycle"]["durable_evidence_steps"] == [100, 200, 300]
 
     evidence["rollout_records"][0]["raw_output"] = "caller mutation"
     assert callback.final_evidence()["rollout_records"][0]["raw_output"] == (

@@ -9,6 +9,7 @@ import pytest
 from training.grpo_full_run_artifacts import (
     EXPECTED_ADAPTER_FILES,
     MAX_FINAL_BUNDLE_BYTES,
+    ROLLING_EVIDENCE_FILES,
     STEP_100_EXPORT_FILES,
     build_full_run_lifecycle_plan,
     validate_full_run_lifecycle_events,
@@ -62,6 +63,20 @@ def make_events(plan):
             "contains_optimizer_scheduler_or_rng_state": False,
         },
         {
+            "event": "milestone_exported_200",
+            "step": 200,
+            "path": plan["rolling_evidence_exports"]["200"]["directory"],
+            "files": sorted(ROLLING_EVIDENCE_FILES),
+            "rollout_records": 1_600,
+            "trainer_step_logs": 200,
+            "rollouts_sha256": "4" * 64,
+            "trainer_log_sha256": "5" * 64,
+            "checkpoint_adapter_model_sha256": "6" * 64,
+            "checkpoint_trainer_state_sha256": "2" * 64,
+            "checkpoint_retained": True,
+            "adapter_copy_required": False,
+        },
+        {
             "event": "checkpoint_saved_300",
             "step": 300,
             "path": checkpoints["300"],
@@ -70,6 +85,20 @@ def make_events(plan):
             "trainer_state_global_step": 300,
             "trainer_state_step_logs": 300,
             "contains_optimizer_scheduler_or_rng_state": False,
+        },
+        {
+            "event": "milestone_exported_300",
+            "step": 300,
+            "path": plan["rolling_evidence_exports"]["300"]["directory"],
+            "files": sorted(ROLLING_EVIDENCE_FILES),
+            "rollout_records": 2_400,
+            "trainer_step_logs": 300,
+            "rollouts_sha256": "7" * 64,
+            "trainer_log_sha256": "8" * 64,
+            "checkpoint_adapter_model_sha256": "9" * 64,
+            "checkpoint_trainer_state_sha256": "3" * 64,
+            "checkpoint_retained": True,
+            "adapter_copy_required": False,
         },
         {
             "event": "checkpoint_evicted_100",
@@ -81,6 +110,7 @@ def make_events(plan):
             "event": "retention_verified",
             "retained_steps": [200, 300],
             "absent_steps": [100],
+            "durable_evidence_steps": [100, 200, 300],
         },
         {
             "event": "final_adapter_saved",
@@ -122,6 +152,9 @@ def test_lifecycle_plan_binds_all_outputs_to_atomic_staging_root(tmp_path):
     assert plan["checkpoint_policy"]["retained_steps"] == [200, 300]
     assert plan["checkpoint_policy"]["evicted_steps"] == [100]
     assert plan["step_100_export"]["rollout_records"] == 800
+    assert plan["rolling_evidence_exports"]["200"]["rollout_records"] == 1_600
+    assert plan["rolling_evidence_exports"]["300"]["rollout_records"] == 2_400
+    assert not plan["rolling_evidence_exports"]["300"]["adapter_copy_required"]
     assert plan["root_evidence"]["rollout_records"] == 2_400
     assert plan["publication"]["maximum_bundle_bytes"] == 512 * 1024**2
 
@@ -141,8 +174,10 @@ def test_complete_lifecycle_preserves_step_100_and_publishes_atomically(tmp_path
     )
 
     assert report["status"] == "passed"
-    assert report["events"] == 10
+    assert report["events"] == 12
     assert report["step_100_exported_before_eviction"]
+    assert report["durable_evidence_steps"] == [100, 200, 300]
+    assert report["full_rollout_snapshot_persisted_before_publication"]
     assert report["retained_checkpoint_steps"] == [200, 300]
     assert report["final_adapter_sha256"] == FINAL_SHA
     assert report["published_atomically"]
@@ -158,7 +193,7 @@ def test_lifecycle_rejects_missing_or_late_step_100_export(tmp_path):
         )
 
     events = make_events(plan)
-    events[1], events[4] = events[4], events[1]
+    events[1], events[6] = events[6], events[1]
     with pytest.raises(ValueError, match="event sequence drifted"):
         validate_full_run_lifecycle_events(
             events, plan=plan, starting_adapter_sha256=STARTING_SHA
@@ -185,10 +220,38 @@ def test_lifecycle_rejects_incomplete_step_100_evidence(
         )
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("rollout_records", 1_599, "wrong rollout count"),
+        ("trainer_step_logs", 199, "wrong trainer-log count"),
+        ("rollouts_sha256", "bad", "invalid rollouts_sha256"),
+        (
+            "checkpoint_trainer_state_sha256",
+            "f" * 64,
+            "trainer-state binding drifted",
+        ),
+        ("checkpoint_retained", False, "did not bind a retained checkpoint"),
+        ("adapter_copy_required", True, "unexpectedly copied an adapter"),
+    ],
+)
+def test_lifecycle_rejects_incomplete_rolling_evidence(
+    tmp_path, field, value, message
+):
+    plan = make_plan(tmp_path)
+    events = make_events(plan)
+    events[3][field] = value
+
+    with pytest.raises(ValueError, match=message):
+        validate_full_run_lifecycle_events(
+            events, plan=plan, starting_adapter_sha256=STARTING_SHA
+        )
+
+
 def test_lifecycle_rejects_checkpoint_retention_drift(tmp_path):
     plan = make_plan(tmp_path)
     events = make_events(plan)
-    events[5]["retained_steps"] = [100, 300]
+    events[7]["retained_steps"] = [100, 300]
     with pytest.raises(ValueError, match="retained checkpoint set"):
         validate_full_run_lifecycle_events(
             events, plan=plan, starting_adapter_sha256=STARTING_SHA
@@ -198,14 +261,14 @@ def test_lifecycle_rejects_checkpoint_retention_drift(tmp_path):
 def test_lifecycle_rejects_unchanged_or_unsafe_final_adapter(tmp_path):
     plan = make_plan(tmp_path)
     events = make_events(plan)
-    events[7]["adapter_model_sha256"] = STEP_100_SHA
+    events[9]["adapter_model_sha256"] = STEP_100_SHA
     with pytest.raises(ValueError, match="invalid or unchanged"):
         validate_full_run_lifecycle_events(
             events, plan=plan, starting_adapter_sha256=STARTING_SHA
         )
 
     events = make_events(plan)
-    events[7]["contains_optimizer_state"] = True
+    events[9]["contains_optimizer_state"] = True
     with pytest.raises(ValueError, match="optimizer state"):
         validate_full_run_lifecycle_events(
             events, plan=plan, starting_adapter_sha256=STARTING_SHA
@@ -226,7 +289,7 @@ def test_lifecycle_rejects_incomplete_or_oversized_bundle(
 ):
     plan = make_plan(tmp_path)
     events = make_events(plan)
-    events[8][field] = value
+    events[10][field] = value
     with pytest.raises(ValueError, match=message):
         validate_full_run_lifecycle_events(
             events, plan=plan, starting_adapter_sha256=STARTING_SHA
@@ -236,7 +299,7 @@ def test_lifecycle_rejects_incomplete_or_oversized_bundle(
 def test_lifecycle_rejects_nonatomic_publication(tmp_path):
     plan = make_plan(tmp_path)
     events = make_events(plan)
-    events[9]["atomic"] = False
+    events[11]["atomic"] = False
     with pytest.raises(ValueError, match="not published atomically"):
         validate_full_run_lifecycle_events(
             events, plan=plan, starting_adapter_sha256=STARTING_SHA

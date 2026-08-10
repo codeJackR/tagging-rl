@@ -338,7 +338,8 @@ def test_orchestration_constructs_trains_and_atomically_publishes(tmp_path):
     assert report["rollout_validation"]["records"] == 2_400
     assert report["trainer_log_validation"]["step_logs"] == 300
     assert set(report["checkpoint_evidence"]) == {100, 200, 300}
-    assert report["lifecycle"]["event_count"] == 10
+    assert report["lifecycle"]["event_count"] == 12
+    assert report["lifecycle"]["durable_evidence_steps"] == [100, 200, 300]
     assert report["lifecycle"]["status"] == "completed_and_published"
     assert report["publication"]["published_atomically"]
     assert report["published"]

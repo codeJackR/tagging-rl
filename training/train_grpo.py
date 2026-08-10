@@ -894,7 +894,13 @@ class FullRunCheckpointHandoff:
                 rollout_records=rollout_snapshot["records"],
                 trainer_step_logs=log_validation["step_records"],
             )
-        elif step == 300:
+        else:
+            milestone_event = self.lifecycle_writer.export_rolling_evidence(
+                step=step,
+                rollout_records=rollout_snapshot["records"],
+                trainer_step_logs=log_validation["step_records"],
+            )
+        if step == 300:
             retention_report = (
                 self.lifecycle_writer.verify_retention_after_step_300()
             )

@@ -19,11 +19,12 @@ from training.grpo_smoke_artifacts import (
     validate_saved_adapter,
 )
 
-FULL_RUN_LIFECYCLE_VERSION = "grpo-full-run-300-lifecycle-v1"
+FULL_RUN_LIFECYCLE_VERSION = "grpo-full-run-300-lifecycle-v2"
 FULL_RUN_SUMMARY_VERSION = "grpo-full-run-summary-v1"
 CHECKPOINT_STEPS = (100, 200, 300)
 RETAINED_CHECKPOINT_STEPS = (200, 300)
 EVICTED_CHECKPOINT_STEPS = (100,)
+ROLLING_EVIDENCE_STEPS = (200, 300)
 GENERATIONS_PER_STEP = 8
 EXPECTED_FINAL_ROLLOUTS = 300 * GENERATIONS_PER_STEP
 EXPECTED_STEP_100_ROLLOUTS = 100 * GENERATIONS_PER_STEP
@@ -42,11 +43,18 @@ STEP_100_EXPORT_FILES = {
     "rollouts.jsonl",
     "trainer-log.json",
 }
+ROLLING_EVIDENCE_FILES = {
+    "manifest.json",
+    "rollouts.jsonl",
+    "trainer-log.json",
+}
 REQUIRED_EVENT_SEQUENCE = (
     "checkpoint_saved_100",
     "milestone_exported_100",
     "checkpoint_saved_200",
+    "milestone_exported_200",
     "checkpoint_saved_300",
+    "milestone_exported_300",
     "checkpoint_evicted_100",
     "retention_verified",
     "final_adapter_saved",
@@ -404,7 +412,8 @@ def build_full_run_lifecycle_plan(
         raise ValueError("full-run staging and final output must differ")
 
     trainer = staging / "trainer"
-    milestone = staging / "milestones" / "step-100"
+    milestones = staging / "milestones"
+    step_100_milestone = milestones / "step-100"
     return {
         "version": FULL_RUN_LIFECYCLE_VERSION,
         "status": "planned_not_executed",
@@ -423,11 +432,22 @@ def build_full_run_lifecycle_plan(
             "evicted_steps": list(EVICTED_CHECKPOINT_STEPS),
         },
         "step_100_export": {
-            "directory": str(milestone),
+            "directory": str(step_100_milestone),
             "required_before_checkpoint_eviction": True,
             "required_files": sorted(STEP_100_EXPORT_FILES),
             "rollout_records": EXPECTED_STEP_100_ROLLOUTS,
             "trainer_step_logs": 100,
+        },
+        "rolling_evidence_exports": {
+            str(step): {
+                "directory": str(milestones / f"step-{step}"),
+                "required_files": sorted(ROLLING_EVIDENCE_FILES),
+                "rollout_records": step * GENERATIONS_PER_STEP,
+                "trainer_step_logs": step,
+                "checkpoint_retained": True,
+                "adapter_copy_required": False,
+            }
+            for step in ROLLING_EVIDENCE_STEPS
         },
         "final_adapter_dir": str(staging / "final-adapter"),
         "root_evidence": {
@@ -483,11 +503,20 @@ class FullRunCheckpointLifecycleWriter:
             raise RuntimeError(
                 f"checkpoint save order drifted: expected {expected_next}, found {step}"
             )
-        if step == 200 and [event["event"] for event in self.events] != [
-            "checkpoint_saved_100",
-            "milestone_exported_100",
-        ]:
-            raise RuntimeError("checkpoint 200 cannot precede the step-100 export")
+        required_prefixes = {
+            100: [],
+            200: ["checkpoint_saved_100", "milestone_exported_100"],
+            300: [
+                "checkpoint_saved_100",
+                "milestone_exported_100",
+                "checkpoint_saved_200",
+                "milestone_exported_200",
+            ],
+        }
+        if [event["event"] for event in self.events] != required_prefixes[step]:
+            raise RuntimeError(
+                f"checkpoint {step} cannot precede earlier durable evidence"
+            )
 
         checkpoint = self._checkpoint_path(step)
         if not checkpoint.is_dir() or checkpoint.is_symlink():
@@ -614,12 +643,219 @@ class FullRunCheckpointLifecycleWriter:
         self.events.append(event)
         return dict(event)
 
+    def export_rolling_evidence(
+        self,
+        *,
+        step: int,
+        rollout_records: Sequence[dict],
+        trainer_step_logs: Sequence[dict],
+    ) -> dict:
+        """Atomically persist cumulative evidence for a retained checkpoint."""
+        if step not in ROLLING_EVIDENCE_STEPS:
+            raise ValueError(f"rolling evidence is not defined for step {step}")
+        expected_events = {
+            200: [
+                "checkpoint_saved_100",
+                "milestone_exported_100",
+                "checkpoint_saved_200",
+            ],
+            300: [
+                "checkpoint_saved_100",
+                "milestone_exported_100",
+                "checkpoint_saved_200",
+                "milestone_exported_200",
+                "checkpoint_saved_300",
+            ],
+        }
+        if [event["event"] for event in self.events] != expected_events[step]:
+            raise RuntimeError(
+                f"step-{step} evidence must immediately follow checkpoint {step}"
+            )
+        expected_rollouts = step * GENERATIONS_PER_STEP
+        if len(rollout_records) != expected_rollouts:
+            raise ValueError(
+                f"step-{step} evidence requires exactly {expected_rollouts:,} "
+                "rollout records"
+            )
+        if len(trainer_step_logs) != step:
+            raise ValueError(
+                f"step-{step} evidence requires exactly {step} trainer step logs"
+            )
+        if not all(isinstance(row, dict) for row in rollout_records):
+            raise TypeError(f"step-{step} rollouts must be JSON objects")
+        if not all(isinstance(row, dict) for row in trainer_step_logs):
+            raise TypeError(f"step-{step} trainer logs must be JSON objects")
+
+        checkpoint = self._checkpoint_path(step)
+        checkpoint_weights = checkpoint / "adapter_model.safetensors"
+        checkpoint_state = checkpoint / "trainer_state.json"
+        weights_sha = _sha256_file(checkpoint_weights)
+        trainer_state_sha = _sha256_file(checkpoint_state)
+        checkpoint_event = self.events[-1]
+        if trainer_state_sha != checkpoint_event["trainer_state_sha256"]:
+            raise RuntimeError(
+                f"checkpoint-{step} trainer state changed before evidence export"
+            )
+
+        export_plan = self.plan["rolling_evidence_exports"][str(step)]
+        milestone = Path(export_plan["directory"])
+        if milestone.exists():
+            raise FileExistsError(f"step-{step} evidence milestone already exists")
+        milestone.parent.mkdir(parents=True, exist_ok=True)
+        temporary = Path(
+            tempfile.mkdtemp(prefix=f".step-{step}.staging-", dir=milestone.parent)
+        )
+        rollout_output = temporary / "rollouts.jsonl"
+        trainer_log_output = temporary / "trainer-log.json"
+        _write_jsonl(rollout_output, rollout_records)
+        _write_json(trainer_log_output, list(trainer_step_logs))
+        rollout_sha = _sha256_file(rollout_output)
+        trainer_log_sha = _sha256_file(trainer_log_output)
+        manifest = {
+            "version": "grpo-full-run-rolling-evidence-v1",
+            "status": "completed",
+            "step": step,
+            "source_checkpoint": str(checkpoint),
+            "checkpoint_retained": True,
+            "adapter_copy_required": False,
+            "checkpoint_adapter_model_sha256": weights_sha,
+            "checkpoint_trainer_state_sha256": trainer_state_sha,
+            "rollout_records": len(rollout_records),
+            "trainer_step_logs": len(trainer_step_logs),
+            "rollouts_sha256": rollout_sha,
+            "trainer_log_sha256": trainer_log_sha,
+            "files": sorted(ROLLING_EVIDENCE_FILES),
+        }
+        _write_json(temporary / "manifest.json", manifest)
+
+        if _sha256_file(checkpoint_weights) != weights_sha:
+            raise RuntimeError(
+                f"checkpoint-{step} weights changed during evidence export"
+            )
+        if _sha256_file(checkpoint_state) != trainer_state_sha:
+            raise RuntimeError(
+                f"checkpoint-{step} trainer state changed during evidence export"
+            )
+        actual_files = {
+            str(path.relative_to(temporary))
+            for path in temporary.rglob("*")
+            if path.is_file()
+        }
+        if actual_files != ROLLING_EVIDENCE_FILES:
+            raise RuntimeError(
+                f"step-{step} temporary evidence inventory drifted"
+            )
+        os.rename(temporary, milestone)
+        if not milestone.is_dir() or temporary.exists():
+            raise RuntimeError(f"step-{step} evidence publication failed")
+
+        event = {
+            "event": f"milestone_exported_{step}",
+            "step": step,
+            "path": str(milestone),
+            "files": sorted(actual_files),
+            "rollout_records": len(rollout_records),
+            "trainer_step_logs": len(trainer_step_logs),
+            "rollouts_sha256": rollout_sha,
+            "trainer_log_sha256": trainer_log_sha,
+            "checkpoint_adapter_model_sha256": weights_sha,
+            "checkpoint_trainer_state_sha256": trainer_state_sha,
+            "checkpoint_retained": True,
+            "adapter_copy_required": False,
+        }
+        self.events.append(event)
+        return dict(event)
+
+    def _validate_rolling_evidence_milestone(self, step: int) -> dict:
+        """Revalidate one durable rolling snapshot from disk and event hashes."""
+        if step not in ROLLING_EVIDENCE_STEPS:
+            raise ValueError(f"rolling evidence is not defined for step {step}")
+        event_name = f"milestone_exported_{step}"
+        matching_events = [
+            event for event in self.events if event.get("event") == event_name
+        ]
+        if len(matching_events) != 1:
+            raise RuntimeError(f"step-{step} evidence event is missing or duplicated")
+        event = matching_events[0]
+        export_plan = self.plan["rolling_evidence_exports"][str(step)]
+        milestone = Path(export_plan["directory"])
+        if not milestone.is_dir() or milestone.is_symlink():
+            raise RuntimeError(f"step-{step} evidence milestone is absent")
+        if any(path.is_symlink() for path in milestone.rglob("*")):
+            raise ValueError(f"step-{step} evidence contains a symlink")
+        actual_files = {
+            str(path.relative_to(milestone))
+            for path in milestone.rglob("*")
+            if path.is_file()
+        }
+        if actual_files != ROLLING_EVIDENCE_FILES:
+            raise RuntimeError(f"step-{step} evidence inventory drifted")
+
+        manifest_path = milestone / "manifest.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise ValueError(f"step-{step} evidence manifest is invalid") from exc
+        if not isinstance(manifest, dict):
+            raise TypeError(f"step-{step} evidence manifest must be an object")
+        _validate_json_finite(manifest, label=f"step-{step} evidence manifest")
+        expected_manifest = {
+            "version": "grpo-full-run-rolling-evidence-v1",
+            "status": "completed",
+            "step": step,
+            "source_checkpoint": str(self._checkpoint_path(step)),
+            "checkpoint_retained": True,
+            "adapter_copy_required": False,
+            "rollout_records": step * GENERATIONS_PER_STEP,
+            "trainer_step_logs": step,
+            "files": sorted(ROLLING_EVIDENCE_FILES),
+        }
+        for field, expected in expected_manifest.items():
+            if manifest.get(field) != expected:
+                raise ValueError(
+                    f"step-{step} evidence manifest drifted for {field}"
+                )
+
+        rollout_sha = _sha256_file(milestone / "rollouts.jsonl")
+        trainer_log_sha = _sha256_file(milestone / "trainer-log.json")
+        checkpoint_weights_sha = _sha256_file(
+            self._checkpoint_path(step) / "adapter_model.safetensors"
+        )
+        checkpoint_state_sha = _sha256_file(
+            self._checkpoint_path(step) / "trainer_state.json"
+        )
+        hash_fields = {
+            "rollouts_sha256": rollout_sha,
+            "trainer_log_sha256": trainer_log_sha,
+            "checkpoint_adapter_model_sha256": checkpoint_weights_sha,
+            "checkpoint_trainer_state_sha256": checkpoint_state_sha,
+        }
+        for field, expected in hash_fields.items():
+            if manifest.get(field) != expected or event.get(field) != expected:
+                raise ValueError(
+                    f"step-{step} evidence hash drifted for {field}"
+                )
+        if event.get("path") != str(milestone):
+            raise ValueError(f"step-{step} evidence event path drifted")
+        if event.get("files") != sorted(ROLLING_EVIDENCE_FILES):
+            raise ValueError(f"step-{step} evidence event inventory drifted")
+        return {
+            "step": step,
+            "path": str(milestone),
+            **hash_fields,
+            "rollout_records": step * GENERATIONS_PER_STEP,
+            "trainer_step_logs": step,
+            "validated": True,
+        }
+
     def verify_retention_after_step_300(self) -> dict:
         expected_prefix = [
             "checkpoint_saved_100",
             "milestone_exported_100",
             "checkpoint_saved_200",
+            "milestone_exported_200",
             "checkpoint_saved_300",
+            "milestone_exported_300",
         ]
         if [event["event"] for event in self.events] != expected_prefix:
             raise RuntimeError("checkpoint retention cannot be verified yet")
@@ -629,9 +865,21 @@ class FullRunCheckpointLifecycleWriter:
             raise RuntimeError("checkpoint 100 was not evicted at the retention limit")
         if not all(path.is_dir() and not path.is_symlink() for path in retained):
             raise RuntimeError("checkpoint 200 or 300 is missing after retention")
-        milestone = Path(self.plan["step_100_export"]["directory"])
-        if not milestone.is_dir() or milestone.is_symlink():
-            raise RuntimeError("step-100 milestone is absent after checkpoint eviction")
+        milestone_paths = [
+            Path(self.plan["step_100_export"]["directory"]),
+            *(
+                Path(self.plan["rolling_evidence_exports"][str(step)]["directory"])
+                for step in ROLLING_EVIDENCE_STEPS
+            ),
+        ]
+        if not all(
+            path.is_dir() and not path.is_symlink() for path in milestone_paths
+        ):
+            raise RuntimeError("durable evidence milestone is absent after retention")
+        rolling_evidence = {
+            str(step): self._validate_rolling_evidence_milestone(step)
+            for step in ROLLING_EVIDENCE_STEPS
+        }
 
         eviction = {
             "event": "checkpoint_evicted_100",
@@ -643,11 +891,13 @@ class FullRunCheckpointLifecycleWriter:
             "event": "retention_verified",
             "retained_steps": list(RETAINED_CHECKPOINT_STEPS),
             "absent_steps": list(EVICTED_CHECKPOINT_STEPS),
+            "durable_evidence_steps": list(CHECKPOINT_STEPS),
         }
         self.events.extend((eviction, retention))
         return {
             "eviction": dict(eviction),
             "retention": dict(retention),
+            "rolling_evidence": rolling_evidence,
         }
 
     def save_and_validate_final_adapter(
@@ -659,7 +909,7 @@ class FullRunCheckpointLifecycleWriter:
     ) -> dict:
         """Save the step-300 PEFT adapter and verify source/final integrity."""
         if [event["event"] for event in self.events] != list(
-            REQUIRED_EVENT_SEQUENCE[:6]
+            REQUIRED_EVENT_SEQUENCE[:8]
         ):
             raise RuntimeError("final adapter cannot precede checkpoint retention")
         source_adapter = Path(source_adapter_file).resolve()
@@ -726,7 +976,7 @@ class FullRunCheckpointLifecycleWriter:
     ) -> dict:
         """Validate the completed staging tree and atomically publish the run."""
         if [event["event"] for event in self.events] != list(
-            REQUIRED_EVENT_SEQUENCE[:8]
+            REQUIRED_EVENT_SEQUENCE[:10]
         ):
             raise RuntimeError("bundle publication requires a validated final adapter")
         if len(rollout_records) != EXPECTED_FINAL_ROLLOUTS:
@@ -768,8 +1018,16 @@ class FullRunCheckpointLifecycleWriter:
         trainer = Path(self.plan["trainer_output_dir"])
         trainer_root_metadata = _validate_trainer_root_inventory(trainer)
         milestones = staging / "milestones"
-        if {path.name for path in milestones.iterdir()} != {"step-100"}:
+        if {path.name for path in milestones.iterdir()} != {
+            "step-100",
+            "step-200",
+            "step-300",
+        }:
             raise RuntimeError("milestone inventory drifted before publication")
+        rolling_evidence = {
+            str(step): self._validate_rolling_evidence_milestone(step)
+            for step in ROLLING_EVIDENCE_STEPS
+        }
         final_adapter = Path(self.plan["final_adapter_dir"])
         if not final_adapter.is_dir() or final_adapter.is_symlink():
             raise RuntimeError("validated final adapter disappeared")
@@ -780,6 +1038,16 @@ class FullRunCheckpointLifecycleWriter:
             "rollouts_sha256": _sha256_file(root_files["rollouts.jsonl"]),
             "trainer_log_sha256": _sha256_file(root_files["trainer-log.json"]),
         }
+        step_300_evidence = rolling_evidence["300"]
+        if (
+            artifact_hashes["rollouts_sha256"]
+            != step_300_evidence["rollouts_sha256"]
+            or artifact_hashes["trainer_log_sha256"]
+            != step_300_evidence["trainer_log_sha256"]
+        ):
+            raise RuntimeError(
+                "completed bundle evidence differs from durable step-300 snapshot"
+            )
         manifest = {
             "version": "grpo-full-run-300-bundle-v1",
             "status": "completed",
@@ -795,6 +1063,7 @@ class FullRunCheckpointLifecycleWriter:
                 dict(event) for event in self.events
             ],
             "trainer_root_metadata": trainer_root_metadata,
+            "rolling_evidence_validation": rolling_evidence,
             "final_adapter": self._final_adapter_validation,
             "artifacts": artifact_hashes,
             "publication_method": "same_filesystem_atomic_rename",
@@ -865,6 +1134,7 @@ class FullRunCheckpointLifecycleWriter:
             "rollouts_sha256": artifact_hashes["rollouts_sha256"],
             "trainer_log_sha256": artifact_hashes["trainer_log_sha256"],
             "trainer_root_metadata": trainer_root_metadata,
+            "rolling_evidence_validation": rolling_evidence,
             "run_summary_validation": run_summary_validation,
             "total_bytes": total_bytes,
             "disk_free_after_bytes": free_bytes,
@@ -874,7 +1144,7 @@ class FullRunCheckpointLifecycleWriter:
 
     def snapshot(self) -> dict:
         names = [event["event"] for event in self.events]
-        ready = names == list(REQUIRED_EVENT_SEQUENCE[:6])
+        ready = names == list(REQUIRED_EVENT_SEQUENCE[:8])
         completed = names == list(REQUIRED_EVENT_SEQUENCE)
         return {
             "version": FULL_RUN_LIFECYCLE_VERSION,
@@ -890,6 +1160,9 @@ class FullRunCheckpointLifecycleWriter:
             "events": [dict(event) for event in self.events],
             "event_count": len(self.events),
             "step_100_exported_before_eviction": ready or completed,
+            "durable_evidence_steps": (
+                list(CHECKPOINT_STEPS) if ready or completed else []
+            ),
             "retained_checkpoint_steps": (
                 list(RETAINED_CHECKPOINT_STEPS) if ready or completed else []
             ),
@@ -950,6 +1223,40 @@ def validate_full_run_lifecycle_events(
     if not _is_sha256(milestone.get("adapter_config_sha256")):
         raise ValueError("step-100 adapter-config hash is invalid")
 
+    for step in ROLLING_EVIDENCE_STEPS:
+        rolling = by_name[f"milestone_exported_{step}"]
+        expected_export = plan["rolling_evidence_exports"][str(step)]
+        if rolling.get("step") != step:
+            raise ValueError(f"step-{step} evidence has the wrong step")
+        if rolling.get("path") != expected_export["directory"]:
+            raise ValueError(f"step-{step} evidence path drifted")
+        if set(rolling.get("files", ())) != ROLLING_EVIDENCE_FILES:
+            raise ValueError(f"step-{step} evidence file inventory drifted")
+        if rolling.get("rollout_records") != step * GENERATIONS_PER_STEP:
+            raise ValueError(f"step-{step} evidence has the wrong rollout count")
+        if rolling.get("trainer_step_logs") != step:
+            raise ValueError(f"step-{step} evidence has the wrong trainer-log count")
+        for field in (
+            "rollouts_sha256",
+            "trainer_log_sha256",
+            "checkpoint_adapter_model_sha256",
+            "checkpoint_trainer_state_sha256",
+        ):
+            if not _is_sha256(rolling.get(field)):
+                raise ValueError(f"step-{step} evidence has an invalid {field}")
+        checkpoint_event = by_name[f"checkpoint_saved_{step}"]
+        if (
+            rolling.get("checkpoint_trainer_state_sha256")
+            != checkpoint_event.get("trainer_state_sha256")
+        ):
+            raise ValueError(
+                f"step-{step} evidence trainer-state binding drifted"
+            )
+        if rolling.get("checkpoint_retained") is not True:
+            raise ValueError(f"step-{step} evidence did not bind a retained checkpoint")
+        if rolling.get("adapter_copy_required") is not False:
+            raise ValueError(f"step-{step} evidence unexpectedly copied an adapter")
+
     eviction = by_name["checkpoint_evicted_100"]
     if eviction.get("step") != 100 or eviction.get("path") != checkpoint_paths["100"]:
         raise ValueError("checkpoint-100 eviction evidence drifted")
@@ -961,6 +1268,8 @@ def validate_full_run_lifecycle_events(
         raise ValueError("retained checkpoint set drifted")
     if retention.get("absent_steps") != list(EVICTED_CHECKPOINT_STEPS):
         raise ValueError("evicted checkpoint set drifted")
+    if retention.get("durable_evidence_steps") != list(CHECKPOINT_STEPS):
+        raise ValueError("durable checkpoint evidence set drifted")
 
     final_saved = by_name["final_adapter_saved"]
     if final_saved.get("step") != 300:
@@ -1016,6 +1325,8 @@ def validate_full_run_lifecycle_events(
         "status": "passed",
         "events": len(events),
         "step_100_exported_before_eviction": True,
+        "durable_evidence_steps": list(CHECKPOINT_STEPS),
+        "full_rollout_snapshot_persisted_before_publication": True,
         "retained_checkpoint_steps": list(RETAINED_CHECKPOINT_STEPS),
         "final_adapter_sha256": final_sha,
         "final_bundle_bytes": total_bytes,
