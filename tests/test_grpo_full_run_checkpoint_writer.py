@@ -445,8 +445,118 @@ def test_final_adapter_and_complete_bundle_publish_atomically(tmp_path):
     assert manifest["run_summary"]["version"] == "grpo-full-run-summary-v1"
     assert manifest["run_summary_validation"]["status"] == "passed"
     assert manifest["run_summary_validation"]["peak_allocated_bytes"] == 30
+    assert manifest["trainer_root_metadata"] == {"readme_present": False}
     assert writer.snapshot()["status"] == "completed_and_published"
     assert writer.snapshot()["event_count"] == 10
+
+
+def test_bundle_publication_accepts_real_trainer_root_readme(tmp_path):
+    """Reproduce the three-entry trainer root written by the production run."""
+    writer, plan, source_adapter = make_ready_writer(tmp_path)
+    trainer = Path(plan["trainer_output_dir"])
+    (trainer / "README.md").write_text(
+        "# Training procedure\n\nGenerated trainer metadata.\n",
+        encoding="utf-8",
+    )
+    assert {path.name for path in trainer.iterdir()} == {
+        "README.md",
+        "checkpoint-200",
+        "checkpoint-300",
+    }
+    writer.save_and_validate_final_adapter(
+        save_adapter_fn=save_fake_final_adapter,
+        source_adapter_file=source_adapter,
+        expected_adapter_model_bytes=len(b"final adapter at step 300"),
+    )
+
+    report = writer.publish_completed_bundle(
+        rollout_records=rollouts(2_400),
+        trainer_step_logs=logs(300),
+        preflight_report={"status": "passed", "cuda_imports_performed": False},
+        config_settings=locked_config(),
+        run_summary=run_summary(),
+        disk_usage_fn=lambda _: SimpleNamespace(free=4 * 1024**3),
+    )
+
+    final = Path(plan["final_output_dir"])
+    assert report["status"] == "completed"
+    assert {path.name for path in (final / "trainer").iterdir()} == {
+        "README.md",
+        "checkpoint-200",
+        "checkpoint-300",
+    }
+    manifest = json.loads((final / "manifest.json").read_text())
+    readme_evidence = manifest["trainer_root_metadata"]
+    assert readme_evidence["readme_present"]
+    assert readme_evidence["bytes"] == len(
+        "# Training procedure\n\nGenerated trainer metadata.\n".encode()
+    )
+    assert len(readme_evidence["sha256"]) == 64
+    assert readme_evidence["encoding"] == "utf-8"
+    assert report["trainer_root_metadata"] == readme_evidence
+
+
+def prepare_bundle_with_trainer_root_entry(tmp_path, name):
+    writer, plan, source_adapter = make_ready_writer(tmp_path)
+    entry = Path(plan["trainer_output_dir"]) / name
+    writer.save_and_validate_final_adapter(
+        save_adapter_fn=save_fake_final_adapter,
+        source_adapter_file=source_adapter,
+        expected_adapter_model_bytes=len(b"final adapter at step 300"),
+    )
+    return writer, entry
+
+
+def publish_ready_bundle(writer):
+    return writer.publish_completed_bundle(
+        rollout_records=rollouts(2_400),
+        trainer_step_logs=logs(300),
+        preflight_report={"status": "passed", "cuda_imports_performed": False},
+        config_settings=locked_config(),
+        run_summary=run_summary(),
+        disk_usage_fn=lambda _: SimpleNamespace(free=4 * 1024**3),
+    )
+
+
+def test_bundle_publication_rejects_arbitrary_trainer_root_extra(tmp_path):
+    writer, extra = prepare_bundle_with_trainer_root_entry(tmp_path, "notes.txt")
+    extra.write_text("unexpected", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="retention inventory drifted"):
+        publish_ready_bundle(writer)
+
+
+@pytest.mark.parametrize("kind", ["directory", "symlink"])
+def test_bundle_publication_rejects_nonregular_trainer_readme(tmp_path, kind):
+    writer, readme = prepare_bundle_with_trainer_root_entry(tmp_path, "README.md")
+    if kind == "directory":
+        readme.mkdir()
+    else:
+        target = tmp_path / "trainer-readme-target.txt"
+        target.write_text("metadata", encoding="utf-8")
+        readme.symlink_to(target)
+
+    with pytest.raises(ValueError, match="regular non-symlink"):
+        publish_ready_bundle(writer)
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        (b"", "empty or exceeds"),
+        (b"\xff\xfe", "valid UTF-8"),
+        (b"metadata\x00hidden", "invalid text content"),
+        (b"x" * (64 * 1024 + 1), "empty or exceeds"),
+    ],
+)
+def test_bundle_publication_rejects_invalid_trainer_readme(
+    tmp_path, content, message
+):
+    writer, readme = prepare_bundle_with_trainer_root_entry(tmp_path, "README.md")
+    readme.write_bytes(content)
+
+    with pytest.raises(ValueError, match=message):
+        publish_ready_bundle(writer)
 
 
 @pytest.mark.parametrize(

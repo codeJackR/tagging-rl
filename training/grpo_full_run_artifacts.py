@@ -28,6 +28,9 @@ GENERATIONS_PER_STEP = 8
 EXPECTED_FINAL_ROLLOUTS = 300 * GENERATIONS_PER_STEP
 EXPECTED_STEP_100_ROLLOUTS = 100 * GENERATIONS_PER_STEP
 MAX_FINAL_BUNDLE_BYTES = 512 * 1024**2
+MAX_TRAINER_ROOT_README_BYTES = 64 * 1024
+TRAINER_ROOT_REQUIRED_ENTRIES = {"checkpoint-200", "checkpoint-300"}
+TRAINER_ROOT_ALLOWED_METADATA = {"README.md"}
 CHECKPOINT_ALLOWED_METADATA = {"trainer_state.json", "training_args.bin"}
 CHECKPOINT_FORBIDDEN_BASENAMES = (
     FORBIDDEN_BASENAMES - CHECKPOINT_ALLOWED_METADATA
@@ -69,6 +72,46 @@ def _sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _validate_trainer_root_inventory(trainer: Path) -> dict:
+    """Allow only retained checkpoints and a bounded trainer model card."""
+    if not trainer.is_dir() or trainer.is_symlink():
+        raise FileNotFoundError("trainer output must be a regular directory")
+    entries = {path.name: path for path in trainer.iterdir()}
+    entry_names = set(entries)
+    if not TRAINER_ROOT_REQUIRED_ENTRIES.issubset(entry_names) or (
+        entry_names
+        - TRAINER_ROOT_REQUIRED_ENTRIES
+        - TRAINER_ROOT_ALLOWED_METADATA
+    ):
+        raise RuntimeError("trainer checkpoint retention inventory drifted")
+    for name in TRAINER_ROOT_REQUIRED_ENTRIES:
+        checkpoint = entries[name]
+        if not checkpoint.is_dir() or checkpoint.is_symlink():
+            raise RuntimeError("retained trainer checkpoint is not a directory")
+
+    readme = entries.get("README.md")
+    if readme is None:
+        return {"readme_present": False}
+    if not readme.is_file() or readme.is_symlink():
+        raise ValueError("trainer README must be a regular non-symlink file")
+    size = readme.stat().st_size
+    if not 0 < size <= MAX_TRAINER_ROOT_README_BYTES:
+        raise ValueError("trainer README is empty or exceeds its size bound")
+    try:
+        content = readme.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        raise ValueError("trainer README must be valid UTF-8") from exc
+    if not content.strip() or "\x00" in content:
+        raise ValueError("trainer README contains invalid text content")
+    return {
+        "readme_present": True,
+        "path": str(readme),
+        "bytes": size,
+        "sha256": _sha256_file(readme),
+        "encoding": "utf-8",
+    }
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -723,9 +766,7 @@ class FullRunCheckpointLifecycleWriter:
             raise FileExistsError("completed-bundle evidence already exists")
 
         trainer = Path(self.plan["trainer_output_dir"])
-        trainer_entries = {path.name for path in trainer.iterdir()}
-        if trainer_entries != {"checkpoint-200", "checkpoint-300"}:
-            raise RuntimeError("trainer checkpoint retention inventory drifted")
+        trainer_root_metadata = _validate_trainer_root_inventory(trainer)
         milestones = staging / "milestones"
         if {path.name for path in milestones.iterdir()} != {"step-100"}:
             raise RuntimeError("milestone inventory drifted before publication")
@@ -753,6 +794,7 @@ class FullRunCheckpointLifecycleWriter:
             "checkpoint_events_before_publication": [
                 dict(event) for event in self.events
             ],
+            "trainer_root_metadata": trainer_root_metadata,
             "final_adapter": self._final_adapter_validation,
             "artifacts": artifact_hashes,
             "publication_method": "same_filesystem_atomic_rename",
@@ -822,6 +864,7 @@ class FullRunCheckpointLifecycleWriter:
             "manifest_sha256": manifest_sha256,
             "rollouts_sha256": artifact_hashes["rollouts_sha256"],
             "trainer_log_sha256": artifact_hashes["trainer_log_sha256"],
+            "trainer_root_metadata": trainer_root_metadata,
             "run_summary_validation": run_summary_validation,
             "total_bytes": total_bytes,
             "disk_free_after_bytes": free_bytes,
