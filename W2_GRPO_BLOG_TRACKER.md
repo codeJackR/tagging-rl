@@ -4606,6 +4606,86 @@ The focused bootstrap/evaluator suite passed 25 tests, and the full CPU suite
 passed **478 tests**. The bootstrap ran locally on CPU; no additional GPU work or
 model inference occurred.
 
+###### Attribute, class and rule decomposition
+
+To locate the regression rather than treating macro-F1 as a black box,
+`evalharness/compare_predictions.py` now reopens the same hash-locked raw SFT and
+GRPO predictions and decomposes the shared evaluator output. It requires exact
+gold/baseline/candidate SKU-set equality, preserves per-class TP/FP/FN/support,
+tracks per-attribute macro-F1, selective macro-F1, coverage and exact match, and
+records rule additions/removals by SKU. Its output is collision-safe and
+deterministic. Focused tests cover class deltas, rule transitions and incomplete
+pairing rejection.
+
+Eight of 15 attributes improved in headline macro-F1 and seven regressed, so the
+result is not a universal quality collapse. The losses were simply much larger:
+negative attribute deltas summed to −0.3691 while positive deltas offset only
++0.0867.
+
+| attribute | SFT macro-F1 | GRPO macro-F1 | delta | coverage delta | selective-F1 delta |
+|---|---:|---:|---:|---:|---:|
+| collar type | 0.7490 | 0.5740 | **−0.1750** | +3.96 pp | −0.1998 |
+| closure | 0.4045 | 0.3553 | −0.0492 | +5.15 pp | −0.0707 |
+| neckline | 0.6471 | 0.6008 | −0.0463 | +3.85 pp | −0.0651 |
+| pattern | 0.5651 | 0.5204 | −0.0448 | +7.84 pp | −0.1000 |
+| garment length | 0.7731 | 0.7385 | −0.0346 | +2.48 pp | −0.0508 |
+| material | 0.8329 | 0.8509 | +0.0180 | 0.00 pp | +0.0180 |
+| waistline | 0.4441 | 0.4609 | +0.0168 | +3.19 pp | −0.2529 |
+| details | 0.4632 | 0.4764 | +0.0132 | +5.13 pp | −0.0313 |
+
+`collar_type` alone accounts for **47.4% of the total negative attribute-delta
+magnitude**. If collar type were omitted, the mean of the other 14 attribute
+deltas would still be negative, but only −0.00768 instead of −0.01883. Its
+coverage reached 100%, yet exact match fell 4.46 points and selective macro-F1
+fell 19.98 points. The rare-class changes show what the headline hides:
+
+| collar class | gold support | SFT F1 | GRPO F1 | delta |
+|---|---:|---:|---:|---:|
+| polo | 6 | 1.000 | 0.500 | −0.500 |
+| notched lapel | 7 | 0.250 | 0.000 | −0.250 |
+| hooded | 8 | 0.889 | 0.667 | −0.222 |
+| band | 8 | 0.364 | 0.182 | −0.182 |
+
+Other largest class losses were `closure=lace_up` and `neckline=cowl`, each
+−0.444 F1 with support seven, and `pattern=camouflage`, −0.350 with support
+seven. Gains also existed: `silhouette=flare` rose 0.204, `occasion=work` rose
+0.175, `details=gathered` rose 0.174 and `material=silk` rose 0.156. These small
+supports are exactly why the blog must keep the aggregate paired interval beside
+individual class anecdotes.
+
+The rule regression was also distributed across more products, not caused by
+one pathological row:
+
+| rule state transition | products |
+|---|---:|
+| clean under both models | 271 |
+| violating only under SFT | 3 |
+| violating under both | 8 |
+| violating only under GRPO | 18 |
+
+SFT had 12 violations across 11 rows; GRPO had 28 across 26 rows. The largest
+increases were `bodycon_is_tight` (+7) and `pants_length_subset` (+4), together
+accounting for 11 of the 16 net additional violations. Applicability for collar
+type and `solid_is_not_multicolour` each added two; only
+`lapels_are_tailored_only` improved by one net violation.
+
+The strongest supported inference is reward/evaluation misalignment rather than
+a broken trainer. GRPO received useful nonzero gradients and improved some
+attributes, but its binary whole-record rewards do not directly optimize
+class-balanced per-attribute F1. Rule compliance is also one binary component in
+a `1:1:2` reward, so a completion can gain golden-agreement reward while the
+frozen evaluator detects a different rule failure. Because 96.5% of training
+rollouts already received the vocabulary/rule point on average, that component
+was comparatively sparse. This is a plausible mechanism, not causal proof; a
+reward ablation or additional training seeds would be needed to establish cause.
+
+The decomposition artifact is
+`runs/grpo-first-300-frozen-eval-300-decomposition.json`, SHA-256
+`973ef2d6ca8b739cf26fd66ae09f9e437115d63545932c7cd93514956b94d638`.
+It preserves every class count and each SKU-level rule transition, allowing the
+blog's examples to be traced without another model call. The final full CPU
+suite passed **481 tests**.
+
 This run proves successful optimization, evidence durability, bounded resource
 use and reproducible publication. It does **not** yet prove that GRPO improved
 catalog-tagging quality. The next scientific boundary is inference with the
@@ -4901,6 +4981,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Locked frozen evaluation after GRPO.
 - [x] Deterministic 5,000-replicate paired SFT-versus-GRPO uncertainty estimate,
   with exact input/stream hashes and a reproduced historical SFT interval.
+- [x] Deterministic attribute/class/rule decomposition with exact input hashes,
+  per-class counts and SKU-level rule transitions.
 - [ ] Final limitations and reproducibility package.
 
 ---

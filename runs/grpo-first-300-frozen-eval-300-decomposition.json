@@ -1,0 +1,3571 @@
+{
+  "baseline_label": "sft-combined-checkpoint-406",
+  "candidate_label": "grpo-first-300-final",
+  "comparison": {
+    "attribute_direction_counts": {
+      "improved": 8,
+      "regressed": 7,
+      "unchanged": 0
+    },
+    "attributes": {
+      "closure": {
+        "baseline": {
+          "coverage": 0.8161764705882353,
+          "exact_match": 0.5588235294117647,
+          "macro_f1": 0.40453439976360184,
+          "selective_macro_f1": 0.5412203252446549
+        },
+        "candidate": {
+          "coverage": 0.8676470588235294,
+          "exact_match": 0.5514705882352942,
+          "macro_f1": 0.3553121465582998,
+          "selective_macro_f1": 0.4705549384825701
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.4838709677419355,
+              "fn": 24,
+              "fp": 8,
+              "support": 39,
+              "tp": 15
+            },
+            "candidate": {
+              "f1": 0.5217391304347826,
+              "fn": 21,
+              "fp": 12,
+              "support": 39,
+              "tp": 18
+            },
+            "delta_f1": 0.037868162692847096
+          },
+          "buckle": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "double_breasted": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 4,
+              "fp": 0,
+              "support": 4,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 4,
+              "fp": 0,
+              "support": 4,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "drawstring": {
+            "baseline": {
+              "f1": 0.7368421052631579,
+              "fn": 1,
+              "fp": 4,
+              "support": 8,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 0.7368421052631579,
+              "fn": 1,
+              "fp": 4,
+              "support": 8,
+              "tp": 7
+            },
+            "delta_f1": 0.0
+          },
+          "fly": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "lace_up": {
+            "baseline": {
+              "f1": 0.4444444444444445,
+              "fn": 5,
+              "fp": 0,
+              "support": 7,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": -0.4444444444444445
+          },
+          "pullover": {
+            "baseline": {
+              "f1": 0.6545454545454547,
+              "fn": 5,
+              "fp": 14,
+              "support": 23,
+              "tp": 18
+            },
+            "candidate": {
+              "f1": 0.5862068965517241,
+              "fn": 6,
+              "fp": 18,
+              "support": 23,
+              "tp": 17
+            },
+            "delta_f1": -0.06833855799373056
+          },
+          "single_breasted": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 5,
+              "fp": 0,
+              "support": 5,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 5,
+              "fp": 0,
+              "support": 5,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "strap": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "wrap": {
+            "baseline": {
+              "f1": 0.8333333333333333,
+              "fn": 2,
+              "fp": 0,
+              "support": 7,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.8333333333333333,
+              "fn": 2,
+              "fp": 0,
+              "support": 7,
+              "tp": 5
+            },
+            "delta_f1": 0.0
+          },
+          "zip": {
+            "baseline": {
+              "f1": 0.8923076923076924,
+              "fn": 0,
+              "fp": 7,
+              "support": 29,
+              "tp": 29
+            },
+            "candidate": {
+              "f1": 0.8750000000000001,
+              "fn": 1,
+              "fp": 7,
+              "support": 29,
+              "tp": 28
+            },
+            "delta_f1": -0.017307692307692246
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.05147058823529416,
+          "exact_match": -0.007352941176470562,
+          "macro_f1": -0.04922225320530205,
+          "selective_macro_f1": -0.07066538676208484
+        },
+        "n_gold_unknown": 164,
+        "n_scorable": 136
+      },
+      "collar_type": {
+        "baseline": {
+          "coverage": 0.9603960396039604,
+          "exact_match": 0.8415841584158416,
+          "macro_f1": 0.7489931688090503,
+          "selective_macro_f1": 0.7737955589037164
+        },
+        "candidate": {
+          "coverage": 1.0,
+          "exact_match": 0.7970297029702971,
+          "macro_f1": 0.5740279946590626,
+          "selective_macro_f1": 0.5740279946590626
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.9180327868852458,
+              "fn": 14,
+              "fp": 1,
+              "support": 98,
+              "tp": 84
+            },
+            "candidate": {
+              "f1": 0.9025641025641026,
+              "fn": 10,
+              "fp": 9,
+              "support": 98,
+              "tp": 88
+            },
+            "delta_f1": -0.015468684321143233
+          },
+          "band": {
+            "baseline": {
+              "f1": 0.36363636363636365,
+              "fn": 6,
+              "fp": 1,
+              "support": 8,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.18181818181818182,
+              "fn": 7,
+              "fp": 2,
+              "support": 8,
+              "tp": 1
+            },
+            "delta_f1": -0.18181818181818182
+          },
+          "hooded": {
+            "baseline": {
+              "f1": 0.888888888888889,
+              "fn": 0,
+              "fp": 2,
+              "support": 8,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 0.6666666666666666,
+              "fn": 3,
+              "fp": 2,
+              "support": 8,
+              "tp": 5
+            },
+            "delta_f1": -0.22222222222222232
+          },
+          "mock": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "none": {
+            "baseline": {
+              "f1": 0.8823529411764706,
+              "fn": 3,
+              "fp": 9,
+              "support": 48,
+              "tp": 45
+            },
+            "candidate": {
+              "f1": 0.8155339805825242,
+              "fn": 6,
+              "fp": 13,
+              "support": 48,
+              "tp": 42
+            },
+            "delta_f1": -0.06681896059394632
+          },
+          "notch_lapel": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "notched_lapel": {
+            "baseline": {
+              "f1": 0.25,
+              "fn": 6,
+              "fp": 0,
+              "support": 7,
+              "tp": 1
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": -0.25
+          },
+          "polo": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 6,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.5,
+              "fn": 4,
+              "fp": 0,
+              "support": 6,
+              "tp": 2
+            },
+            "delta_f1": -0.5
+          },
+          "shawl_lapel": {
+            "baseline": {
+              "f1": 0.923076923076923,
+              "fn": 1,
+              "fp": 0,
+              "support": 7,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.8333333333333333,
+              "fn": 2,
+              "fp": 0,
+              "support": 7,
+              "tp": 5
+            },
+            "delta_f1": -0.08974358974358976
+          },
+          "shirt": {
+            "baseline": {
+              "f1": 0.7659574468085106,
+              "fn": 2,
+              "fp": 9,
+              "support": 20,
+              "tp": 18
+            },
+            "candidate": {
+              "f1": 0.6923076923076923,
+              "fn": 2,
+              "fp": 14,
+              "support": 20,
+              "tp": 18
+            },
+            "delta_f1": -0.07364975450081834
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.03960396039603964,
+          "exact_match": -0.04455445544554448,
+          "macro_f1": -0.1749651741499877,
+          "selective_macro_f1": -0.1997675642446538
+        },
+        "n_gold_unknown": 98,
+        "n_scorable": 202
+      },
+      "colour_primary": {
+        "baseline": {
+          "coverage": 0.9819004524886877,
+          "exact_match": 0.8733031674208145,
+          "macro_f1": 0.7753342492285987,
+          "selective_macro_f1": 0.8300094172905088
+        },
+        "candidate": {
+          "coverage": 0.9864253393665159,
+          "exact_match": 0.8868778280542986,
+          "macro_f1": 0.7852698665358512,
+          "selective_macro_f1": 0.8395151303655141
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 2,
+              "fp": 0,
+              "support": 2,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 2,
+              "fp": 0,
+              "support": 2,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "beige": {
+            "baseline": {
+              "f1": 0.9090909090909091,
+              "fn": 1,
+              "fp": 2,
+              "support": 16,
+              "tp": 15
+            },
+            "candidate": {
+              "f1": 0.9090909090909091,
+              "fn": 1,
+              "fp": 2,
+              "support": 16,
+              "tp": 15
+            },
+            "delta_f1": 0.0
+          },
+          "black": {
+            "baseline": {
+              "f1": 0.983050847457627,
+              "fn": 0,
+              "fp": 1,
+              "support": 29,
+              "tp": 29
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 29,
+              "tp": 29
+            },
+            "delta_f1": 0.016949152542372947
+          },
+          "blue": {
+            "baseline": {
+              "f1": 0.9666666666666666,
+              "fn": 2,
+              "fp": 0,
+              "support": 31,
+              "tp": 29
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 31,
+              "tp": 31
+            },
+            "delta_f1": 0.03333333333333344
+          },
+          "brown": {
+            "baseline": {
+              "f1": 0.8571428571428571,
+              "fn": 2,
+              "fp": 2,
+              "support": 14,
+              "tp": 12
+            },
+            "candidate": {
+              "f1": 0.8571428571428571,
+              "fn": 2,
+              "fp": 2,
+              "support": 14,
+              "tp": 12
+            },
+            "delta_f1": 0.0
+          },
+          "gold": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 4,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 4,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "green": {
+            "baseline": {
+              "f1": 0.9411764705882353,
+              "fn": 2,
+              "fp": 0,
+              "support": 18,
+              "tp": 16
+            },
+            "candidate": {
+              "f1": 0.9142857142857143,
+              "fn": 2,
+              "fp": 1,
+              "support": 18,
+              "tp": 16
+            },
+            "delta_f1": -0.026890756302521024
+          },
+          "grey": {
+            "baseline": {
+              "f1": 0.9411764705882353,
+              "fn": 1,
+              "fp": 1,
+              "support": 17,
+              "tp": 16
+            },
+            "candidate": {
+              "f1": 0.9714285714285714,
+              "fn": 0,
+              "fp": 1,
+              "support": 17,
+              "tp": 17
+            },
+            "delta_f1": 0.030252100840336138
+          },
+          "metallic": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "multicolour": {
+            "baseline": {
+              "f1": 0.6428571428571429,
+              "fn": 3,
+              "fp": 7,
+              "support": 12,
+              "tp": 9
+            },
+            "candidate": {
+              "f1": 0.6153846153846153,
+              "fn": 4,
+              "fp": 6,
+              "support": 12,
+              "tp": 8
+            },
+            "delta_f1": -0.027472527472527597
+          },
+          "navy": {
+            "baseline": {
+              "f1": 0.8823529411764706,
+              "fn": 2,
+              "fp": 2,
+              "support": 17,
+              "tp": 15
+            },
+            "candidate": {
+              "f1": 0.9090909090909091,
+              "fn": 2,
+              "fp": 1,
+              "support": 17,
+              "tp": 15
+            },
+            "delta_f1": 0.0267379679144385
+          },
+          "orange": {
+            "baseline": {
+              "f1": 0.8333333333333333,
+              "fn": 2,
+              "fp": 0,
+              "support": 7,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.8333333333333333,
+              "fn": 2,
+              "fp": 0,
+              "support": 7,
+              "tp": 5
+            },
+            "delta_f1": 0.0
+          },
+          "pink": {
+            "baseline": {
+              "f1": 0.823529411764706,
+              "fn": 1,
+              "fp": 2,
+              "support": 8,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 0.823529411764706,
+              "fn": 1,
+              "fp": 2,
+              "support": 8,
+              "tp": 7
+            },
+            "delta_f1": 0.0
+          },
+          "purple": {
+            "baseline": {
+              "f1": 0.7272727272727273,
+              "fn": 3,
+              "fp": 0,
+              "support": 7,
+              "tp": 4
+            },
+            "candidate": {
+              "f1": 0.8333333333333333,
+              "fn": 2,
+              "fp": 0,
+              "support": 7,
+              "tp": 5
+            },
+            "delta_f1": 0.10606060606060597
+          },
+          "red": {
+            "baseline": {
+              "f1": 0.9565217391304348,
+              "fn": 0,
+              "fp": 1,
+              "support": 11,
+              "tp": 11
+            },
+            "candidate": {
+              "f1": 0.9565217391304348,
+              "fn": 0,
+              "fp": 1,
+              "support": 11,
+              "tp": 11
+            },
+            "delta_f1": 0.0
+          },
+          "silver": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "white": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 17,
+              "tp": 17
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 17,
+              "tp": 17
+            },
+            "delta_f1": 0.0
+          },
+          "yellow": {
+            "baseline": {
+              "f1": 0.9411764705882353,
+              "fn": 0,
+              "fp": 1,
+              "support": 8,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 0.9411764705882353,
+              "fn": 0,
+              "fp": 1,
+              "support": 8,
+              "tp": 8
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.004524886877828149,
+          "exact_match": 0.013574660633484115,
+          "macro_f1": 0.009935617307252453,
+          "selective_macro_f1": 0.009505713075005251
+        },
+        "n_gold_unknown": 79,
+        "n_scorable": 221
+      },
+      "details": {
+        "baseline": {
+          "coverage": 0.9487179487179487,
+          "exact_match": 0.7008547008547008,
+          "macro_f1": 0.46323938752437954,
+          "selective_macro_f1": 0.5077480565506975
+        },
+        "candidate": {
+          "coverage": 1.0,
+          "exact_match": 0.7435897435897436,
+          "macro_f1": 0.4764356519160032,
+          "selective_macro_f1": 0.4764356519160032
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 8,
+              "fp": 0,
+              "support": 8,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 8,
+              "fp": 0,
+              "support": 8,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "cut_out": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "cutout": {
+            "baseline": {
+              "f1": 0.25,
+              "fn": 6,
+              "fp": 0,
+              "support": 7,
+              "tp": 1
+            },
+            "candidate": {
+              "f1": 0.25,
+              "fn": 6,
+              "fp": 0,
+              "support": 7,
+              "tp": 1
+            },
+            "delta_f1": 0.0
+          },
+          "distressed": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 2,
+              "fp": 0,
+              "support": 2,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 2,
+              "fp": 0,
+              "support": 2,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "embroidered": {
+            "baseline": {
+              "f1": 0.3636363636363636,
+              "fn": 7,
+              "fp": 0,
+              "support": 9,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.3636363636363636,
+              "fn": 7,
+              "fp": 0,
+              "support": 9,
+              "tp": 2
+            },
+            "delta_f1": 0.0
+          },
+          "gather": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "gathered": {
+            "baseline": {
+              "f1": 0.6086956521739131,
+              "fn": 5,
+              "fp": 4,
+              "support": 12,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 0.7826086956521738,
+              "fn": 3,
+              "fp": 2,
+              "support": 12,
+              "tp": 9
+            },
+            "delta_f1": 0.17391304347826075
+          },
+          "lined": {
+            "baseline": {
+              "f1": 0.8717948717948718,
+              "fn": 10,
+              "fp": 0,
+              "support": 44,
+              "tp": 34
+            },
+            "candidate": {
+              "f1": 0.8571428571428571,
+              "fn": 11,
+              "fp": 0,
+              "support": 44,
+              "tp": 33
+            },
+            "delta_f1": -0.014652014652014711
+          },
+          "none": {
+            "baseline": {
+              "f1": 0.865079365079365,
+              "fn": 9,
+              "fp": 25,
+              "support": 118,
+              "tp": 109
+            },
+            "candidate": {
+              "f1": 0.8905660377358491,
+              "fn": 0,
+              "fp": 29,
+              "support": 118,
+              "tp": 118
+            },
+            "delta_f1": 0.025486672656484077
+          },
+          "pleated": {
+            "baseline": {
+              "f1": 0.9333333333333333,
+              "fn": 1,
+              "fp": 0,
+              "support": 8,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 0.9333333333333333,
+              "fn": 1,
+              "fp": 0,
+              "support": 8,
+              "tp": 7
+            },
+            "delta_f1": 0.0
+          },
+          "quilted": {
+            "baseline": {
+              "f1": 0.9090909090909091,
+              "fn": 1,
+              "fp": 0,
+              "support": 6,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.9090909090909091,
+              "fn": 1,
+              "fp": 0,
+              "support": 6,
+              "tp": 5
+            },
+            "delta_f1": 0.0
+          },
+          "ruched": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "slit": {
+            "baseline": {
+              "f1": 0.8,
+              "fn": 3,
+              "fp": 0,
+              "support": 9,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.8,
+              "fn": 3,
+              "fp": 0,
+              "support": 9,
+              "tp": 6
+            },
+            "delta_f1": 0.0
+          },
+          "studded": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 6,
+              "fp": 0,
+              "support": 6,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 6,
+              "fp": 0,
+              "support": 6,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "tiered": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "washed": {
+            "baseline": {
+              "f1": 0.8837209302325582,
+              "fn": 5,
+              "fp": 0,
+              "support": 24,
+              "tp": 19
+            },
+            "candidate": {
+              "f1": 0.8837209302325582,
+              "fn": 5,
+              "fp": 0,
+              "support": 24,
+              "tp": 19
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.05128205128205132,
+          "exact_match": 0.042735042735042805,
+          "macro_f1": 0.013196264391623636,
+          "selective_macro_f1": -0.03131240463469437
+        },
+        "n_gold_unknown": 66,
+        "n_scorable": 234
+      },
+      "fit": {
+        "baseline": {
+          "coverage": 0.9936708860759493,
+          "exact_match": 0.9556962025316456,
+          "macro_f1": 0.9503024083196496,
+          "selective_macro_f1": 0.9534770114942528
+        },
+        "candidate": {
+          "coverage": 0.9936708860759493,
+          "exact_match": 0.9620253164556962,
+          "macro_f1": 0.9569137736895963,
+          "selective_macro_f1": 0.9600883768641996
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 41,
+              "tp": 41
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 41,
+              "tp": 41
+            },
+            "delta_f1": 0.0
+          },
+          "loose": {
+            "baseline": {
+              "f1": 0.9375,
+              "fn": 0,
+              "fp": 6,
+              "support": 45,
+              "tp": 45
+            },
+            "candidate": {
+              "f1": 0.9473684210526316,
+              "fn": 0,
+              "fp": 5,
+              "support": 45,
+              "tp": 45
+            },
+            "delta_f1": 0.009868421052631637
+          },
+          "oversized": {
+            "baseline": {
+              "f1": 0.896551724137931,
+              "fn": 3,
+              "fp": 0,
+              "support": 16,
+              "tp": 13
+            },
+            "candidate": {
+              "f1": 0.896551724137931,
+              "fn": 3,
+              "fp": 0,
+              "support": 16,
+              "tp": 13
+            },
+            "delta_f1": 0.0
+          },
+          "regular": {
+            "baseline": {
+              "f1": 0.9333333333333333,
+              "fn": 3,
+              "fp": 0,
+              "support": 24,
+              "tp": 21
+            },
+            "candidate": {
+              "f1": 0.9565217391304348,
+              "fn": 2,
+              "fp": 0,
+              "support": 24,
+              "tp": 22
+            },
+            "delta_f1": 0.023188405797101463
+          },
+          "tight": {
+            "baseline": {
+              "f1": 0.9841269841269841,
+              "fn": 1,
+              "fp": 0,
+              "support": 32,
+              "tp": 31
+            },
+            "candidate": {
+              "f1": 0.9841269841269841,
+              "fn": 1,
+              "fp": 0,
+              "support": 32,
+              "tp": 31
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.0,
+          "exact_match": 0.006329113924050667,
+          "macro_f1": 0.006611365369946665,
+          "selective_macro_f1": 0.006611365369946776
+        },
+        "n_gold_unknown": 142,
+        "n_scorable": 158
+      },
+      "garment_category": {
+        "baseline": {
+          "coverage": 1.0,
+          "exact_match": 0.92,
+          "macro_f1": 0.8350583315851544,
+          "selective_macro_f1": 0.8350583315851544
+        },
+        "candidate": {
+          "coverage": 1.0,
+          "exact_match": 0.93,
+          "macro_f1": 0.8373110474887773,
+          "selective_macro_f1": 0.8373110474887773
+        },
+        "classes": {
+          "bag": {
+            "baseline": {
+              "f1": 0.9285714285714286,
+              "fn": 0,
+              "fp": 2,
+              "support": 13,
+              "tp": 13
+            },
+            "candidate": {
+              "f1": 0.9285714285714286,
+              "fn": 0,
+              "fp": 2,
+              "support": 13,
+              "tp": 13
+            },
+            "delta_f1": 0.0
+          },
+          "cape": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "cardigan": {
+            "baseline": {
+              "f1": 0.8333333333333333,
+              "fn": 0,
+              "fp": 4,
+              "support": 10,
+              "tp": 10
+            },
+            "candidate": {
+              "f1": 0.9523809523809523,
+              "fn": 0,
+              "fp": 1,
+              "support": 10,
+              "tp": 10
+            },
+            "delta_f1": 0.11904761904761907
+          },
+          "coat": {
+            "baseline": {
+              "f1": 0.7692307692307692,
+              "fn": 2,
+              "fp": 1,
+              "support": 7,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.7692307692307692,
+              "fn": 2,
+              "fp": 1,
+              "support": 7,
+              "tp": 5
+            },
+            "delta_f1": 0.0
+          },
+          "dress": {
+            "baseline": {
+              "f1": 0.9928057553956835,
+              "fn": 0,
+              "fp": 1,
+              "support": 69,
+              "tp": 69
+            },
+            "candidate": {
+              "f1": 0.9857142857142858,
+              "fn": 0,
+              "fp": 2,
+              "support": 69,
+              "tp": 69
+            },
+            "delta_f1": -0.007091469681397733
+          },
+          "jacket": {
+            "baseline": {
+              "f1": 0.8205128205128205,
+              "fn": 0,
+              "fp": 7,
+              "support": 16,
+              "tp": 16
+            },
+            "candidate": {
+              "f1": 0.8333333333333334,
+              "fn": 1,
+              "fp": 5,
+              "support": 16,
+              "tp": 15
+            },
+            "delta_f1": 0.012820512820512886
+          },
+          "jumpsuit": {
+            "baseline": {
+              "f1": 0.6,
+              "fn": 4,
+              "fp": 0,
+              "support": 7,
+              "tp": 3
+            },
+            "candidate": {
+              "f1": 0.4444444444444445,
+              "fn": 5,
+              "fp": 0,
+              "support": 7,
+              "tp": 2
+            },
+            "delta_f1": -0.1555555555555555
+          },
+          "other": {
+            "baseline": {
+              "f1": 0.8421052631578948,
+              "fn": 3,
+              "fp": 0,
+              "support": 11,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 0.8421052631578948,
+              "fn": 3,
+              "fp": 0,
+              "support": 11,
+              "tp": 8
+            },
+            "delta_f1": 0.0
+          },
+          "pants": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 17,
+              "tp": 17
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 17,
+              "tp": 17
+            },
+            "delta_f1": 0.0
+          },
+          "shirt_blouse": {
+            "baseline": {
+              "f1": 0.9019607843137256,
+              "fn": 4,
+              "fp": 1,
+              "support": 27,
+              "tp": 23
+            },
+            "candidate": {
+              "f1": 0.8727272727272727,
+              "fn": 3,
+              "fp": 4,
+              "support": 27,
+              "tp": 24
+            },
+            "delta_f1": -0.02923351158645293
+          },
+          "shoe": {
+            "baseline": {
+              "f1": 0.9714285714285714,
+              "fn": 0,
+              "fp": 1,
+              "support": 17,
+              "tp": 17
+            },
+            "candidate": {
+              "f1": 0.9714285714285714,
+              "fn": 0,
+              "fp": 1,
+              "support": 17,
+              "tp": 17
+            },
+            "delta_f1": 0.0
+          },
+          "shorts": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 16,
+              "tp": 16
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 16,
+              "tp": 16
+            },
+            "delta_f1": 0.0
+          },
+          "skirt": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 8,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 8,
+              "tp": 8
+            },
+            "delta_f1": 0.0
+          },
+          "sweater": {
+            "baseline": {
+              "f1": 0.8813559322033898,
+              "fn": 7,
+              "fp": 0,
+              "support": 33,
+              "tp": 26
+            },
+            "candidate": {
+              "f1": 0.9850746268656716,
+              "fn": 0,
+              "fp": 1,
+              "support": 33,
+              "tp": 33
+            },
+            "delta_f1": 0.10371869466228179
+          },
+          "top": {
+            "baseline": {
+              "f1": 0.8965517241379309,
+              "fn": 2,
+              "fp": 7,
+              "support": 41,
+              "tp": 39
+            },
+            "candidate": {
+              "f1": 0.888888888888889,
+              "fn": 5,
+              "fp": 4,
+              "support": 41,
+              "tp": 36
+            },
+            "delta_f1": -0.007662835249041988
+          },
+          "vest": {
+            "baseline": {
+              "f1": 0.923076923076923,
+              "fn": 1,
+              "fp": 0,
+              "support": 7,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.923076923076923,
+              "fn": 1,
+              "fp": 0,
+              "support": 7,
+              "tp": 6
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.0,
+          "exact_match": 0.010000000000000009,
+          "macro_f1": 0.0022527159036228595,
+          "selective_macro_f1": 0.0022527159036228595
+        },
+        "n_gold_unknown": 0,
+        "n_scorable": 300
+      },
+      "garment_length": {
+        "baseline": {
+          "coverage": 0.9669421487603306,
+          "exact_match": 0.8842975206611571,
+          "macro_f1": 0.7731360689437066,
+          "selective_macro_f1": 0.7958333333333334
+        },
+        "candidate": {
+          "coverage": 0.9917355371900827,
+          "exact_match": 0.8760330578512396,
+          "macro_f1": 0.7385363957410921,
+          "selective_macro_f1": 0.7450723434535104
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 41,
+              "tp": 41
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 41,
+              "tp": 41
+            },
+            "delta_f1": 0.0
+          },
+          "above_knee": {
+            "baseline": {
+              "f1": 0.6250000000000001,
+              "fn": 2,
+              "fp": 4,
+              "support": 7,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.39999999999999997,
+              "fn": 4,
+              "fp": 5,
+              "support": 7,
+              "tp": 3
+            },
+            "delta_f1": -0.22500000000000014
+          },
+          "cropped": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 8,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 0.9411764705882353,
+              "fn": 0,
+              "fp": 1,
+              "support": 8,
+              "tp": 8
+            },
+            "delta_f1": -0.05882352941176472
+          },
+          "hip": {
+            "baseline": {
+              "f1": 0.823529411764706,
+              "fn": 2,
+              "fp": 1,
+              "support": 9,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 0.8888888888888888,
+              "fn": 1,
+              "fp": 1,
+              "support": 9,
+              "tp": 8
+            },
+            "delta_f1": 0.06535947712418289
+          },
+          "knee": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 6,
+              "fp": 0,
+              "support": 6,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 6,
+              "fp": 0,
+              "support": 6,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "maxi": {
+            "baseline": {
+              "f1": 0.9032258064516129,
+              "fn": 3,
+              "fp": 0,
+              "support": 17,
+              "tp": 14
+            },
+            "candidate": {
+              "f1": 0.9032258064516129,
+              "fn": 3,
+              "fp": 0,
+              "support": 17,
+              "tp": 14
+            },
+            "delta_f1": 0.0
+          },
+          "midi": {
+            "baseline": {
+              "f1": 0.9,
+              "fn": 0,
+              "fp": 4,
+              "support": 18,
+              "tp": 18
+            },
+            "candidate": {
+              "f1": 0.9,
+              "fn": 0,
+              "fp": 4,
+              "support": 18,
+              "tp": 18
+            },
+            "delta_f1": 0.0
+          },
+          "mini": {
+            "baseline": {
+              "f1": 0.9333333333333333,
+              "fn": 1,
+              "fp": 1,
+              "support": 15,
+              "tp": 14
+            },
+            "candidate": {
+              "f1": 0.8749999999999999,
+              "fn": 1,
+              "fp": 3,
+              "support": 15,
+              "tp": 14
+            },
+            "delta_f1": -0.05833333333333346
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.024793388429752095,
+          "exact_match": -0.008264462809917439,
+          "macro_f1": -0.03459967320261448,
+          "selective_macro_f1": -0.050760989879823026
+        },
+        "n_gold_unknown": 179,
+        "n_scorable": 121
+      },
+      "material": {
+        "baseline": {
+          "coverage": 1.0,
+          "exact_match": 0.957983193277311,
+          "macro_f1": 0.8329415040281195,
+          "selective_macro_f1": 0.8329415040281195
+        },
+        "candidate": {
+          "coverage": 1.0,
+          "exact_match": 0.9663865546218487,
+          "macro_f1": 0.8508929009290519,
+          "selective_macro_f1": 0.8508929009290519
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "cashmere": {
+            "baseline": {
+              "f1": 0.9795918367346939,
+              "fn": 0,
+              "fp": 1,
+              "support": 24,
+              "tp": 24
+            },
+            "candidate": {
+              "f1": 0.9795918367346939,
+              "fn": 0,
+              "fp": 1,
+              "support": 24,
+              "tp": 24
+            },
+            "delta_f1": 0.0
+          },
+          "cotton": {
+            "baseline": {
+              "f1": 0.9850746268656716,
+              "fn": 2,
+              "fp": 1,
+              "support": 101,
+              "tp": 99
+            },
+            "candidate": {
+              "f1": 0.9950738916256158,
+              "fn": 0,
+              "fp": 1,
+              "support": 101,
+              "tp": 101
+            },
+            "delta_f1": 0.00999926475994417
+          },
+          "cotton_silk": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "denim": {
+            "baseline": {
+              "f1": 0.9230769230769231,
+              "fn": 1,
+              "fp": 1,
+              "support": 13,
+              "tp": 12
+            },
+            "candidate": {
+              "f1": 0.9600000000000001,
+              "fn": 1,
+              "fp": 0,
+              "support": 13,
+              "tp": 12
+            },
+            "delta_f1": 0.03692307692307695
+          },
+          "knit": {
+            "baseline": {
+              "f1": 0.9523809523809523,
+              "fn": 0,
+              "fp": 1,
+              "support": 10,
+              "tp": 10
+            },
+            "candidate": {
+              "f1": 0.9473684210526316,
+              "fn": 1,
+              "fp": 0,
+              "support": 10,
+              "tp": 9
+            },
+            "delta_f1": -0.005012531328320691
+          },
+          "leather": {
+            "baseline": {
+              "f1": 0.962962962962963,
+              "fn": 0,
+              "fp": 1,
+              "support": 13,
+              "tp": 13
+            },
+            "candidate": {
+              "f1": 0.962962962962963,
+              "fn": 0,
+              "fp": 1,
+              "support": 13,
+              "tp": 13
+            },
+            "delta_f1": 0.0
+          },
+          "linen": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 20,
+              "tp": 20
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 20,
+              "tp": 20
+            },
+            "delta_f1": 0.0
+          },
+          "silk": {
+            "baseline": {
+              "f1": 0.4444444444444445,
+              "fn": 5,
+              "fp": 0,
+              "support": 7,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.6,
+              "fn": 4,
+              "fp": 0,
+              "support": 7,
+              "tp": 3
+            },
+            "delta_f1": 0.1555555555555555
+          },
+          "suede": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 6,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 6,
+              "tp": 6
+            },
+            "delta_f1": 0.0
+          },
+          "synthetic": {
+            "baseline": {
+              "f1": 0.9433962264150945,
+              "fn": 0,
+              "fp": 3,
+              "support": 25,
+              "tp": 25
+            },
+            "candidate": {
+              "f1": 0.9433962264150945,
+              "fn": 0,
+              "fp": 3,
+              "support": 25,
+              "tp": 25
+            },
+            "delta_f1": 0.0
+          },
+          "wool": {
+            "baseline": {
+              "f1": 0.9714285714285714,
+              "fn": 1,
+              "fp": 0,
+              "support": 18,
+              "tp": 17
+            },
+            "candidate": {
+              "f1": 0.9714285714285714,
+              "fn": 1,
+              "fp": 0,
+              "support": 18,
+              "tp": 17
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.0,
+          "exact_match": 0.008403361344537785,
+          "macro_f1": 0.017951396900932393,
+          "selective_macro_f1": 0.017951396900932393
+        },
+        "n_gold_unknown": 62,
+        "n_scorable": 238
+      },
+      "neckline": {
+        "baseline": {
+          "coverage": 0.8894230769230769,
+          "exact_match": 0.8317307692307693,
+          "macro_f1": 0.6470905888128448,
+          "selective_macro_f1": 0.75052790346908
+        },
+        "candidate": {
+          "coverage": 0.9278846153846154,
+          "exact_match": 0.8461538461538461,
+          "macro_f1": 0.6007650821522639,
+          "selective_macro_f1": 0.6854393192408996
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.9690721649484536,
+              "fn": 6,
+              "fp": 0,
+              "support": 100,
+              "tp": 94
+            },
+            "candidate": {
+              "f1": 0.9950248756218906,
+              "fn": 0,
+              "fp": 1,
+              "support": 100,
+              "tp": 100
+            },
+            "delta_f1": 0.025952710673436963
+          },
+          "boat": {
+            "baseline": {
+              "f1": 0.9411764705882353,
+              "fn": 0,
+              "fp": 1,
+              "support": 8,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 0.9411764705882353,
+              "fn": 0,
+              "fp": 1,
+              "support": 8,
+              "tp": 8
+            },
+            "delta_f1": 0.0
+          },
+          "ceiling_high": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "collarless": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 6,
+              "fp": 0,
+              "support": 6,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 6,
+              "fp": 0,
+              "support": 6,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "cowl": {
+            "baseline": {
+              "f1": 0.4444444444444445,
+              "fn": 5,
+              "fp": 0,
+              "support": 7,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": -0.4444444444444445
+          },
+          "cowled": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "cowling": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "crew": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 11,
+              "tp": 11
+            },
+            "candidate": {
+              "f1": 0.88,
+              "fn": 0,
+              "fp": 3,
+              "support": 11,
+              "tp": 11
+            },
+            "delta_f1": -0.12
+          },
+          "halter": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "mock": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 7,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 7,
+              "tp": 7
+            },
+            "delta_f1": 0.0
+          },
+          "off_shoulder": {
+            "baseline": {
+              "f1": 0.4,
+              "fn": 3,
+              "fp": 0,
+              "support": 4,
+              "tp": 1
+            },
+            "candidate": {
+              "f1": 0.4,
+              "fn": 3,
+              "fp": 0,
+              "support": 4,
+              "tp": 1
+            },
+            "delta_f1": 0.0
+          },
+          "one_shoulder": {
+            "baseline": {
+              "f1": 0.6,
+              "fn": 4,
+              "fp": 0,
+              "support": 7,
+              "tp": 3
+            },
+            "candidate": {
+              "f1": 0.6,
+              "fn": 4,
+              "fp": 0,
+              "support": 7,
+              "tp": 3
+            },
+            "delta_f1": 0.0
+          },
+          "scoop": {
+            "baseline": {
+              "f1": 0.9411764705882353,
+              "fn": 1,
+              "fp": 0,
+              "support": 9,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 0.9411764705882353,
+              "fn": 1,
+              "fp": 0,
+              "support": 9,
+              "tp": 8
+            },
+            "delta_f1": 0.0
+          },
+          "square": {
+            "baseline": {
+              "f1": 0.9333333333333333,
+              "fn": 0,
+              "fp": 1,
+              "support": 7,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 0.9333333333333333,
+              "fn": 0,
+              "fp": 1,
+              "support": 7,
+              "tp": 7
+            },
+            "delta_f1": 0.0
+          },
+          "supraplex": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "supraprise": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "turtle": {
+            "baseline": {
+              "f1": 0.888888888888889,
+              "fn": 0,
+              "fp": 2,
+              "support": 8,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 0.8,
+              "fn": 0,
+              "fp": 4,
+              "support": 8,
+              "tp": 8
+            },
+            "delta_f1": -0.0888888888888889
+          },
+          "v_neck": {
+            "baseline": {
+              "f1": 0.9411764705882353,
+              "fn": 0,
+              "fp": 3,
+              "support": 24,
+              "tp": 24
+            },
+            "candidate": {
+              "f1": 0.9199999999999999,
+              "fn": 1,
+              "fp": 3,
+              "support": 24,
+              "tp": 23
+            },
+            "delta_f1": -0.021176470588235352
+          },
+          "wrap": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.03846153846153855,
+          "exact_match": 0.014423076923076872,
+          "macro_f1": -0.046325506660580884,
+          "selective_macro_f1": -0.06508858422818042
+        },
+        "n_gold_unknown": 92,
+        "n_scorable": 208
+      },
+      "occasion": {
+        "baseline": {
+          "coverage": 0.943502824858757,
+          "exact_match": 0.864406779661017,
+          "macro_f1": 0.6802150856662135,
+          "selective_macro_f1": 0.6967138656491756
+        },
+        "candidate": {
+          "coverage": 0.96045197740113,
+          "exact_match": 0.864406779661017,
+          "macro_f1": 0.6870343941772513,
+          "selective_macro_f1": 0.6870343941772513
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 8,
+              "fp": 0,
+              "support": 8,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 8,
+              "fp": 0,
+              "support": 8,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "athletic": {
+            "baseline": {
+              "f1": 0.7999999999999999,
+              "fn": 2,
+              "fp": 1,
+              "support": 8,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.7692307692307693,
+              "fn": 3,
+              "fp": 0,
+              "support": 8,
+              "tp": 5
+            },
+            "delta_f1": -0.03076923076923066
+          },
+          "beach": {
+            "baseline": {
+              "f1": 0.9090909090909091,
+              "fn": 1,
+              "fp": 0,
+              "support": 6,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.7692307692307692,
+              "fn": 1,
+              "fp": 2,
+              "support": 6,
+              "tp": 5
+            },
+            "delta_f1": -0.1398601398601399
+          },
+          "casual": {
+            "baseline": {
+              "f1": 0.9548872180451128,
+              "fn": 5,
+              "fp": 7,
+              "support": 132,
+              "tp": 127
+            },
+            "candidate": {
+              "f1": 0.946969696969697,
+              "fn": 7,
+              "fp": 7,
+              "support": 132,
+              "tp": 125
+            },
+            "delta_f1": -0.007917521075415768
+          },
+          "date": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "elegant": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "formal": {
+            "baseline": {
+              "f1": 0.6153846153846154,
+              "fn": 4,
+              "fp": 1,
+              "support": 8,
+              "tp": 4
+            },
+            "candidate": {
+              "f1": 0.6666666666666666,
+              "fn": 4,
+              "fp": 0,
+              "support": 8,
+              "tp": 4
+            },
+            "delta_f1": 0.05128205128205121
+          },
+          "lounge": {
+            "baseline": {
+              "f1": 0.8571428571428571,
+              "fn": 1,
+              "fp": 1,
+              "support": 7,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.8571428571428571,
+              "fn": 1,
+              "fp": 1,
+              "support": 7,
+              "tp": 6
+            },
+            "delta_f1": 0.0
+          },
+          "work": {
+            "baseline": {
+              "f1": 0.625,
+              "fn": 3,
+              "fp": 3,
+              "support": 8,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.8,
+              "fn": 0,
+              "fp": 4,
+              "support": 8,
+              "tp": 8
+            },
+            "delta_f1": 0.17500000000000004
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.016949152542372947,
+          "exact_match": 0.0,
+          "macro_f1": 0.006819308511037847,
+          "selective_macro_f1": -0.009679471471924272
+        },
+        "n_gold_unknown": 123,
+        "n_scorable": 177
+      },
+      "pattern": {
+        "baseline": {
+          "coverage": 0.8921568627450981,
+          "exact_match": 0.7156862745098039,
+          "macro_f1": 0.5651483437197723,
+          "selective_macro_f1": 0.6204161650315496
+        },
+        "candidate": {
+          "coverage": 0.9705882352941176,
+          "exact_match": 0.7058823529411765,
+          "macro_f1": 0.5203816025244596,
+          "selective_macro_f1": 0.5203816025244596
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 4,
+              "fp": 0,
+              "support": 4,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 4,
+              "fp": 0,
+              "support": 4,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "abstract": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "animal": {
+            "baseline": {
+              "f1": 0.923076923076923,
+              "fn": 1,
+              "fp": 0,
+              "support": 7,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.923076923076923,
+              "fn": 1,
+              "fp": 0,
+              "support": 7,
+              "tp": 6
+            },
+            "delta_f1": 0.0
+          },
+          "camouflage": {
+            "baseline": {
+              "f1": 0.6,
+              "fn": 4,
+              "fp": 0,
+              "support": 7,
+              "tp": 3
+            },
+            "candidate": {
+              "f1": 0.25,
+              "fn": 6,
+              "fp": 0,
+              "support": 7,
+              "tp": 1
+            },
+            "delta_f1": -0.35
+          },
+          "check": {
+            "baseline": {
+              "f1": 0.7692307692307693,
+              "fn": 0,
+              "fp": 3,
+              "support": 5,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.7142857142857143,
+              "fn": 0,
+              "fp": 4,
+              "support": 5,
+              "tp": 5
+            },
+            "delta_f1": -0.05494505494505497
+          },
+          "circle": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "dot": {
+            "baseline": {
+              "f1": 0.9090909090909091,
+              "fn": 1,
+              "fp": 0,
+              "support": 6,
+              "tp": 5
+            },
+            "candidate": {
+              "f1": 0.8,
+              "fn": 2,
+              "fp": 0,
+              "support": 6,
+              "tp": 4
+            },
+            "delta_f1": -0.10909090909090902
+          },
+          "fair_isle": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 6,
+              "fp": 0,
+              "support": 6,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 6,
+              "fp": 0,
+              "support": 6,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "floral": {
+            "baseline": {
+              "f1": 0.8571428571428571,
+              "fn": 0,
+              "fp": 3,
+              "support": 9,
+              "tp": 9
+            },
+            "candidate": {
+              "f1": 0.7999999999999999,
+              "fn": 1,
+              "fp": 3,
+              "support": 9,
+              "tp": 8
+            },
+            "delta_f1": -0.05714285714285716
+          },
+          "geometric": {
+            "baseline": {
+              "f1": 0.6153846153846153,
+              "fn": 3,
+              "fp": 2,
+              "support": 7,
+              "tp": 4
+            },
+            "candidate": {
+              "f1": 0.5555555555555556,
+              "fn": 2,
+              "fp": 6,
+              "support": 7,
+              "tp": 5
+            },
+            "delta_f1": -0.05982905982905973
+          },
+          "graphic": {
+            "baseline": {
+              "f1": 0.4444444444444445,
+              "fn": 0,
+              "fp": 5,
+              "support": 2,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.5,
+              "fn": 0,
+              "fp": 4,
+              "support": 2,
+              "tp": 2
+            },
+            "delta_f1": 0.055555555555555525
+          },
+          "herringbone": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 6,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 6,
+              "tp": 6
+            },
+            "delta_f1": 0.0
+          },
+          "paisley": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "solid": {
+            "baseline": {
+              "f1": 0.8846153846153846,
+              "fn": 3,
+              "fp": 3,
+              "support": 26,
+              "tp": 23
+            },
+            "candidate": {
+              "f1": 0.8333333333333333,
+              "fn": 1,
+              "fp": 9,
+              "support": 26,
+              "tp": 25
+            },
+            "delta_f1": -0.05128205128205132
+          },
+          "stripe": {
+            "baseline": {
+              "f1": 0.9090909090909091,
+              "fn": 1,
+              "fp": 1,
+              "support": 11,
+              "tp": 10
+            },
+            "candidate": {
+              "f1": 0.9090909090909091,
+              "fn": 1,
+              "fp": 1,
+              "support": 11,
+              "tp": 10
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.07843137254901955,
+          "exact_match": -0.009803921568627416,
+          "macro_f1": -0.044766741195312654,
+          "selective_macro_f1": -0.10003456250708997
+        },
+        "n_gold_unknown": 198,
+        "n_scorable": 102
+      },
+      "silhouette": {
+        "baseline": {
+          "coverage": 0.8198198198198198,
+          "exact_match": 0.6576576576576577,
+          "macro_f1": 0.4100438912938913,
+          "selective_macro_f1": 0.5146796966649908
+        },
+        "candidate": {
+          "coverage": 0.8468468468468469,
+          "exact_match": 0.6756756756756757,
+          "macro_f1": 0.423176351485175,
+          "selective_macro_f1": 0.5127314814814815
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 41,
+              "tp": 41
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 41,
+              "tp": 41
+            },
+            "delta_f1": 0.0
+          },
+          "a_line": {
+            "baseline": {
+              "f1": 0.4444444444444445,
+              "fn": 5,
+              "fp": 0,
+              "support": 7,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.4444444444444445,
+              "fn": 5,
+              "fp": 0,
+              "support": 7,
+              "tp": 2
+            },
+            "delta_f1": 0.0
+          },
+          "balloon": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 4,
+              "fp": 0,
+              "support": 4,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 4,
+              "fp": 0,
+              "support": 4,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "bodycon": {
+            "baseline": {
+              "f1": 0.8750000000000001,
+              "fn": 0,
+              "fp": 2,
+              "support": 7,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 0.8750000000000001,
+              "fn": 0,
+              "fp": 2,
+              "support": 7,
+              "tp": 7
+            },
+            "delta_f1": 0.0
+          },
+          "bootcut": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "fit_and_flare": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 7,
+              "fp": 0,
+              "support": 7,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "flare": {
+            "baseline": {
+              "f1": 0.26666666666666666,
+              "fn": 5,
+              "fp": 6,
+              "support": 7,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.47058823529411764,
+              "fn": 3,
+              "fp": 6,
+              "support": 7,
+              "tp": 4
+            },
+            "delta_f1": 0.20392156862745098
+          },
+          "flared": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 3,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "flowy": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "high_low": {
+            "baseline": {
+              "f1": 0.5,
+              "fn": 2,
+              "fp": 0,
+              "support": 3,
+              "tp": 1
+            },
+            "candidate": {
+              "f1": 0.5,
+              "fn": 2,
+              "fp": 0,
+              "support": 3,
+              "tp": 1
+            },
+            "delta_f1": 0.0
+          },
+          "pencil": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 2,
+              "fp": 0,
+              "support": 2,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 2,
+              "fp": 0,
+              "support": 2,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "shift": {
+            "baseline": {
+              "f1": 0.25,
+              "fn": 6,
+              "fp": 0,
+              "support": 7,
+              "tp": 1
+            },
+            "candidate": {
+              "f1": 0.25,
+              "fn": 6,
+              "fp": 0,
+              "support": 7,
+              "tp": 1
+            },
+            "delta_f1": 0.0
+          },
+          "straight": {
+            "baseline": {
+              "f1": 0.8571428571428572,
+              "fn": 1,
+              "fp": 4,
+              "support": 16,
+              "tp": 15
+            },
+            "candidate": {
+              "f1": 0.8108108108108109,
+              "fn": 1,
+              "fp": 6,
+              "support": 16,
+              "tp": 15
+            },
+            "delta_f1": -0.04633204633204635
+          },
+          "trapeze": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 3,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "trapezoid": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "trapezoidal": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 2,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "wide_leg": {
+            "baseline": {
+              "f1": 0.7272727272727273,
+              "fn": 3,
+              "fp": 0,
+              "support": 7,
+              "tp": 4
+            },
+            "candidate": {
+              "f1": 0.7272727272727273,
+              "fn": 3,
+              "fp": 0,
+              "support": 7,
+              "tp": 4
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.027027027027027084,
+          "exact_match": 0.018018018018017945,
+          "macro_f1": 0.013132460191283724,
+          "selective_macro_f1": -0.0019482151835092942
+        },
+        "n_gold_unknown": 189,
+        "n_scorable": 111
+      },
+      "sleeve_length": {
+        "baseline": {
+          "coverage": 0.9545454545454546,
+          "exact_match": 0.8383838383838383,
+          "macro_f1": 0.5663126337403906,
+          "selective_macro_f1": 0.6870131583887634
+        },
+        "candidate": {
+          "coverage": 0.98989898989899,
+          "exact_match": 0.8484848484848485,
+          "macro_f1": 0.5564162598098553,
+          "selective_macro_f1": 0.5593789214498467
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.9045226130653267,
+              "fn": 8,
+              "fp": 11,
+              "support": 98,
+              "tp": 90
+            },
+            "candidate": {
+              "f1": 0.9238578680203046,
+              "fn": 7,
+              "fp": 8,
+              "support": 98,
+              "tp": 91
+            },
+            "delta_f1": 0.0193352549549779
+          },
+          "elbow": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 3,
+              "fp": 0,
+              "support": 3,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "long": {
+            "baseline": {
+              "f1": 0.9019607843137256,
+              "fn": 1,
+              "fp": 4,
+              "support": 24,
+              "tp": 23
+            },
+            "candidate": {
+              "f1": 0.8679245283018867,
+              "fn": 1,
+              "fp": 6,
+              "support": 24,
+              "tp": 23
+            },
+            "delta_f1": -0.034036256011838906
+          },
+          "quarter": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "short": {
+            "baseline": {
+              "f1": 0.9113924050632911,
+              "fn": 3,
+              "fp": 4,
+              "support": 39,
+              "tp": 36
+            },
+            "candidate": {
+              "f1": 0.8674698795180724,
+              "fn": 3,
+              "fp": 8,
+              "support": 39,
+              "tp": 36
+            },
+            "delta_f1": -0.043922525545218694
+          },
+          "sleeveless": {
+            "baseline": {
+              "f1": 0.68,
+              "fn": 13,
+              "fp": 3,
+              "support": 30,
+              "tp": 17
+            },
+            "candidate": {
+              "f1": 0.6792452830188679,
+              "fn": 12,
+              "fp": 5,
+              "support": 30,
+              "tp": 18
+            },
+            "delta_f1": -0.0007547169811321641
+          },
+          "three_quarter": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 4,
+              "fp": 0,
+              "support": 4,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 4,
+              "fp": 0,
+              "support": 4,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.03535353535353536,
+          "exact_match": 0.010101010101010166,
+          "macro_f1": -0.00989637393053533,
+          "selective_macro_f1": -0.12763423693891673
+        },
+        "n_gold_unknown": 102,
+        "n_scorable": 198
+      },
+      "sleeve_style": {
+        "baseline": {
+          "coverage": 0.8881987577639752,
+          "exact_match": 0.8509316770186336,
+          "macro_f1": 0.5206444676894467,
+          "selective_macro_f1": 0.6857142857142857
+        },
+        "candidate": {
+          "coverage": 0.9006211180124224,
+          "exact_match": 0.8633540372670807,
+          "macro_f1": 0.5112955278930382,
+          "selective_macro_f1": 0.6722689075630253
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.9707112970711297,
+              "fn": 7,
+              "fp": 0,
+              "support": 123,
+              "tp": 116
+            },
+            "candidate": {
+              "f1": 0.979253112033195,
+              "fn": 5,
+              "fp": 0,
+              "support": 123,
+              "tp": 118
+            },
+            "delta_f1": 0.008541814962065297
+          },
+          "cap": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 7,
+              "tp": 7
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 7,
+              "tp": 7
+            },
+            "delta_f1": 0.0
+          },
+          "dolman": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 5,
+              "fp": 0,
+              "support": 5,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 5,
+              "fp": 0,
+              "support": 5,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "dropped_shoulder": {
+            "baseline": {
+              "f1": 0.75,
+              "fn": 1,
+              "fp": 3,
+              "support": 7,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.6666666666666665,
+              "fn": 1,
+              "fp": 5,
+              "support": 7,
+              "tp": 6
+            },
+            "delta_f1": -0.08333333333333348
+          },
+          "flap": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 3,
+              "support": 0,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 0,
+              "fp": 1,
+              "support": 0,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "flutter": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "puff": {
+            "baseline": {
+              "f1": 0.4444444444444445,
+              "fn": 5,
+              "fp": 0,
+              "support": 7,
+              "tp": 2
+            },
+            "candidate": {
+              "f1": 0.4444444444444445,
+              "fn": 5,
+              "fp": 0,
+              "support": 7,
+              "tp": 2
+            },
+            "delta_f1": 0.0
+          },
+          "raglan": {
+            "baseline": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 6,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 1.0,
+              "fn": 0,
+              "fp": 0,
+              "support": 6,
+              "tp": 6
+            },
+            "delta_f1": 0.0
+          },
+          "set_in": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 5,
+              "fp": 0,
+              "support": 5,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 5,
+              "fp": 0,
+              "support": 5,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.012422360248447228,
+          "exact_match": 0.012422360248447117,
+          "macro_f1": -0.009348939796408495,
+          "selective_macro_f1": -0.013445378151260456
+        },
+        "n_gold_unknown": 139,
+        "n_scorable": 161
+      },
+      "waistline": {
+        "baseline": {
+          "coverage": 0.9361702127659575,
+          "exact_match": 0.9042553191489362,
+          "macro_f1": 0.44412770236299653,
+          "selective_macro_f1": 0.7291666666666666
+        },
+        "candidate": {
+          "coverage": 0.9680851063829787,
+          "exact_match": 0.9202127659574468,
+          "macro_f1": 0.4609018959113836,
+          "selective_macro_f1": 0.4763071895424837
+        },
+        "classes": {
+          "<not_applicable>": {
+            "baseline": {
+              "f1": 0.9935897435897436,
+              "fn": 2,
+              "fp": 0,
+              "support": 157,
+              "tp": 155
+            },
+            "candidate": {
+              "f1": 0.9935897435897436,
+              "fn": 2,
+              "fp": 0,
+              "support": 157,
+              "tp": 155
+            },
+            "delta_f1": 0.0
+          },
+          "dropped": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "high": {
+            "baseline": {
+              "f1": 0.9411764705882353,
+              "fn": 1,
+              "fp": 0,
+              "support": 9,
+              "tp": 8
+            },
+            "candidate": {
+              "f1": 0.9411764705882353,
+              "fn": 1,
+              "fp": 0,
+              "support": 9,
+              "tp": 8
+            },
+            "delta_f1": 0.0
+          },
+          "low": {
+            "baseline": {
+              "f1": 0.25,
+              "fn": 6,
+              "fp": 0,
+              "support": 7,
+              "tp": 1
+            },
+            "candidate": {
+              "f1": 0.25,
+              "fn": 6,
+              "fp": 0,
+              "support": 7,
+              "tp": 1
+            },
+            "delta_f1": 0.0
+          },
+          "none": {
+            "baseline": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "candidate": {
+              "f1": 0.0,
+              "fn": 1,
+              "fp": 0,
+              "support": 1,
+              "tp": 0
+            },
+            "delta_f1": 0.0
+          },
+          "normal": {
+            "baseline": {
+              "f1": 0.48000000000000004,
+              "fn": 7,
+              "fp": 6,
+              "support": 13,
+              "tp": 6
+            },
+            "candidate": {
+              "f1": 0.5806451612903226,
+              "fn": 4,
+              "fp": 9,
+              "support": 13,
+              "tp": 9
+            },
+            "delta_f1": 0.10064516129032258
+          }
+        },
+        "delta_candidate_minus_baseline": {
+          "coverage": 0.03191489361702127,
+          "exact_match": 0.015957446808510634,
+          "macro_f1": 0.01677419354838705,
+          "selective_macro_f1": -0.25285947712418294
+        },
+        "n_gold_unknown": 112,
+        "n_scorable": 188
+      }
+    },
+    "attributes_ranked_worst_to_best": [
+      "collar_type",
+      "closure",
+      "neckline",
+      "pattern",
+      "garment_length",
+      "sleeve_length",
+      "sleeve_style",
+      "garment_category",
+      "fit",
+      "occasion",
+      "colour_primary",
+      "silhouette",
+      "details",
+      "waistline",
+      "material"
+    ],
+    "headline": {
+      "baseline_coverage": 0.9430127041742287,
+      "baseline_macro_f1": 0.6411414820991878,
+      "baseline_selective_macro_f1": 0.7169543520009967,
+      "candidate_coverage": 0.9676950998185118,
+      "candidate_macro_f1": 0.622311392764744,
+      "candidate_selective_macro_f1": 0.6578293466758758,
+      "delta_coverage": 0.024682395644283095,
+      "delta_macro_f1": -0.018830089334443745,
+      "delta_selective_macro_f1": -0.05912500532512088
+    },
+    "rule_transitions": {
+      "baseline_rows_with_violations": 11,
+      "baseline_total_violations": 12,
+      "candidate_rows_with_violations": 26,
+      "candidate_total_violations": 28,
+      "delta_total_violations": 16,
+      "row_transitions": {
+        "baseline_only_violation": 3,
+        "both_clean": 271,
+        "both_have_violations": 8,
+        "candidate_only_violation": 18
+      },
+      "rules": {
+        "auto:applies_to:collar_type": {
+          "added_skus": [
+            "shopify:naadam.co:7505740234848",
+            "shopify:www.tentree.com:8322460647610"
+          ],
+          "baseline": 0,
+          "candidate": 2,
+          "delta": 2,
+          "removed_skus": []
+        },
+        "auto:applies_to:neckline": {
+          "added_skus": [],
+          "baseline": 1,
+          "candidate": 1,
+          "delta": 0,
+          "removed_skus": []
+        },
+        "bodycon_is_tight": {
+          "added_skus": [
+            "shopify:www.everlane.com:7784906915926",
+            "shopify:www.everlane.com:7859025248342",
+            "shopify:www.everlane.com:7859025150038",
+            "shopify:www.everlane.com:7859025281110",
+            "shopify:naadam.co:6676390805600",
+            "shopify:www.everlane.com:7855404253270",
+            "shopify:fahertybrand.com:7552628850757"
+          ],
+          "baseline": 2,
+          "candidate": 9,
+          "delta": 7,
+          "removed_skus": []
+        },
+        "lapels_are_tailored_only": {
+          "added_skus": [],
+          "baseline": 1,
+          "candidate": 0,
+          "delta": -1,
+          "removed_skus": [
+            "shopify:www.taylorstitch.com:7454610948173"
+          ]
+        },
+        "pants_length_subset": {
+          "added_skus": [
+            "shopify:www.everlane.com:7841841283158",
+            "shopify:www.outdoorvoices.com:7769243320398",
+            "shopify:www.everlane.com:7760661413974",
+            "shopify:www.marinelayer.com:8213622718538"
+          ],
+          "baseline": 3,
+          "candidate": 7,
+          "delta": 4,
+          "removed_skus": []
+        },
+        "quilting_is_outerwear": {
+          "added_skus": [
+            "shopify:www.taylorstitch.com:7307482333261"
+          ],
+          "baseline": 0,
+          "candidate": 1,
+          "delta": 1,
+          "removed_skus": []
+        },
+        "shorts_length_subset": {
+          "added_skus": [
+            "shopify:www.outdoorvoices.com:7585339506766"
+          ],
+          "baseline": 0,
+          "candidate": 1,
+          "delta": 1,
+          "removed_skus": []
+        },
+        "slits_need_a_hem": {
+          "added_skus": [],
+          "baseline": 2,
+          "candidate": 2,
+          "delta": 0,
+          "removed_skus": []
+        },
+        "solid_is_not_multicolour": {
+          "added_skus": [
+            "shopify:naadam.co:4705777320032",
+            "shopify:naadam.co:7475936854112",
+            "shopify:www.girlfriend.com:7844788469823"
+          ],
+          "baseline": 2,
+          "candidate": 4,
+          "delta": 2,
+          "removed_skus": [
+            "shopify:naadam.co:6835720749152"
+          ]
+        },
+        "turtleneck_has_no_collar": {
+          "added_skus": [
+            "shopify:naadam.co:4705777320032"
+          ],
+          "baseline": 1,
+          "candidate": 1,
+          "delta": 0,
+          "removed_skus": [
+            "shopify:www.american-giant.com:10297736462517"
+          ]
+        }
+      }
+    }
+  },
+  "inputs": {
+    "baseline_predictions": {
+      "path": "runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl",
+      "sha256": "cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b"
+    },
+    "candidate_predictions": {
+      "path": "runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+      "sha256": "f14f95ca0d5bde1bf8ece0927b2f02975fed89b1da1cf6da7ebc34ecd5a0573e"
+    },
+    "gold": {
+      "freeze": {
+        "n_rows": 300,
+        "ok": true,
+        "sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052"
+      },
+      "path": "data/eval_300/eval.jsonl",
+      "rows": 300,
+      "sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c"
+    },
+    "pack": {
+      "path": "packs/vastraa_taste_v1",
+      "rules_sha256": "2d5e186fb5157bd1f371aa2009a02052457d49b94e7c3ef0343ec43632157c56",
+      "vocab_sha256": "f98eba2177343867ce7f010b0ef4ec8d745b1154219a7137d29ad1807925c17d"
+    }
+  },
+  "status": "completed",
+  "version": "frozen-prediction-decomposition-v1"
+}
