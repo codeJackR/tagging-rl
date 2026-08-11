@@ -4455,6 +4455,52 @@ from post-hoc frozen-set selection. This makes the next GPU action a
 predeclared measurement, not a search for whichever checkpoint or decoding
 setting looks best after seeing the answer key.
 
+###### Locked frozen generation, before scoring
+
+The read-only Vast preflight passed immediately before generation. It verified
+the evaluation lock, all ten final-adapter files, frozen file and freeze
+manifest, saved SFT baseline, prediction/evaluator code, vocabulary and rules,
+cached base model, output-path absence, disk and idle GPU without importing
+Torch or CUDA. Evaluation ran from commit
+`10525027f907e60074fa6edee72085dc440f5dde`; the trained adapter remained bound
+to training commit `19be0ed58b86dd6db1faef45b92da1a7dfd11677`. This commit difference is
+expected: `1052502` adds the tracker and evaluation lock while the individually
+hashed prediction and evaluator files remain exactly those pinned by the lock.
+
+The preflight observed **3,866,329,088 bytes free**, a cached
+3,103,347,895-byte Qwen model directory and an idle RTX 3090 at **264 MiB / 0%**.
+It did not load the model, create predictions or calculate a report.
+
+Generation then used the single predeclared command from the lock: Qwen2.5-1.5B
+plus final adapter `741a189a...d3c`, `do_sample=False`, batch size eight,
+640-token input cap, 170-token completion cap, bfloat16 and local cached files.
+It started at `2026-08-11T00:00:02Z`, generated all 300 rows in 38 batches and
+completed cleanly at `00:04:07Z`: **245 seconds (4 minutes 5 seconds)**.
+Transformers warned that temperature, top-p and top-k may be ignored. That is
+expected rather than a decoding change because greedy generation has sampling
+disabled.
+
+Before any scoring, a structural-only validator established:
+
+| generation invariant | result |
+|---|---:|
+| prediction rows | 300 |
+| unique prediction SKUs | 300 |
+| exact keys are `sku_id` and raw output | yes |
+| every raw output is a string | yes |
+| prediction and frozen-gold SKU sets equal | yes |
+| prediction order equals frozen input order | yes |
+| quality metrics computed | no |
+
+The raw file is **140,346 bytes** with SHA-256
+`f14f95ca0d5bde1bf8ece0927b2f02975fed89b1da1cf6da7ebc34ecd5a0573e`.
+It was copied through a new temporary local directory, rehashed, and atomically
+renamed to `runs/grpo-first-300-frozen-eval-300-predictions.jsonl`; remote and
+local hashes match. The companion generation-only evidence file is
+`runs/grpo-first-300-frozen-eval-300-generation.json`. The GPU returned to
+264 MiB / 0%, the reserved score report still did not exist, and no prediction
+was inspected or used to revise the adapter, checkpoint or decoding settings.
+
 This run proves successful optimization, evidence durability, bounded resource
 use and reproducible publication. It does **not** yet prove that GRPO improved
 catalog-tagging quality. The next scientific boundary is inference with the
@@ -4743,6 +4789,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
 - [x] Durable local final-adapter/evidence archive with independent re-hashing.
 - [x] Pre-inference GRPO evaluation lock binding the adapter, frozen set, SFT
   baseline, generation/evaluator settings and collision-free output paths.
+- [x] Locked 300-row GRPO generation with complete SKU/shape validation, raw
+  predictions committed before scoring and a generation-only evidence manifest.
 - [ ] Locked frozen evaluation after GRPO.
 - [ ] SFT-versus-GRPO uncertainty estimate.
 - [ ] Final limitations and reproducibility package.

@@ -1,0 +1,73 @@
+{
+  "version": "grpo-frozen-generation-evidence-v1",
+  "status": "generated_validated_and_archived_before_scoring",
+  "generation_started_at_utc": "2026-08-11T00:00:02Z",
+  "generation_completed_at_utc": "2026-08-11T00:04:07Z",
+  "generation_wall_seconds": 245,
+  "archived_locally_at_utc": "2026-08-11T00:09:43Z",
+  "provenance": {
+    "training_code_commit": "19be0ed58b86dd6db1faef45b92da1a7dfd11677",
+    "evaluation_code_commit": "10525027f907e60074fa6edee72085dc440f5dde",
+    "evaluation_lock": {
+      "path": "runs/grpo-evaluation-lock.json",
+      "sha256": "e3c4c3f44183d8aa3d8545cd16d9a4309e4bc10c3fb0c19ff834fe175bc4ba8d"
+    },
+    "remote_prediction_path": "/workspace/tagging-rl/runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+    "local_prediction_path": "runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+    "transfer_method": "SCP to a new temporary directory, SHA-256 verification, then atomic local rename"
+  },
+  "model": {
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "adapter_path": "runs/grpo-first-300/final-adapter",
+    "adapter_weights_sha256": "741a189a23f948248a6c9067c401d66dde9187328748ea815441307241ab9d3c",
+    "dtype": "bfloat16",
+    "local_files_only": true
+  },
+  "input": {
+    "path": "data/eval_300/eval.jsonl",
+    "rows": 300,
+    "file_sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c",
+    "canonical_content_sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052"
+  },
+  "decoding": {
+    "do_sample": false,
+    "batch_size": 8,
+    "max_input_tokens": 640,
+    "max_new_tokens": 170,
+    "batches": 38,
+    "final_partial_batch_rows": 4,
+    "matches_locked_sft_baseline_settings": true
+  },
+  "command": "HF_HOME=/workspace/.hf_home PYTHONPATH=. /venv/rl/bin/python -m training.predict --model unsloth/Qwen2.5-1.5B-Instruct --adapter runs/grpo-first-300/final-adapter --input data/eval_300/eval.jsonl --output runs/grpo-first-300-frozen-eval-300-predictions.jsonl --batch-size 8 --max-input-length 640 --max-new-tokens 170 --local-files-only",
+  "output": {
+    "path": "runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+    "bytes": 140346,
+    "sha256": "f14f95ca0d5bde1bf8ece0927b2f02975fed89b1da1cf6da7ebc34ecd5a0573e",
+    "rows": 300,
+    "unique_skus": 300,
+    "all_records_have_exact_keys_sku_id_and_raw": true,
+    "all_skus_are_nonempty_strings": true,
+    "all_predictions_are_raw_strings": true,
+    "gold_and_prediction_sku_sets_equal": true,
+    "prediction_order_matches_gold": true,
+    "remote_and_local_sha256_equal": true
+  },
+  "post_generation_state": {
+    "gpu_name": "NVIDIA GeForce RTX 3090",
+    "gpu_memory_used_mib": 264,
+    "gpu_utilization_percent": 0,
+    "disk_free_bytes": 3866185728,
+    "model_released": true
+  },
+  "interpretation_guardrails": {
+    "quality_metrics_computed": false,
+    "report_created": false,
+    "prediction_contents_used_for_selection": false,
+    "output_overwritten": false,
+    "note": "This artifact proves deterministic generation completeness and provenance only; it makes no quality claim."
+  },
+  "runtime_warning": {
+    "message": "Transformers reported that temperature, top_p and top_k generation flags may be ignored.",
+    "interpretation": "Expected and harmless for this run because do_sample was false; deterministic greedy decoding does not use sampling controls."
+  }
+}
