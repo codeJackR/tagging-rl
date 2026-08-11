@@ -4746,6 +4746,42 @@ shows that this first GRPO recipe **regressed catalog-tagging quality** rather
 than improving it. A technically successful training run and a scientifically
 successful model experiment are different outcomes.
 
+###### Final experiment closeout and reproducibility boundary
+
+`runs/grpo-first-300-closeout.json` is the canonical machine-readable index for
+this experiment. It binds the training/evaluation commits, source and final
+adapter hashes, external durable adapter archive, frozen data identity, all
+tracked prediction/report/analysis artifacts, resource measurements, point and
+uncertainty results, reward replay, limitations, allowed/forbidden claims and
+the accepted model-selection verdict. A dedicated CPU test rehashes every
+tracked dependency and recomputes the negative verdict from the report,
+bootstrap and reward replay.
+
+The closeout hashes to
+`b5ba9f8a6e16736e0021afc89a5bb09ac06cee84abf0b40738fea86c799dba4d`,
+and the final full CPU suite passed **487 tests**.
+
+The final status is deliberately split:
+
+- **Training execution: mechanically successful.** The trainer produced finite
+  nonzero updates, bounded checkpoints and a validated final adapter.
+- **Scientific result: negative regression.** The predeclared quality criterion
+  was not met, so checkpoint-406 SFT remains selected and the GRPO adapter is not
+  promoted.
+
+The closeout also changes the status of the frozen 300. It was blind for this
+first comparison, but its labels/results are now visible and have influenced our
+diagnosis. Future variants may be compared descriptively, but they cannot be
+tuned from these findings and still claim this same set is untouched. Iterative
+follow-up work should select on non-frozen validation evidence and reserve a new
+untouched final set.
+
+This prevents a common negative-result failure mode: quietly changing several
+settings, rerunning against the same test set until one looks better, and calling
+the survivor a clean experiment. Any follow-up must predeclare one primary
+ablation, seeds, steps, learning rate, reward, checkpoint rule and success
+metrics before another training dispatch.
+
 ### Questions to answer before the first GRPO run
 
 - [x] What fraction survives? 1,702/3,600 eligible; 1,565 active after cap four.
@@ -5042,7 +5078,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   per-class counts and SKU-level rule transitions.
 - [x] Exact production `1:1:2` reward replay on frozen SFT/GRPO outputs, with
   paired pass transitions and the earlier reward-misalignment hypothesis revised.
-- [ ] Final limitations and reproducibility package.
+- [x] Final machine-readable closeout with cross-artifact hash tests, accepted
+  negative-result verdict, limitations, claim policy and future blind-set gate.
 
 ---
 

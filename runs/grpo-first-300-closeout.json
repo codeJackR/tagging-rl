@@ -1,0 +1,271 @@
+{
+  "version": "grpo-experiment-closeout-v1",
+  "status": "complete",
+  "experiment": "grpo-first-300",
+  "closeout_parent_commit": "f3c47b598002593f97612248e570d16ffafc9112",
+  "verdict": {
+    "training_execution": "mechanically_successful",
+    "scientific_result": "negative_regression",
+    "predeclared_quality_criterion_met": false,
+    "selected_model": "sft-combined-checkpoint-406",
+    "rejected_candidate": "grpo-first-300-final",
+    "decision": "Retain the locked SFT adapter. Do not promote the GRPO adapter for catalog tagging.",
+    "reason": "The paired macro-F1 interval is entirely below zero; selective macro-F1 and frozen reward replay also declined, while rule violations increased."
+  },
+  "lineage": {
+    "training_code_commit": "19be0ed58b86dd6db1faef45b92da1a7dfd11677",
+    "evaluation_lock_commit": "10525027f907e60074fa6edee72085dc440f5dde",
+    "prediction_archive_commit": "cd9b7baeaca7f8ed092c44e75574b1c549a89702",
+    "score_archive_commit": "d17c02da91d35d0197bb4acf6b9d4bad7240bdf5",
+    "bootstrap_commit": "6fcb5b9ff4abc1e33c12c4725e16393f79c1b665",
+    "decomposition_commit": "a4e0e6fa90507a836372adf251c9cbf352d38559",
+    "reward_replay_commit": "f3c47b598002593f97612248e570d16ffafc9112"
+  },
+  "model_lineage": {
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "source_sft_adapter_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+    "grpo_final_adapter_sha256": "741a189a23f948248a6c9067c401d66dde9187328748ea815441307241ab9d3c",
+    "grpo_final_adapter_bytes": 73911112,
+    "trainable_parameters": 18464768,
+    "trainable_tensors": 392,
+    "optimizer_steps": 300,
+    "rollout_records": 2400,
+    "source_adapter_unchanged": true,
+    "all_final_trainable_values_finite": true,
+    "only_lora_parameters_trainable": true,
+    "external_archive": {
+      "path": "../tagging-rl-artifacts/grpo-first-300",
+      "manifest_sha256": "f266641137e6303ddb781eda72b436163954ddf66516a82241ed34b4ac872247",
+      "adapter_relative_path": "final-adapter/adapter_model.safetensors",
+      "availability": "durable local copy outside Git plus original Vast.ai run directory"
+    }
+  },
+  "frozen_evaluation": {
+    "path": "data/eval_300/eval.jsonl",
+    "rows": 300,
+    "file_sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c",
+    "canonical_content_sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052",
+    "blind_status": "consumed_for_grpo_first_300",
+    "future_use_policy": "Do not use these results to tune repeated GRPO variants and still call this set blind. Tune on training/validation evidence and create or reserve a new untouched final set for iterative follow-up work."
+  },
+  "result": {
+    "sft": {
+      "macro_f1": 0.6411414820991878,
+      "selective_macro_f1": 0.7169543520009967,
+      "coverage": 0.9430127041742287,
+      "schema_validity": 1.0,
+      "vocab_validity": 0.8866666666666667,
+      "rule_violations": 12,
+      "missing_predictions": 0
+    },
+    "grpo": {
+      "macro_f1": 0.622311392764744,
+      "selective_macro_f1": 0.6578293466758758,
+      "coverage": 0.9676950998185118,
+      "schema_validity": 1.0,
+      "vocab_validity": 0.8933333333333333,
+      "rule_violations": 28,
+      "missing_predictions": 0
+    },
+    "delta_grpo_minus_sft": {
+      "macro_f1": -0.018830089334443745,
+      "macro_f1_paired_ci_95": [
+        -0.0311749921484264,
+        -0.005809656795667714
+      ],
+      "selective_macro_f1": -0.05912500532512088,
+      "selective_macro_f1_paired_ci_95": [
+        -0.07094178724682096,
+        -0.03378209604135041
+      ],
+      "coverage": 0.024682395644283095,
+      "coverage_paired_ci_95": [
+        0.018545276292335103,
+        0.03121518188274289
+      ],
+      "schema_validity": 0.0,
+      "vocab_validity": 0.006666666666666599,
+      "rule_violations": 16,
+      "missing_predictions": 0
+    }
+  },
+  "reward_replay": {
+    "weights": [
+      1.0,
+      1.0,
+      2.0
+    ],
+    "sft": {
+      "format_passes": 300,
+      "vocab_rule_passes": 256,
+      "golden_passes": 59,
+      "mean_weighted_total": 2.2466666666666666
+    },
+    "grpo": {
+      "format_passes": 300,
+      "vocab_rule_passes": 243,
+      "golden_passes": 50,
+      "mean_weighted_total": 2.1433333333333335
+    },
+    "delta_weighted_total": -0.10333333333333306,
+    "interpretation": "Frozen greedy replay declined under the exact callbacks, so the result is not explained by reward improving while macro-F1 alone disagreed."
+  },
+  "decomposition": {
+    "attributes_improved": 8,
+    "attributes_regressed": 7,
+    "largest_attribute_regression": {
+      "attribute": "collar_type",
+      "delta_macro_f1": -0.1749651741499877,
+      "share_of_total_negative_attribute_delta_magnitude": 0.47400022836533245
+    },
+    "sft_rows_with_rule_violations": 11,
+    "grpo_rows_with_rule_violations": 26,
+    "newly_violating_rows": 18,
+    "resolved_violation_rows": 3
+  },
+  "resources": {
+    "detached_wall_seconds": 1411.23,
+    "training_wall_seconds": 1385.825136732019,
+    "generation_wall_seconds": 245,
+    "peak_torch_allocated_bytes": 4914862080,
+    "peak_torch_reserved_bytes": 5043650560,
+    "live_driver_memory_mib": 5153,
+    "completed_bundle_bytes": 350870188,
+    "disk_free_bytes_at_bundle_validation": 3867807744,
+    "phase_share_of_training_wall_percent": {
+      "generation": 89.949,
+      "backward": 4.301,
+      "forward_loss": 3.69,
+      "optimizer": 0.489,
+      "reward": 0.043
+    }
+  },
+  "training_signal": {
+    "groups_with_reward_variance": 202,
+    "groups_with_zero_reward_variance": 98,
+    "zero_gradient_steps": 98,
+    "nonzero_advantages": 1611,
+    "all_logged_metrics_finite": true,
+    "interpretation": "The trainer optimized real nonzero signals. Mechanical correctness does not imply frozen-set improvement."
+  },
+  "tracked_artifacts": [
+    {
+      "role": "SFT selection lock",
+      "path": "runs/sft-selection.json",
+      "sha256": "e425635d323b3ffe9e7350fb61a2d9e1848345a95abab6b92032bf64d2718299"
+    },
+    {
+      "role": "SFT frozen predictions",
+      "path": "runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl",
+      "sha256": "cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b"
+    },
+    {
+      "role": "SFT frozen metrics",
+      "path": "runs/sft-combined-2epoch/frozen-eval-300-metrics.json",
+      "sha256": "608961d47be50ba2a1df455657964a7038480d656e757e83826e4f748fef2491"
+    },
+    {
+      "role": "GRPO evaluation lock",
+      "path": "runs/grpo-evaluation-lock.json",
+      "sha256": "e3c4c3f44183d8aa3d8545cd16d9a4309e4bc10c3fb0c19ff834fe175bc4ba8d"
+    },
+    {
+      "role": "GRPO generation evidence",
+      "path": "runs/grpo-first-300-frozen-eval-300-generation.json",
+      "sha256": "406fbafb12e00b2a67c4ec230c2bd436754f856ed7ae551e5c554d4afb1222af"
+    },
+    {
+      "role": "GRPO frozen predictions",
+      "path": "runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+      "sha256": "f14f95ca0d5bde1bf8ece0927b2f02975fed89b1da1cf6da7ebc34ecd5a0573e"
+    },
+    {
+      "role": "GRPO frozen report",
+      "path": "runs/grpo-first-300-frozen-eval-300-report.json",
+      "sha256": "478fec2c75ca1477772d45db44ce12beaa7e2410f7fb07d2ed860e63aed075f1"
+    },
+    {
+      "role": "GRPO scoring evidence",
+      "path": "runs/grpo-first-300-frozen-eval-300-scoring.json",
+      "sha256": "715dc1ec278076aa1900bb52600d7ef6ff497df6dc87330fc8c3107aa309d1c5"
+    },
+    {
+      "role": "paired bootstrap",
+      "path": "runs/grpo-first-300-frozen-eval-300-bootstrap.json",
+      "sha256": "f40d0fe8a27a6ca76b6fed2ed0edc268f196026b6c71a35101fb521d2583d251"
+    },
+    {
+      "role": "attribute/class/rule decomposition",
+      "path": "runs/grpo-first-300-frozen-eval-300-decomposition.json",
+      "sha256": "973ef2d6ca8b739cf26fd66ae09f9e437115d63545932c7cd93514956b94d638"
+    },
+    {
+      "role": "production reward replay",
+      "path": "runs/grpo-first-300-frozen-eval-300-reward-replay.json",
+      "sha256": "4ba819c1491677f210873d13025a36e2bf317e1991cea2dc2ecca16e49050aa4"
+    }
+  ],
+  "analysis_code": [
+    {
+      "path": "evalharness/paired_bootstrap.py",
+      "sha256": "b0aa1f64c04e144bb52f132ded52d59689e3eaf6858e40073e18646ae0505f7f"
+    },
+    {
+      "path": "evalharness/compare_predictions.py",
+      "sha256": "45920620eb39d1b757d14ad9d4596c5d2b052b847122e0371f9d3771cd52e809"
+    },
+    {
+      "path": "evalharness/replay_rewards.py",
+      "sha256": "65c7316c0c7f97e58998bb6bccbb9ca47bf7f59cbb196b792907ff2fc2f26a19"
+    }
+  ],
+  "limitations": [
+    "The 300-row gold set is weakly labeled; only 78 cells received human review, so absolute scores remain provisional.",
+    "Only one GRPO training seed and one 300-step hyperparameter configuration were evaluated.",
+    "The paired bootstrap measures frozen-row sampling uncertainty, not training-seed, hardware, label, or optimizer uncertainty.",
+    "Rare class findings such as collar_type=polo have small support and should remain examples, not standalone conclusions.",
+    "Training-block reward means use different shuffled products and cannot be interpreted as a same-product learning curve.",
+    "Frozen reward replay uses greedy outputs; GRPO trained with sampled groups on training prompts, so replay is diagnostic rather than a training-return estimate.",
+    "The synchronized phase profiler introduces synchronization overhead and is not an overhead-free kernel trace.",
+    "Only the predeclared final adapter was evaluated; intermediate checkpoints were not selected using frozen results.",
+    "The frozen 300 result is now visible and must not be represented as blind during iterative follow-up tuning."
+  ],
+  "claim_policy": {
+    "supported": [
+      "The 300-step GRPO run completed with real finite LoRA updates and complete auditable evidence.",
+      "Generation dominated measured training time at approximately 89.95%.",
+      "On the locked 300 rows, GRPO increased coverage while reducing macro-F1 and selective macro-F1 and increasing rule violations.",
+      "The paired 95% macro-F1 delta interval excluded zero under the declared row-bootstrap method.",
+      "The exact frozen replay of the three production rewards also declined."
+    ],
+    "unsupported_or_forbidden": [
+      "GRPO improved catalog-tagging quality.",
+      "The training reward increased on held-out products.",
+      "The regression is caused by one specific reward weight, learning rate, or number of steps.",
+      "The weak labels are human ground truth.",
+      "The same result is guaranteed across training seeds or hardware.",
+      "The consumed 300-row evaluation remains blind for tuning future variants."
+    ]
+  },
+  "future_experiment_gate": {
+    "status": "new_design_required",
+    "requirements": [
+      "Choose one primary ablation before training rather than changing several variables together.",
+      "Use non-frozen training/validation evidence for checkpoint and hyperparameter selection.",
+      "Reserve a new untouched final evaluation set if follow-up decisions are informed by this closeout.",
+      "Predeclare seed count, learning rate, steps, reward definition, checkpoint rule and success metrics.",
+      "Do not overwrite or relabel this negative result."
+    ],
+    "candidate_hypotheses_not_yet_selected": [
+      "fewer steps or lower learning rate",
+      "dense per-field golden credit instead of only whole-record pass",
+      "stronger or denser rule feedback",
+      "held-out non-frozen reward monitoring during training"
+    ]
+  },
+  "validation": {
+    "expected_full_cpu_tests": 487,
+    "all_tracked_hashes_must_match": true,
+    "external_adapter_verified_when_archive_present": true
+  }
+}
