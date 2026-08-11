@@ -1,0 +1,132 @@
+{
+  "baseline_label": "sft-combined-checkpoint-406",
+  "candidate_label": "grpo-first-300-final",
+  "inputs": {
+    "baseline_predictions": {
+      "path": "runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl",
+      "sha256": "cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b"
+    },
+    "candidate_predictions": {
+      "path": "runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+      "sha256": "f14f95ca0d5bde1bf8ece0927b2f02975fed89b1da1cf6da7ebc34ecd5a0573e"
+    },
+    "gold": {
+      "freeze": {
+        "n_rows": 300,
+        "ok": true,
+        "sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052"
+      },
+      "path": "data/eval_300/eval.jsonl",
+      "rows": 300,
+      "sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c"
+    },
+    "pack": {
+      "path": "packs/vastraa_taste_v1",
+      "rules_sha256": "2d5e186fb5157bd1f371aa2009a02052457d49b94e7c3ef0343ec43632157c56",
+      "vocab_sha256": "f98eba2177343867ce7f010b0ef4ec8d745b1154219a7137d29ad1807925c17d"
+    },
+    "reward_code": {
+      "path": "training/rewards.py",
+      "sha256": "ac9658028c62a84b32a8ba52c9e53e8d27ecaba05cd6d1703e398917aec1706d"
+    }
+  },
+  "interpretation_guardrails": {
+    "reason": "This is greedy frozen-set replay. GRPO trained on sampled completions from training prompts and group-relative advantages, not the absolute mean reward of these evaluation rows.",
+    "training_objective_recreated": false,
+    "use": "A diagnostic of reward/metric alignment on fixed outputs, not an off-policy estimate of training return."
+  },
+  "replay": {
+    "baseline": {
+      "components": {
+        "format_validity": {
+          "passes": 300,
+          "rate": 1.0
+        },
+        "golden_agreement": {
+          "passes": 59,
+          "rate": 0.19666666666666666
+        },
+        "vocab_rule_compliance": {
+          "passes": 256,
+          "rate": 0.8533333333333334
+        }
+      },
+      "rows": 300,
+      "weighted_total": {
+        "histogram": {
+          "1.0": 44,
+          "2.0": 197,
+          "4.0": 59
+        },
+        "maximum": 4.0,
+        "mean": 2.2466666666666666
+      }
+    },
+    "candidate": {
+      "components": {
+        "format_validity": {
+          "passes": 300,
+          "rate": 1.0
+        },
+        "golden_agreement": {
+          "passes": 50,
+          "rate": 0.16666666666666666
+        },
+        "vocab_rule_compliance": {
+          "passes": 243,
+          "rate": 0.81
+        }
+      },
+      "rows": 300,
+      "weighted_total": {
+        "histogram": {
+          "1.0": 57,
+          "2.0": 193,
+          "4.0": 50
+        },
+        "maximum": 4.0,
+        "mean": 2.1433333333333335
+      }
+    },
+    "delta_candidate_minus_baseline": {
+      "component_pass_rates": {
+        "format_validity": 0.0,
+        "golden_agreement": -0.03,
+        "vocab_rule_compliance": -0.043333333333333335
+      },
+      "weighted_total_mean": -0.10333333333333306
+    },
+    "paired_component_transitions": {
+      "format_validity": {
+        "baseline_only_pass": 0,
+        "both_fail": 0,
+        "both_pass": 300,
+        "candidate_only_pass": 0
+      },
+      "golden_agreement": {
+        "baseline_only_pass": 18,
+        "both_fail": 232,
+        "both_pass": 41,
+        "candidate_only_pass": 9
+      },
+      "vocab_rule_compliance": {
+        "baseline_only_pass": 23,
+        "both_fail": 34,
+        "both_pass": 233,
+        "candidate_only_pass": 10
+      }
+    },
+    "reward_functions": [
+      "format_validity_reward",
+      "vocab_rule_compliance_reward",
+      "golden_agreement_reward"
+    ],
+    "reward_weights": [
+      1.0,
+      1.0,
+      2.0
+    ]
+  },
+  "status": "completed",
+  "version": "frozen-grpo-reward-replay-v1"
+}

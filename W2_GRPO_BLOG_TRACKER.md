@@ -4669,15 +4669,12 @@ accounting for 11 of the 16 net additional violations. Applicability for collar
 type and `solid_is_not_multicolour` each added two; only
 `lapels_are_tailored_only` improved by one net violation.
 
-The strongest supported inference is reward/evaluation misalignment rather than
-a broken trainer. GRPO received useful nonzero gradients and improved some
-attributes, but its binary whole-record rewards do not directly optimize
-class-balanced per-attribute F1. Rule compliance is also one binary component in
-a `1:1:2` reward, so a completion can gain golden-agreement reward while the
-frozen evaluator detects a different rule failure. Because 96.5% of training
-rollouts already received the vocabulary/rule point on average, that component
-was comparatively sparse. This is a plausible mechanism, not causal proof; a
-reward ablation or additional training seeds would be needed to establish cause.
+The decomposition initially made reward/evaluation misalignment a plausible
+hypothesis: binary whole-record rewards do not directly optimize class-balanced
+per-attribute F1, and the vocabulary/rule component was sparse because 96.5% of
+sampled training rollouts already earned it. The frozen reward replay below was
+added specifically to test that hypothesis rather than promoting it to a
+conclusion from metric shape alone.
 
 The decomposition artifact is
 `runs/grpo-first-300-frozen-eval-300-decomposition.json`, SHA-256
@@ -4686,11 +4683,68 @@ It preserves every class count and each SKU-level rule transition, allowing the
 blog's examples to be traced without another model call. The final full CPU
 suite passed **481 tests**.
 
-This run proves successful optimization, evidence durability, bounded resource
-use and reproducible publication. It does **not** yet prove that GRPO improved
-catalog-tagging quality. The next scientific boundary is inference with the
-published final adapter on the unchanged frozen 300-product evaluation, followed
-by the predeclared SFT-versus-GRPO comparison.
+###### Replay of the exact `1:1:2` training rewards on frozen outputs
+
+`evalharness/replay_rewards.py` calls the production reward functions directly
+on the hash-locked raw SFT and GRPO outputs. It does not reimplement their logic.
+The tool requires exact 300-SKU pairing, uses each frozen row's verifier-form gold,
+records per-component pass transitions, applies the locked `1:1:2` weights and
+refuses to overwrite an existing artifact. Focused tests caught and corrected a
+fixture that omitted multi-field gold shape; the production scorer correctly
+treated that incomplete fixture as non-passing.
+
+```bash
+uv run python -m evalharness.replay_rewards \
+  --gold data/eval_300/eval.jsonl \
+  --baseline runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl \
+  --candidate runs/grpo-first-300-frozen-eval-300-predictions.jsonl \
+  --baseline-label sft-combined-checkpoint-406 \
+  --candidate-label grpo-first-300-final \
+  --output runs/grpo-first-300-frozen-eval-300-reward-replay.json
+```
+
+| exact reward on frozen greedy outputs | SFT passes | GRPO passes | rate delta |
+|---|---:|---:|---:|
+| format validity, weight 1 | 300 | 300 | 0.00 pp |
+| vocabulary/rule compliance, weight 1 | 256 | 243 | −4.33 pp |
+| whole-record golden agreement, weight 2 | 59 | 50 | −3.00 pp |
+| mean weighted total, max 4 | 2.2467 | 2.1433 | −0.1033 |
+
+The paired transitions make clear that this is not only an aggregate accounting
+effect. For vocabulary/rule compliance, GRPO gained 10 passes but lost 23; 233
+rows passed under both and 34 failed under both. For golden agreement, it gained
+nine passes but lost 18; 41 passed under both and 232 failed under both. All 300
+outputs remained format-valid.
+
+This **does not support** the simple story that GRPO improved the exact reward it
+was trained on while macro-F1 happened to disagree. On the frozen rows, GRPO was
+worse under both the primary evaluator and the original reward callbacks. The
+stronger interpretation is a transfer/generalization failure: sampled reward
+rose across shuffled training blocks, but that improvement did not carry to
+unseen frozen products under deterministic decoding. Possible contributors
+include training-pool overfitting, one seed, the 300-step/learning-rate choice,
+binary whole-record credit and distribution differences between sampled
+training completions and greedy frozen outputs. This replay cannot distinguish
+those causes.
+
+Reward/metric mismatch can still explain *which* classes move and why a sparse
+rule signal is inefficient, but it cannot by itself explain the final regression
+because frozen weighted reward also fell. A more defensible next experiment
+would predeclare a lower-risk ablation—such as fewer steps/lower learning rate or
+dense per-field golden credit—and monitor a non-frozen held-out reward slice
+during training before spending the frozen evaluation again.
+
+The deterministic replay artifact hashes to
+`4ba819c1491677f210873d13025a36e2bf317e1991cea2dc2ecca16e49050aa4`.
+It pins the frozen/prediction/pack/reward-code hashes and explicitly warns that
+greedy frozen replay is not an off-policy estimate of sampled GRPO training
+return. The final full CPU suite passed **484 tests**.
+
+This run proves successful optimization mechanics, evidence durability, bounded
+resource use and reproducible publication. The completed locked evaluation also
+shows that this first GRPO recipe **regressed catalog-tagging quality** rather
+than improving it. A technically successful training run and a scientifically
+successful model experiment are different outcomes.
 
 ### Questions to answer before the first GRPO run
 
@@ -4723,15 +4777,18 @@ The eventual comparison must use the same locked 300-product frozen evaluation a
 
 | metric | SFT locked baseline | GRPO | delta |
 |---|---:|---:|---:|
-| macro-F1 | 0.6411 | pending | pending |
-| selective macro-F1 | 0.7170 | pending | pending |
-| coverage | 94.3% | pending | pending |
-| schema validity | 100% | pending | pending |
-| vocabulary validity | 88.7% | pending | pending |
-| rule violations | 12 | pending | pending |
-| missing predictions | 0 | pending | pending |
+| macro-F1 | 0.6411 | 0.6223 | −0.0188; paired 95% CI [−0.0312, −0.0058] |
+| selective macro-F1 | 0.7170 | 0.6578 | −0.0591 |
+| coverage | 94.3% | 96.8% | +2.47 pp |
+| schema validity | 100% | 100% | 0.00 pp |
+| vocabulary validity | 88.7% | 89.3% | +0.67 pp |
+| rule violations | 12 | 28 | +16 |
+| missing predictions | 0 | 0 | 0 |
 
-GRPO succeeds only if it improves the predeclared metrics, or if the experiment produces a technically defensible explanation for why it did not.
+The first GRPO recipe did not meet the predeclared quality criterion. Its value is
+the auditable negative result: training worked mechanically, coverage increased,
+but paired macro-F1, selective quality, rules and frozen reward replay identify a
+real regression and constrain the next hypothesis.
 
 ---
 
@@ -4983,6 +5040,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   with exact input/stream hashes and a reproduced historical SFT interval.
 - [x] Deterministic attribute/class/rule decomposition with exact input hashes,
   per-class counts and SKU-level rule transitions.
+- [x] Exact production `1:1:2` reward replay on frozen SFT/GRPO outputs, with
+  paired pass transitions and the earlier reward-misalignment hypothesis revised.
 - [ ] Final limitations and reproducibility package.
 
 ---
