@@ -1,0 +1,145 @@
+{
+  "macro_f1": 0.622311392764744,
+  "selective_macro_f1": 0.6578293466758758,
+  "trusted_macro_f1": 0.5824706365303484,
+  "coverage": 0.9676950998185118,
+  "schema_validity": 1.0,
+  "vocab_validity": 0.8933333333333333,
+  "rule_violations": 28,
+  "rule_histogram": {
+    "slits_need_a_hem": 2,
+    "bodycon_is_tight": 9,
+    "solid_is_not_multicolour": 4,
+    "pants_length_subset": 7,
+    "auto:applies_to:neckline": 1,
+    "quilting_is_outerwear": 1,
+    "auto:applies_to:collar_type": 2,
+    "turtleneck_has_no_collar": 1,
+    "shorts_length_subset": 1
+  },
+  "n_gold": 300,
+  "n_missing": 0,
+  "freeze_ok": true,
+  "attributes": {
+    "garment_category": {
+      "n_scorable": 300,
+      "n_gold_unknown": 0,
+      "coverage": 1.0,
+      "exact_match": 0.93,
+      "macro_f1": 0.8373110474887773,
+      "selective_macro_f1": 0.8373110474887773
+    },
+    "silhouette": {
+      "n_scorable": 111,
+      "n_gold_unknown": 189,
+      "coverage": 0.8468468468468469,
+      "exact_match": 0.6756756756756757,
+      "macro_f1": 0.423176351485175,
+      "selective_macro_f1": 0.5127314814814815
+    },
+    "fit": {
+      "n_scorable": 158,
+      "n_gold_unknown": 142,
+      "coverage": 0.9936708860759493,
+      "exact_match": 0.9620253164556962,
+      "macro_f1": 0.9569137736895963,
+      "selective_macro_f1": 0.9600883768641996
+    },
+    "garment_length": {
+      "n_scorable": 121,
+      "n_gold_unknown": 179,
+      "coverage": 0.9917355371900827,
+      "exact_match": 0.8760330578512396,
+      "macro_f1": 0.7385363957410921,
+      "selective_macro_f1": 0.7450723434535104
+    },
+    "sleeve_length": {
+      "n_scorable": 198,
+      "n_gold_unknown": 102,
+      "coverage": 0.98989898989899,
+      "exact_match": 0.8484848484848485,
+      "macro_f1": 0.5564162598098553,
+      "selective_macro_f1": 0.5593789214498467
+    },
+    "sleeve_style": {
+      "n_scorable": 161,
+      "n_gold_unknown": 139,
+      "coverage": 0.9006211180124224,
+      "exact_match": 0.8633540372670807,
+      "macro_f1": 0.5112955278930382,
+      "selective_macro_f1": 0.6722689075630253
+    },
+    "neckline": {
+      "n_scorable": 208,
+      "n_gold_unknown": 92,
+      "coverage": 0.9278846153846154,
+      "exact_match": 0.8461538461538461,
+      "macro_f1": 0.6007650821522639,
+      "selective_macro_f1": 0.6854393192408996
+    },
+    "collar_type": {
+      "n_scorable": 202,
+      "n_gold_unknown": 98,
+      "coverage": 1.0,
+      "exact_match": 0.7970297029702971,
+      "macro_f1": 0.5740279946590626,
+      "selective_macro_f1": 0.5740279946590626
+    },
+    "waistline": {
+      "n_scorable": 188,
+      "n_gold_unknown": 112,
+      "coverage": 0.9680851063829787,
+      "exact_match": 0.9202127659574468,
+      "macro_f1": 0.4609018959113836,
+      "selective_macro_f1": 0.4763071895424837
+    },
+    "closure": {
+      "n_scorable": 136,
+      "n_gold_unknown": 164,
+      "coverage": 0.8676470588235294,
+      "exact_match": 0.5514705882352942,
+      "macro_f1": 0.3553121465582998,
+      "selective_macro_f1": 0.4705549384825701
+    },
+    "pattern": {
+      "n_scorable": 102,
+      "n_gold_unknown": 198,
+      "coverage": 0.9705882352941176,
+      "exact_match": 0.7058823529411765,
+      "macro_f1": 0.5203816025244596,
+      "selective_macro_f1": 0.5203816025244596
+    },
+    "details": {
+      "n_scorable": 234,
+      "n_gold_unknown": 66,
+      "coverage": 1.0,
+      "exact_match": 0.7435897435897436,
+      "macro_f1": 0.4764356519160032,
+      "selective_macro_f1": 0.4764356519160032
+    },
+    "material": {
+      "n_scorable": 238,
+      "n_gold_unknown": 62,
+      "coverage": 1.0,
+      "exact_match": 0.9663865546218487,
+      "macro_f1": 0.8508929009290519,
+      "selective_macro_f1": 0.8508929009290519
+    },
+    "colour_primary": {
+      "n_scorable": 221,
+      "n_gold_unknown": 79,
+      "coverage": 0.9864253393665159,
+      "exact_match": 0.8868778280542986,
+      "macro_f1": 0.7852698665358512,
+      "selective_macro_f1": 0.8395151303655141
+    },
+    "occasion": {
+      "n_scorable": 177,
+      "n_gold_unknown": 123,
+      "coverage": 0.96045197740113,
+      "exact_match": 0.864406779661017,
+      "macro_f1": 0.6870343941772513,
+      "selective_macro_f1": 0.6870343941772513
+    }
+  }
+}

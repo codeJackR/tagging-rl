@@ -1,0 +1,93 @@
+{
+  "version": "grpo-frozen-scoring-evidence-v1",
+  "status": "scored_validated_and_archived_before_uncertainty",
+  "scoring_started_at_utc": "2026-08-11T00:13:01Z",
+  "scoring_completed_at_utc": "2026-08-11T00:13:02Z",
+  "archived_locally_at_utc": "2026-08-11T00:44:18Z",
+  "execution": {
+    "git_commit": "cd9b7baeaca7f8ed092c44e75574b1c549a89702",
+    "cpu_only": true,
+    "evaluator_rerun": false,
+    "command": "PYTHONPATH=. /venv/rl/bin/python -m evalharness.report --gold data/eval_300 --pred runs/grpo-first-300-frozen-eval-300-predictions.jsonl --json",
+    "atomic_publication": true,
+    "remote_report_path": "/workspace/tagging-rl/runs/grpo-first-300-frozen-eval-300-report.json",
+    "local_report_path": "runs/grpo-first-300-frozen-eval-300-report.json"
+  },
+  "locked_inputs": {
+    "evaluation_lock": {
+      "path": "runs/grpo-evaluation-lock.json",
+      "sha256": "e3c4c3f44183d8aa3d8545cd16d9a4309e4bc10c3fb0c19ff834fe175bc4ba8d"
+    },
+    "frozen_data": {
+      "path": "data/eval_300/eval.jsonl",
+      "rows": 300,
+      "file_sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c",
+      "canonical_content_sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052"
+    },
+    "grpo_predictions": {
+      "path": "runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+      "rows": 300,
+      "sha256": "f14f95ca0d5bde1bf8ece0927b2f02975fed89b1da1cf6da7ebc34ecd5a0573e"
+    },
+    "sft_predictions": {
+      "path": "runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl",
+      "rows": 300,
+      "sha256": "cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b"
+    },
+    "sft_metrics_sha256": "608961d47be50ba2a1df455657964a7038480d656e757e83826e4f748fef2491"
+  },
+  "report": {
+    "path": "runs/grpo-first-300-frozen-eval-300-report.json",
+    "bytes": 4226,
+    "sha256": "478fec2c75ca1477772d45db44ce12beaa7e2410f7fb07d2ed860e63aed075f1",
+    "remote_and_local_sha256_equal": true,
+    "freeze_ok": true,
+    "gold_rows": 300,
+    "missing_predictions": 0,
+    "attribute_count": 15
+  },
+  "grpo_headline": {
+    "macro_f1": 0.622311392764744,
+    "selective_macro_f1": 0.6578293466758758,
+    "trusted_macro_f1": 0.5824706365303484,
+    "coverage": 0.9676950998185118,
+    "schema_validity": 1.0,
+    "vocab_validity": 0.8933333333333333,
+    "rule_violations": 28,
+    "missing_predictions": 0
+  },
+  "locked_sft_baseline": {
+    "macro_f1": 0.6411414820991878,
+    "selective_macro_f1": 0.7169543520009967,
+    "coverage": 0.9430127041742287,
+    "schema_validity": 1.0,
+    "vocab_validity": 0.8866666666666667,
+    "rule_violations": 12,
+    "missing_predictions": 0
+  },
+  "descriptive_delta_grpo_minus_sft": {
+    "macro_f1": -0.018830089334443855,
+    "selective_macro_f1": -0.059125005325120994,
+    "coverage": 0.024682395644283095,
+    "schema_validity": 0.0,
+    "vocab_validity": 0.006666666666666599,
+    "rule_violations": 16,
+    "missing_predictions": 0
+  },
+  "publication_validator_incident": {
+    "evaluator_exit_code": 0,
+    "first_wrapper_exit_code": 1,
+    "final_report_was_absent_after_first_wrapper": true,
+    "staged_report_sha256": "478fec2c75ca1477772d45db44ce12beaa7e2410f7fb07d2ed860e63aed075f1",
+    "cause": "The wrapper expected nested freeze.ok, n_predicted, and an array-valued n_missing; the actual report schema uses freeze_ok, omits n_predicted, and stores n_missing as an integer.",
+    "correction": "Validate the existing staged report against its actual schema and atomically rename that same file to the reserved final path.",
+    "evaluator_rerun": false,
+    "report_bytes_changed": false
+  },
+  "interpretation_guardrails": {
+    "paired_uncertainty_computed": false,
+    "statistical_significance_claimed": false,
+    "checkpoint_or_decoding_changed_after_results": false,
+    "descriptive_interpretation": "GRPO increased coverage and vocabulary validity while reducing macro-F1 and selective macro-F1 and increasing rule violations. Paired uncertainty is required before judging whether the F1 change exceeds evaluation noise."
+  }
+}

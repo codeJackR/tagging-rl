@@ -4501,6 +4501,47 @@ local hashes match. The companion generation-only evidence file is
 264 MiB / 0%, the reserved score report still did not exist, and no prediction
 was inspected or used to revise the adapter, checkpoint or decoding settings.
 
+###### Locked point estimate archived before uncertainty analysis
+
+The frozen evaluator ran once, CPU-only, from commit
+`cd9b7baeaca7f8ed092c44e75574b1c549a89702`. Immediately beforehand it
+rechecked the lock, prediction, frozen-data, evaluator, vocabulary and rule
+hashes and confirmed that the reserved report did not exist. It started at
+`2026-08-11T00:13:01Z` and completed at `00:13:02Z`. Freeze verification passed,
+all 300 gold rows had predictions and none were missing.
+
+| metric | locked SFT | GRPO | GRPO − SFT |
+|---|---:|---:|---:|
+| macro-F1 | 0.6411 | 0.6223 | −0.0188 |
+| selective macro-F1 | 0.7170 | 0.6578 | −0.0591 |
+| coverage | 94.30% | 96.77% | +2.47 pp |
+| schema validity | 100.00% | 100.00% | 0.00 pp |
+| vocabulary validity | 88.67% | 89.33% | +0.67 pp |
+| rule violations | 12 | 28 | +16 |
+| missing predictions | 0 | 0 | 0 |
+
+This is a point estimate, not yet an uncertainty-qualified conclusion. The
+descriptive behavior is a trade-off: GRPO abstained less and produced two more
+fully vocabulary-valid rows, but macro-F1 fell by 1.88 points, selective
+macro-F1 fell by 5.91 points and rule violations more than doubled. One plausible
+mechanism is reward/metric mismatch: training rewarded whole-record golden
+passes plus format/rule validity, while evaluation averages class-balanced F1
+over 15 attributes. The training reward can improve on sampled training prompts
+without maximizing frozen-set macro-F1. This remains an inference until paired
+row analysis and error decomposition are complete.
+
+The first publication wrapper exited 1 **after** the evaluator had completed
+because its validator expected fields that the report does not expose:
+`.freeze.ok`, `n_predicted` and array-valued `n_missing`. The actual schema uses
+`freeze_ok`, omits `n_predicted` and stores `n_missing` as an integer. The locked
+final path remained absent and the uniquely staged report was preserved. The
+validator was corrected against the actual schema, and that same 4,226-byte
+staged file—not a rerun—was atomically published. Its SHA-256 is
+`478fec2c75ca1477772d45db44ce12beaa7e2410f7fb07d2ed860e63aed075f1`.
+The local archive rehash matches the remote report. Full scoring provenance and
+the incident record live in
+`runs/grpo-first-300-frozen-eval-300-scoring.json`.
+
 This run proves successful optimization, evidence durability, bounded resource
 use and reproducible publication. It does **not** yet prove that GRPO improved
 catalog-tagging quality. The next scientific boundary is inference with the
@@ -4791,6 +4832,8 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   baseline, generation/evaluator settings and collision-free output paths.
 - [x] Locked 300-row GRPO generation with complete SKU/shape validation, raw
   predictions committed before scoring and a generation-only evidence manifest.
+- [x] Locked GRPO point-estimate report archived with exact hash, descriptive
+  SFT deltas and the no-rerun publication-validator incident.
 - [ ] Locked frozen evaluation after GRPO.
 - [ ] SFT-versus-GRPO uncertainty estimate.
 - [ ] Final limitations and reproducibility package.
