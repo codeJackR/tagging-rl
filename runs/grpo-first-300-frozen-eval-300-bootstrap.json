@@ -1,0 +1,148 @@
+{
+  "baseline_label": "sft-combined-checkpoint-406",
+  "bootstrap": {
+    "confidence": 0.95,
+    "method": "paired nonparametric row bootstrap, percentile interval",
+    "metrics": {
+      "coverage": {
+        "baseline": {
+          "ci": [
+            0.9330177943354683,
+            0.9522235935645615
+          ],
+          "mean": 0.9429285951986616,
+          "median": 0.943033381712627,
+          "point": 0.9430127041742287
+        },
+        "candidate": {
+          "ci": [
+            0.960364088687484,
+            0.9743867243867244
+          ],
+          "mean": 0.9676152546889049,
+          "median": 0.9677068214804064,
+          "point": 0.9676950998185118
+        },
+        "delta_candidate_minus_baseline": {
+          "ci": [
+            0.018545276292335103,
+            0.03121518188274289
+          ],
+          "fraction_above_zero": 1.0,
+          "fraction_below_zero": 0.0,
+          "fraction_equal_zero": 0.0,
+          "mean": 0.024686659490243255,
+          "median": 0.024625267665952855,
+          "point": 0.024682395644283095
+        }
+      },
+      "macro_f1": {
+        "baseline": {
+          "ci": [
+            0.6258483415970008,
+            0.6713653347257056
+          ],
+          "mean": 0.6479451972590107,
+          "median": 0.6478091105871564,
+          "point": 0.6411414820991878
+        },
+        "candidate": {
+          "ci": [
+            0.6077872019199729,
+            0.6536101363517371
+          ],
+          "mean": 0.6295725474953588,
+          "median": 0.629231554277623,
+          "point": 0.622311392764744
+        },
+        "delta_candidate_minus_baseline": {
+          "ci": [
+            -0.0311749921484264,
+            -0.005809656795667714
+          ],
+          "fraction_above_zero": 0.0022,
+          "fraction_below_zero": 0.9978,
+          "fraction_equal_zero": 0.0,
+          "mean": -0.018372649763651928,
+          "median": -0.018250028147218933,
+          "point": -0.018830089334443745
+        }
+      },
+      "selective_macro_f1": {
+        "baseline": {
+          "ci": [
+            0.6988680215278942,
+            0.7466121352414526
+          ],
+          "mean": 0.7226616819337206,
+          "median": 0.7225366637255582,
+          "point": 0.7169543520009967
+        },
+        "candidate": {
+          "ci": [
+            0.645496400914704,
+            0.6962592099238314
+          ],
+          "mean": 0.6698618618510537,
+          "median": 0.6696970302474461,
+          "point": 0.6578293466758758
+        },
+        "delta_candidate_minus_baseline": {
+          "ci": [
+            -0.07094178724682096,
+            -0.03378209604135041
+          ],
+          "fraction_above_zero": 0.0,
+          "fraction_below_zero": 1.0,
+          "fraction_equal_zero": 0.0,
+          "mean": -0.05279982008266692,
+          "median": -0.0529746054743061,
+          "point": -0.05912500532512088
+        }
+      }
+    },
+    "pairing_unit": "frozen product row",
+    "percentile_method": "linear interpolation at sorted index (n - 1) * p",
+    "replicate_stream_sha256": "7c6364be2f38153f6b4d6661cb655fb92eff30d9341651f86d5bb9c518689c07",
+    "replicates": 5000,
+    "rows_per_replicate": 300,
+    "seed": 20260801
+  },
+  "candidate_label": "grpo-first-300-final",
+  "inputs": {
+    "baseline_predictions": {
+      "attempted": 300,
+      "parsed": 300,
+      "path": "runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl",
+      "sha256": "cae3dbd18937a8aa1d0da75dbd32a8593e5295e5f03ca76fa55a8e988fe6ba4b"
+    },
+    "candidate_predictions": {
+      "attempted": 300,
+      "parsed": 300,
+      "path": "runs/grpo-first-300-frozen-eval-300-predictions.jsonl",
+      "sha256": "f14f95ca0d5bde1bf8ece0927b2f02975fed89b1da1cf6da7ebc34ecd5a0573e"
+    },
+    "gold": {
+      "freeze": {
+        "n_rows": 300,
+        "ok": true,
+        "sha256": "5e849d2bd0fbad7ef38fe3aba97e531a195c362eba1de26c8a2039f6ca245052"
+      },
+      "path": "data/eval_300/eval.jsonl",
+      "rows": 300,
+      "sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c"
+    },
+    "pack": {
+      "path": "packs/vastraa_taste_v1",
+      "rules_sha256": "2d5e186fb5157bd1f371aa2009a02052457d49b94e7c3ef0343ec43632157c56",
+      "vocab_sha256": "f98eba2177343867ce7f010b0ef4ec8d745b1154219a7137d29ad1807925c17d"
+    }
+  },
+  "interpretation": {
+    "caveat": "The interval measures row-sampling uncertainty against the same weak frozen labels; it does not repair label reliability limitations.",
+    "decision_rule": "A percentile interval containing zero does not establish a directional difference at the declared confidence level.",
+    "primary_metric": "macro_f1"
+  },
+  "status": "completed",
+  "version": "paired-frozen-eval-bootstrap-v1"
+}

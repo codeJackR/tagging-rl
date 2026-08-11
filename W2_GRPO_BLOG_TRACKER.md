@@ -4542,6 +4542,70 @@ The local archive rehash matches the remote report. Full scoring provenance and
 the incident record live in
 `runs/grpo-first-300-frozen-eval-300-scoring.json`.
 
+###### Paired row-bootstrap uncertainty
+
+The previous SFT bootstrap implementation was not present in the repository;
+only its result survived in the SFT metrics artifact. A small standard-library
+implementation was therefore added at `evalharness/paired_bootstrap.py` with
+focused tests in `tests/test_paired_bootstrap.py`. It fails closed unless the
+gold, baseline and candidate SKU sets match exactly, samples the same frozen-row
+indices for both models in every replicate, uses a local seeded RNG, computes
+linear percentile intervals at sorted index `(n - 1) * p`, refuses to overwrite
+an existing output and preserves a SHA-256 of the full replicate metric stream.
+
+The locked command was:
+
+```bash
+uv run python -m evalharness.paired_bootstrap \
+  --gold data/eval_300/eval.jsonl \
+  --baseline runs/sft-combined-2epoch/frozen-eval-300-predictions.jsonl \
+  --candidate runs/grpo-first-300-frozen-eval-300-predictions.jsonl \
+  --baseline-label sft-combined-checkpoint-406 \
+  --candidate-label grpo-first-300-final \
+  --seed 20260801 --replicates 5000 --confidence 0.95 \
+  --output runs/grpo-first-300-frozen-eval-300-bootstrap.json
+```
+
+Every replicate drew 300 products with replacement from the frozen set. A
+product drawn multiple times was repeated for **both** models, preserving the
+pairing by product difficulty. The SFT macro-F1 interval reproduced the earlier
+archived interval to floating-point precision—`[0.6258483, 0.6713653]`—which is
+independent evidence that the missing historical method was reconstructed
+correctly.
+
+| paired metric | point delta, GRPO − SFT | paired 95% percentile interval | bootstrap direction |
+|---|---:|---:|---:|
+| macro-F1 | −0.01883 | [−0.03117, −0.00581] | 99.78% below zero |
+| selective macro-F1 | −0.05913 | [−0.07094, −0.03378] | 100% below zero |
+| coverage | +0.02468 | [+0.01855, +0.03122] | 100% above zero |
+
+The primary macro-F1 interval excludes zero, so under this declared row-sampling
+procedure the first GRPO run produced a directional regression rather than an
+indistinguishable tie. Selective macro-F1 also decreased, while the coverage
+increase is equally clear. In plain terms, the GRPO model answered more fields
+but its committed answers were worse often enough to reduce class-balanced
+quality.
+
+The standalone SFT and GRPO macro-F1 intervals overlap, but the **paired delta**
+interval excludes zero. That is not contradictory. Standalone intervals include
+variation from which products are sampled; pairing subtracts both models on the
+same sampled products and cancels much of the shared product difficulty. The
+paired interval is therefore the relevant comparison.
+
+The fractions above/below zero are descriptive bootstrap frequencies, not a
+formal p-value. More importantly, the bootstrap only measures sampling
+uncertainty against these same 300 weak labels. It does not fix the known label
+reliability limitation, estimate variation across GRPO training seeds or prove
+that every future run with this recipe will regress.
+
+The compact artifact hashes to
+`f40d0fe8a27a6ca76b6fed2ed0edc268f196026b6c71a35101fb521d2583d251`;
+its exact 5,000-replicate metric stream hashes to
+`7c6364be2f38153f6b4d6661cb655fb92eff30d9341651f86d5bb9c518689c07`.
+The focused bootstrap/evaluator suite passed 25 tests, and the full CPU suite
+passed **478 tests**. The bootstrap ran locally on CPU; no additional GPU work or
+model inference occurred.
+
 This run proves successful optimization, evidence durability, bounded resource
 use and reproducible publication. It does **not** yet prove that GRPO improved
 catalog-tagging quality. The next scientific boundary is inference with the
@@ -4834,8 +4898,9 @@ The strongest narrative is not “we used GRPO.” It is “we made the reward s
   predictions committed before scoring and a generation-only evidence manifest.
 - [x] Locked GRPO point-estimate report archived with exact hash, descriptive
   SFT deltas and the no-rerun publication-validator incident.
-- [ ] Locked frozen evaluation after GRPO.
-- [ ] SFT-versus-GRPO uncertainty estimate.
+- [x] Locked frozen evaluation after GRPO.
+- [x] Deterministic 5,000-replicate paired SFT-versus-GRPO uncertainty estimate,
+  with exact input/stream hashes and a reproduced historical SFT interval.
 - [ ] Final limitations and reproducibility package.
 
 ---
