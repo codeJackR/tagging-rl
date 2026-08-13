@@ -311,9 +311,9 @@
       "sha256": "ac9658028c62a84b32a8ba52c9e53e8d27ecaba05cd6d1703e398917aec1706d"
     },
     "training/run2_causal_experiment.py": {
-      "bytes": 39947,
+      "bytes": 40487,
       "path": "training/run2_causal_experiment.py",
-      "sha256": "3cebd3d067e9ce59125126c64a665fe07f4bb4b5d069ae6f8386c38ffe6abbb4"
+      "sha256": "78f615b0ebc3da7a201d2d647de9394fa15a405275f408c975da744a8384f582"
     },
     "training/run2_checkpoint_monitor.py": {
       "bytes": 13785,
@@ -361,7 +361,7 @@
       "sha256": "aed20907d91f677aff5156fbbfafd86fba19c8b878a4bd09d2f14be3fb61805c"
     }
   },
-  "expected_execution_code_commit": "5f4c5280f7503e629cfd890dbed5fd926476f4a9",
+  "expected_execution_code_commit": "96d5c116d4b1d9ced4723db3766fd40615092d5b",
   "inputs": {
     "baseline_manifest": {
       "bytes": 7503,
@@ -384,9 +384,9 @@
       "sha256": "6708b47fc0c96ce514a307bb26c982efe8fc777d970c65b521897329f8ecbfba"
     },
     "contract_document": {
-      "bytes": 7435,
+      "bytes": 7468,
       "path": "W2_GRPO_RUN2_CAUSAL_EXPERIMENT_CONTRACT.md",
-      "sha256": "46b11aae1903aec9f5447965d40aa6e35203bb1d4e5709aebd57b92c607416ae"
+      "sha256": "a48a8053f7b14d04fec099c38619ec6dcde8d5d0c2f720f70d554296e63c23e8"
     },
     "corrected_pool": {
       "bytes": 3191282,
@@ -616,13 +616,18 @@
   },
   "question": "effect of Candidate UA versus original 1:1:2 under corrected identical training",
   "resources": {
-    "conservative_additive_peak_bytes": 8303143424,
+    "conservative_additive_peak_bytes": 8833412096,
     "exact_optimizer_resume_available": false,
     "historical_training_peak_allocated_bytes": 4914862080,
     "minimum_arm_B_start_bytes": 2684354560,
     "minimum_post_arm_bytes": 2147483648,
     "minimum_suite_start_bytes": 3221225472,
-    "monitor_peak_allocated_bytes": 3388281344,
+    "monitor_peak_allocated_bytes": 3918550016,
+    "monitor_peak_source": {
+      "bytes": 1417,
+      "path": "runs/grpo-run2-checkpoint-monitor-baseline-sft/resource.json",
+      "sha256": "6708b47fc0c96ce514a307bb26c982efe8fc777d970c65b521897329f8ecbfba"
+    },
     "save_only_model": true,
     "save_total_limit": 2
   },
