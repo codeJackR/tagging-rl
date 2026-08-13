@@ -3,7 +3,7 @@
 **Status:** active evidence ledger; update after every completed conceptual step
 **Started:** 2026-08-11
 **Last updated:** 2026-08-13
-**Current boundary:** confirmation selector proven synthetically; real candidate acquisition not started
+**Current boundary:** confirmation acquisition stopped at the fail-closed source-permission gate; no product endpoint was touched
 **GPU used for this tracker so far:** none
 **Execution plan:** [`W2_GRPO_RUN2_PLAN.md`](W2_GRPO_RUN2_PLAN.md)
 **Reward payoff contract:** [`W2_GRPO_RUN2_REWARD_PAYOFFS.md`](W2_GRPO_RUN2_REWARD_PAYOFFS.md)
@@ -21,6 +21,9 @@
 **Run 2 data roles:** [`runs/grpo-run2-data-role-manifest.json`](runs/grpo-run2-data-role-manifest.json)
 **Confirmation source audit:** [`runs/grpo-run2-confirmation-source-audit.json`](runs/grpo-run2-confirmation-source-audit.json)
 **Confirmation acquisition contract:** [`W2_GRPO_RUN2_CONFIRMATION_CONTRACT.md`](W2_GRPO_RUN2_CONFIRMATION_CONTRACT.md) and [`runs/grpo-run2-confirmation-acquisition-contract.json`](runs/grpo-run2-confirmation-acquisition-contract.json)
+**Confirmation terms audit:** [`runs/grpo-run2-confirmation-terms-audit.json`](runs/grpo-run2-confirmation-terms-audit.json)
+**Confirmation readiness audit:** [`runs/grpo-run2-confirmation-readiness.json`](runs/grpo-run2-confirmation-readiness.json)
+**Merchant permission protocol:** [`W2_GRPO_RUN2_PERMISSION_REQUEST.md`](W2_GRPO_RUN2_PERMISSION_REQUEST.md)
 **Run 1 diagnosis:** [`W2_GRPO_RUN1_DIAGNOSIS.md`](W2_GRPO_RUN1_DIAGNOSIS.md)
 **Earlier W2 tracker:** [`W2_GRPO_BLOG_TRACKER.md`](W2_GRPO_BLOG_TRACKER.md)
 
@@ -4828,20 +4831,833 @@ uv run python -m pytest -q tests/test_run2_confirmation_selector.py
 uv run python -m pytest -q
 ```
 
-## 74. Current next small step
+## 74. The real acquisition stopped before the first product request
 
-Re-probe the approved Shopify domain list under the contract's delay and hard-
-stop rules, then acquire raw metadata until at least 800 candidates survive the
-exact-SKU and normalized-family exclusions. Keep acquisition separate from
-selection publication and labeling:
+The first production acquisition step was not an endpoint probe. It was a
+point-in-time review of the current first-party terms for all 20 domains in the
+locked `tools/shopify_candidates.txt` input. This order matters: an HTTP 200
+proves reachability, not permission to collect and retain a bulk research
+dataset.
 
-- no frontier labeling during the fetch;
-- no SFT or GRPO inference;
-- no adjustment of the predeclared target, caps, seed or strata after seeing
-  the source mix;
-- retain failed-domain and rejection evidence;
-- stop rather than weaken the contract if fewer than 800 clean candidates are
-  available.
+The operational decision rule was deliberately conservative:
 
-Only after this acquisition preflight succeeds should the real selector freeze
-the ordered 400-product membership manifest.
+- `approved` requires a documented basis permitting automated product-metadata
+  collection and research retention;
+- `prohibited` means the published terms conflict with the planned collection,
+  copying or retention;
+- `unresolved` means the available first-party policy is inaccessible or does
+  not establish enough permission to proceed;
+- absence of an explicit anti-scraping sentence is not treated as positive
+  permission;
+- only `approved` stores may advance to a product-endpoint probe.
+
+This is a reproducibility and research-governance gate, not legal advice.
+Published terms can change, so every decision records its URL and review time
+and must be re-audited before a later collection attempt.
+
+### Point-in-time source decisions
+
+| candidate endpoint | decision | direct reason |
+|---|---|---|
+| `www.allbirds.com` | prohibited | terms prohibit scripts, crawlers, scraping and comparable automated extraction |
+| `www.rothys.com` | unresolved | linked first-party terms could not be retrieved reliably enough to establish bulk research permission |
+| `www.taylorstitch.com` | prohibited | automatic-device access is prohibited |
+| `www.buckmason.com` | unresolved | no discoverable current first-party policy grants the planned use |
+| `www.marinelayer.com` | unresolved | privacy policy refers to separate terms that could not be reliably retrieved |
+| `www.outdoorvoices.com` | prohibited | scripts, extraction and data mining are prohibited |
+| `www.mizzenandmain.com` | prohibited | spidering, crawling and scraping are prohibited |
+| `naadam.co` | prohibited | robots, crawlers and extraction tools are prohibited |
+| `www.vuori.com` | prohibited | current brand terms prohibit crawling/scraping; candidate and current brand domains also differ |
+| `fahertybrand.com` | prohibited | automated navigation and scraping/data compilation require permission |
+| `wearpact.com` | prohibited | content reuse beyond personal non-commercial use requires consent |
+| `www.girlfriend.com` | prohibited | unlisted uses and reproduction/republication are prohibited |
+| `www.thursdayboots.com` | prohibited | spidering, crawling and scraping are prohibited |
+| `ministryofsupply.com` | prohibited | bots, spiders, crawlers and other automated copying are prohibited |
+| `www.american-giant.com` | prohibited | product-listing collection and automated extraction are excluded from the license |
+| `www.everlane.com` | prohibited | automated content search/download mechanisms are prohibited |
+| `kotn.com` | prohibited | spidering, crawling and scraping are prohibited |
+| `www.tentree.com` | unresolved | terms do not establish permission for bulk product-data collection and retention |
+| `www.untuckit.com` | prohibited | automated access, systematic retrieval, mining and scraping are prohibited |
+| `shop.gymshark.com` | prohibited | terms permit only limited personal extracts, not the planned bulk dataset; candidate domain is not the current public site |
+
+Primary policy URLs and fuller decision summaries are retained in
+`runs/grpo-run2-confirmation-terms-audit.json`. Aggregate result:
+
+| source-gate count | result |
+|---|---:|
+| candidate domains audited | 20 |
+| approved | 0 |
+| prohibited | 16 |
+| unresolved | 4 |
+| approved stores required by locked selector | 8 |
+| product endpoint requests performed | 0 |
+| candidate products downloaded | 0 |
+| confirmation members selected | 0 |
+
+The terms-audit artifact is 9,449 bytes with SHA-256
+`d8fefca831d2f2e971264501675f14d36cadd9160a738deb2248101a5dc3b286`.
+
+### The permission gate is executable
+
+`training/run2_confirmation_source_gate.py` validates the audit rather than
+trusting prose. It rejects duplicate domains, unknown decisions, missing source
+URLs/timestamps/evidence, count drift and any `approved` store without a
+non-empty permission basis. It authorizes product endpoint requests only when
+at least eight stores are approved. The production invocation exits with code
+2 and reports:
+
+```json
+{
+  "approved_store_count": 0,
+  "minimum_approved_stores": 8,
+  "passed": false,
+  "product_endpoint_requests_authorized": false
+}
+```
+
+Five CPU-only tests passed in 0.02 seconds. They prove that the production audit
+fails closed, exactly eight documented approvals pass, a claimed approval
+without permission evidence fails, duplicate domains fail and declared counts
+must match row-level evidence.
+
+Focused reproduction:
+
+```bash
+uv run python -m pytest -q tests/test_run2_confirmation_source_gate.py
+uv run python -m training.run2_confirmation_source_gate \
+  --audit runs/grpo-run2-confirmation-terms-audit.json
+```
+
+The source-gate module was subsequently hardened in Section 81; its current
+identity is recorded there. The first gate implementation and its five tests
+were the basis for this initial production stop.
+
+The full local suite reached **796 passing tests and one unrelated existing
+failure**. The failure is the previously published Run-2 comparison contract
+not matching a deterministic rebuild because three locked Markdown input
+identities in that JSON no longer match the committed files. None of the new
+source-gate files is an input to that builder. The focused source-gate result is
+clean; the repository-wide mismatch should be reconciled separately rather
+than hidden or attributed to confirmation acquisition.
+
+### Findings and intuition
+
+Direct finding: the untouched 400-product confirmation set is **not built**.
+The locked v1 protocol correctly stopped before collection because zero stores
+passed a gate that requires eight. Consequently there are still no candidate
+rows, no selected membership manifest, no frontier labels, no human-reviewed
+cells, no frozen dataset and no confirmation model predictions.
+
+The important intuition is that “publicly reachable” has three separate layers:
+
+1. the URL exists;
+2. the server permits a request technically;
+3. the source permits the intended collection and reuse.
+
+The old working-domain file measured only layer 2 at one point in time. The new
+audit checks layer 3 before repeating layer 2. Conflating them would make the
+set reproducible in code but indefensible as research data.
+
+A second intuition is that stopping is a successful behavior of a predeclared
+contract. The contract said to add eligible stores rather than relax the store
+floor, overlap rules or target size. Treating four ambiguous policies as
+permission or silently reusing forbidden domains would produce 400 rows, but
+it would no longer produce the promised confirmation set.
+
+## 75. Exact unblock path
+
+The next action is external-source authorization, not labeling or GPU work:
+
+1. obtain and retain written permission for automated product-metadata
+   collection and research retention from at least eight Shopify stores;
+2. add each permission reference to a new point-in-time audit and re-run the
+   executable source gate;
+3. only after it passes, probe the approved `products.json` endpoints with the
+   one-second delay and 403/429 hard stop;
+4. acquire until at least 800 products remain after exact-SKU and normalized-
+   family exclusion;
+5. publish the deterministic 400-member manifest before any frontier label;
+6. collect exactly five usable labels per member, complete 6,000-cell primary
+   human review plus the independent 40-product review, resolve every cell and
+   freeze the collision-protected bundle;
+7. update the data-role manifest from `confirmation required` to
+   `confirmation assigned` while keeping all model outputs sealed until the
+   final Run-2 recipe is locked.
+
+If written merchant permission is impractical, the scientifically clean
+alternative is a new contract version using explicitly licensed/open product
+data. That would be a disclosed protocol change made before collection—not a
+retroactive exception to v1.
+
+## 76. The post-permission acquisition path is now executable
+
+While source authorization remains external, the entire next machine step was
+implemented and tested in `training/run2_confirmation_acquisition.py`. This is
+a confirmation-specific path rather than a blind reuse of the W1 fetcher,
+because the final-confirmation contract has stronger stopping, lineage and
+publication requirements.
+
+### Network and lineage behavior
+
+The acquisition function first evaluates the source-permission audit. A failed
+gate raises before the request callback can run. Once at least eight approvals
+exist, it:
+
+1. requires the approved domains to have stable sorted order;
+2. rejects delays below one second before networking;
+3. requests page 1 from every approved store, then page 2 from every live store,
+   continuing in domain-sorted round-robin order;
+4. records every exact URL, domain, page, request order, start/end UTC time,
+   HTTP status, response byte count and response SHA-256;
+5. globally stops all stores after the first HTTP 403 or 429;
+6. retires only the affected store for non-blocking HTTP, JSON-shape or empty-
+   page outcomes while retaining each error;
+7. filters non-apparel listings with the locked pack aliases, rejects empty
+   titles and duplicate SKU IDs, normalizes the same W1 input fields and prunes
+   store-ubiquitous tags;
+8. records per-store requests, successful pages, rows seen/retained and every
+   rejection/error count;
+9. leaves labeling, human review, SFT/GRPO inference and GPU work untouched.
+
+The global stop is stricter than “drop the blocked store and keep going.” A 429
+is evidence that the acquisition is applying pressure or violating the source's
+expectation; continuing against seven other stores would preserve row count at
+the expense of the declared conduct boundary.
+
+### Candidate-to-membership publication
+
+A completed acquisition is passed to the already-proven metadata-only selector.
+Publication refuses:
+
+- a hard-stopped or incomplete acquisition;
+- candidate-count drift between memory and the acquisition report;
+- any pre-label row containing labels, provenance, difficulty, predictions,
+  rewards or model output;
+- a prior exclusion universe other than exactly 4,000 unique SKUs in production;
+- duplicate candidate SKU IDs;
+- fewer than 800 family-clean candidates or fewer than eight stores;
+- any pre-existing output directory.
+
+On success it creates a same-filesystem staging directory, writes and fsyncs
+five new files, verifies the exact file inventory and atomically renames the
+directory into place:
+
+| file | purpose |
+|---|---|
+| `candidates.jsonl` | canonical raw pre-label candidate snapshot in acquisition order |
+| `acquisition-manifest.json` | permission, request, response, filtering and source lineage |
+| `selected.jsonl` | exactly 400 candidates in locked selection order, still without labels |
+| `selection-manifest.json` | every selected/excluded/unselected reason plus source, pack, code and exclusion-universe identities |
+| `manifest.json` | bundle-level counts, hashes, role and secrecy invariants |
+
+The prior universe records both its sorted 4,000-SKU hash and normalized-family
+set hash. The pack records vocab/rules hashes. The code context records the Git
+commit and hashes of the acquisition, selector, permission-gate and Shopify
+normalization implementations. The production CLI refuses a dirty worktree, so
+a real snapshot cannot be attributed only to uncommitted local code.
+
+### Tests and production dry boundary
+
+Eight acquisition tests plus the five permission-gate and ten selector tests
+passed together: **23 tests in 0.54 seconds**. The acquisition tests prove:
+
+- failed permission means zero request-callback invocations;
+- eight stores are traversed round-robin across two pages with exactly fifteen
+  one-second sleeps between sixteen requests;
+- every response receives a byte count and SHA-256;
+- the first 429 stops after exactly one request;
+- a `0.99`-second delay fails before networking;
+- 900 clean synthetic candidates publish exactly 400 products from ten stores,
+  and `selected.jsonl` order equals the manifest order;
+- a second publication cannot overwrite the first;
+- 792 clean candidates fail the 800-row floor and leave neither a final bundle
+  nor staging debris;
+- a hard-stopped acquisition cannot publish;
+- the real production CLI exits `2` at the present permission gate without
+  creating a candidate, failure or membership file.
+
+The implementation is 21,477 bytes with SHA-256
+`4729429a23c30718105f41184207b3c512282d5c4c9773cc8e3396ab7d463bdf`.
+Its tests are 9,475 bytes with SHA-256
+`618dffa993106eaaf71f368ae186bc35c296a5e986393d57bad6ee78817e0d5a`.
+
+Reproduction:
+
+```bash
+uv run python -m pytest -q \
+  tests/test_run2_confirmation_source_gate.py \
+  tests/test_run2_confirmation_selector.py \
+  tests/test_run2_confirmation_acquisition.py
+
+uv run python -m training.run2_confirmation_acquisition --repo-root .
+# Current expected result: exit 2 at permission gate; zero product requests.
+```
+
+Direct finding: the machinery after source approval is no longer a design
+sketch. It can acquire, audit, select and atomically freeze pre-label membership
+without allowing outcomes to influence membership. Limitation: all passing
+network tests use injected synthetic HTTP responses. They prove control flow
+and artifact behavior, not that any real store is approved, reachable or large
+enough. The real confirmation set remains at zero products.
+
+## 77. Strict k=5 labeling can no longer shrink the frozen membership
+
+The general W1 pre-label collector accepted fewer than five successful samples
+and simply omitted a product when all of its requests failed. That is useful for
+building a large weak-training corpus, but forbidden for final confirmation:
+dropping a difficult product after seeing labeling failures would change the
+evaluation population after membership was supposedly frozen.
+
+`training/run2_confirmation_labeling.py` therefore models 2,000 fixed logical
+slots: 400 frozen products × the five named `prelabel-v1` user-turn
+perturbations. Each slot is identified by membership order, exact SKU, variant
+0–4, perturbation text and a hash of its complete structured-output request
+body. Compact deterministic provider IDs such as `c2-0124-v3-a1` map back to
+that ledger without relying on fragile parsing of long Shopify SKU strings.
+
+### Locked state transitions
+
+1. Initial state requires exactly 400 unique Shopify rows with no labels,
+   provenance, difficulty, predictions or model output.
+2. Provider/model must be OpenAI `gpt-5.6-luna`; the prompt must be
+   `prelabel-v1`; the pack must contain the locked 15 fields; all five existing
+   perturbations are mandatory.
+3. Before every submission, each request body is rebuilt from frozen membership
+   and its hash must equal the initial plan. This detects prompt, schema, input
+   or model drift between retry rounds.
+4. A response is usable only when it is nonempty JSON, is an object, passes the
+   verifier's schema and controlled vocabulary, and contains all 15 fields.
+   Cross-field rule violations remain recorded for human review rather than
+   making the response disappear.
+5. Provider errors, refusals, empty text, malformed JSON, schema/vocabulary
+   failures and missing batch results all create attempt `a2` for the same slot.
+   Further failures create `a3`, `a4`, and so on; there is no replacement SKU.
+6. Unexpected result IDs, duplicate result IDs and reapplying a batch ID fail
+   closed.
+7. Every attempt retains batch ID, custom ID, provider result/request IDs when
+   available, usage, raw text, provider error, parse/verifier outcome, parsed
+   record, normalized three-state labels and rule violations.
+8. Finalization is impossible until every one of the 2,000 slots has exactly one
+   usable attempt.
+
+### Frontier bundle
+
+Successful finalization computes the existing order-insensitive per-field
+consensus and atomically publishes:
+
+| file | role |
+|---|---|
+| `attempts.jsonl` | every failed and successful raw provider attempt |
+| `frontier.jsonl` | 400 consensus rows with 15 labels and k=5 agreement |
+| `labeling-state.json` | complete slot, retry and batch state machine |
+| `manifest.json` | identities, counts, agreement summary and review boundary |
+
+The frontier rows use `split="eval"`, retain the original source/input, snapshot
+the untouched frontier consensus in provenance and remain explicitly
+`human_corrected=false`. The bundle status is
+`frontier_labels_complete_awaiting_human_review`; generating frontier labels is
+not equivalent to completing gold review.
+
+### Full-scale synthetic evidence
+
+Eight labeling tests simulate the actual 400-product and 2,000-request shape:
+
+- initial state contains exactly 400 products, 2,000 unique slots and all five
+  variants;
+- 399 products or a different model fail before submission;
+- 2,000 valid responses make every slot usable in one batch;
+- one malformed response schedules only that slot's `a2` request; after retry,
+  membership/SKU/variant are unchanged, 2,001 attempts are retained, one failed
+  attempt is reported and all 2,000 slots are usable;
+- one missing provider result becomes a recorded missing-result attempt and
+  same-slot retry;
+- duplicate, unknown or reused batch/result identities fail closed;
+- finalization produces 2,000 raw-attempt records, 400 frontier rows and 6,000
+  labeled cells, each row carrying k=5 self-consistency;
+- pending state cannot publish and leaves no output directory.
+
+The eight labeling tests passed, and the complete confirmation-focused group—
+permission gate, selector, acquisition and labeling—passed **31 tests in 35.49
+seconds**. These tests make no paid API request.
+
+The labeling implementation is 19,657 bytes with SHA-256
+`bd3e0e92df07aebb205fe51a166726701c7f9c5584ccb7793402198412b65f81`.
+Its tests are 9,471 bytes with SHA-256
+`75dc9f0852d678589dd370ff03431fc650ab316bbd6c38b17f5a31940fdabe5a`.
+
+Direct finding: the old “accept the smaller corpus” behavior is no longer on the
+confirmation path. Inference: frontier API instability can increase cost and
+latency, but cannot quietly make the confirmation set easier. Limitation: the
+state machine is proven with provider-shaped synthetic results; no membership
+exists yet, so no OpenAI batch has been submitted and no real frontier label has
+been produced.
+
+## 78. Human review now means an explicit decision on every cell
+
+The general disagreement queue was intentionally not reused for final
+confirmation. It saves labor by skipping unanimous frontier cells, while the
+locked confirmation contract requires human review of all 400 × 15 = 6,000
+cells plus a second independent review of all 15 cells on 40 products.
+
+`training/run2_confirmation_review.py` implements that stronger boundary.
+
+### Packet construction before human decisions
+
+The primary CSV contains exactly 6,000 rows. Each cell includes:
+
+- stable cell ID, membership order, SKU and source;
+- title, description, brand, category, tags and image URL;
+- attribute, arity, controlled values and applicability scope;
+- frontier status/value, k=5 agreement and all five parsed sample labels;
+- frontier rule violations;
+- blank reviewer, decision, correction, rationale and timestamp columns.
+
+The second packet is generated independently from the frontier bundle—not from
+the completed primary sheet. Its 40 SKUs are the lowest SHA-256 ranks of
+`20260813-review\0<sku_id>`, and it contains exactly 600 blank decision rows.
+No primary decision and no SFT/GRPO prediction is present. Copying each base row
+into a fresh secondary object prevents later primary edits from leaking through
+shared references.
+
+Both packets and a plan manifest publish as one collision-protected atomic
+bundle. The plan records the exact ordered 40-SKU audit sample and frontier
+identity. The packet CSVs preserve individual k=5 alternatives, which matters
+because a reviewer should see whether a unanimous consensus is stable evidence
+or merely one model repeating the same unsupported claim.
+
+### Review import rules
+
+Primary and secondary imports require the exact expected cell-ID set with no
+missing, extra or duplicate rows. Every immutable evidence column must still
+match the generated packet. Every cell then requires:
+
+- a nonempty stable reviewer ID;
+- explicit `accept` or `correct` decision;
+- timezone-aware review timestamp;
+- for a correction, a valid three-state status, JSON value, actual change from
+  the proposal and nonempty rationale;
+- a corrected value inside the controlled vocabulary.
+
+An `accept` row cannot secretly carry corrected fields. A `correct` row cannot
+repeat the proposal merely to make the sheet look complete. Each primary and
+secondary correction remains a separate decision event with reviewer, time,
+rationale, old label and new label.
+
+### Independent comparison and adjudication
+
+For every secondary cell, its reviewer ID must differ from the primary reviewer
+ID. Agreement is calculated before adjudication from the two independently
+reviewed labels. Every disagreement enters a packet containing both labels and
+reviewer identities but blank adjudication fields.
+
+The adjudicator must differ from both reviewers, explicitly choose primary,
+second or a custom label, provide a rationale and provide a timezone-aware
+timestamp. Import requires the exact disagreement set; one missing or extra
+adjudication blocks finalization. A zero-disagreement audit is valid and records
+zero resolved/unresolved cells rather than inventing adjudication work.
+
+### Final reviewed bundle and support audit
+
+Finalization starts from primary labels, substitutes adjudicated decisions for
+audited disagreements and preserves the untouched frontier consensus in
+provenance. It then runs every complete row through schema, vocabulary and rule
+verification. Any invalid row blocks publication.
+
+Successful publication atomically creates:
+
+| file | role |
+|---|---|
+| `reviewed.jsonl` | 400 fully reviewed, verifier-valid rows |
+| `decisions.jsonl` | primary, secondary, adjudication and final-change events |
+| `support.json` | every status and controlled value count, including zeros and all counts below the target of eight |
+| `manifest.json` | reviewer counts, pre-adjudication agreement, corrections, unresolved count, hashes and invariants |
+
+Support shortfalls are disclosed but cannot change membership. This preserves
+the difference between “our sample has weak evidence for this rare class” and
+“we secretly changed the sample until the rare class looked well supported.”
+
+### Synthetic proofs
+
+Eight full-shape review tests passed:
+
+1. primary and secondary packets contain exactly 6,000 and 600 cells, with the
+   same deterministic 40-SKU sample on repeated selection and blank secondary
+   decisions;
+2. packet publication is atomic and refuses overwrite;
+3. all 6,000 + 600 explicit accept decisions import, while a 5,999-cell primary
+   sheet fails;
+4. an unsupported correction fails, and a correction identical to the proposal
+   fails;
+5. one person cannot serve as both primary and second reviewer for a cell;
+6. an injected one-cell disagreement yields 599 agreements, one disagreement
+   and exactly one adjudication row; an original reviewer cannot adjudicate it;
+7. all-accept independent reviews finalize 400 rows with 100% pre-adjudication
+   agreement and publish the support report;
+8. an incomplete primary result blocks finalization and leaves no output.
+
+The complete confirmation-focused group now passes **39 tests in 37.70
+seconds**. The review implementation is 31,679 bytes with SHA-256
+`ed0038781ea07287a47bb7048309d20c776dd27961320d78e409d5fb03631cf9`.
+Its tests are 12,081 bytes with SHA-256
+`e999a839d241b87e78ce26ccd14541eb1ffaf0551749da9dbf0b3f483e793c41`.
+
+Direct finding: complete review, independent agreement and adjudication are now
+machine-enforced artifact properties rather than prose intentions. Inference:
+the eventual reviewer workload cannot silently collapse back to “look only at
+disagreements.” Limitation: synthetic reviewer IDs and generated accept
+decisions test validation mechanics; they are not human judgments. The actual
+6,600 review decisions remain external work after real frontier labels exist.
+
+## 79. Final freeze is sealed before any confirmation metric
+
+`training/run2_confirmation_freeze.py` implements the last pre-inference
+boundary. It does not score a model. It proves that the reviewed dataset is the
+same population selected before labeling, writes the exact final bytes and then
+marks the new role as assigned but still sealed.
+
+### Freeze gates
+
+Before writing, the freezer requires:
+
+- a passed source-permission gate with at least eight approved stores;
+- a selection manifest with exactly 400 unique SKUs and an outcome-free
+  membership invariant;
+- a review manifest reporting 400 products, 6,000 primary cells, 40 products
+  and 600 cells under independent second review, zero unresolved cells and all
+  review/verifier invariants true;
+- the reviewed rows in exactly the same SKU order as the pre-label selection;
+- exactly 4,000 SKUs in the prior exclusion universe;
+- zero exact-SKU and normalized-family overlap with that universe;
+- `split="eval"`, all 15 fields, an untouched frontier snapshot and k=5
+  provenance on every row;
+- every final row passing schema, vocabulary and all cross-field rules;
+- support target eight plus explicit confirmation that support shortfalls did
+  not change membership;
+- six named lineage identities: terms audit, acquisition manifest, selection
+  manifest, frontier-labeling manifest, review manifest and reviewed dataset;
+- collision-free locked output names.
+
+The output directory must be named `confirmation_run2_v1`. It is assembled in a
+same-filesystem staging directory, fsynced, inventory-checked and atomically
+renamed. It contains only:
+
+| final file | content |
+|---|---|
+| `eval.jsonl` | 400 canonical reviewed rows in selected order |
+| `manifest.json` | exact order, dataset identity, all lineage, pack/code hashes, review/support summary and secrecy boundary |
+
+The manifest explicitly records false for labels used in recipe/checkpoint
+selection, SFT/GRPO predictions generated and aggregate confirmation metrics
+calculated. The next allowed action is to keep the set sealed until one final
+recipe and checkpoint are locked.
+
+### Non-destructive data-role transition
+
+The original `grpo-run2-data-role-manifest-v1` remains historical evidence that
+confirmation was missing. Successful freeze creates a separate successor,
+`grpo-run2-data-role-manifest-confirmation-assigned.json`, rather than rewriting
+that history.
+
+The v2 successor records:
+
+- parent-manifest identity;
+- confirmation dataset and freeze-manifest identities;
+- assigned row/family/store and zero-overlap counts;
+- Phase E passed and its old blocking reason cleared;
+- confirmation labels still unused for selection;
+- no confirmation model output or aggregate metric;
+- only one allowed future use: the final comparison after recipe/checkpoint
+  lock.
+
+Dataset publication happens before the successor role file. This ordering fails
+safe: an interrupted role update can leave a valid sealed dataset needing a role
+retry, but cannot advertise an assigned dataset whose bytes do not exist. The
+role successor itself uses exclusive atomic publication.
+
+### Synthetic proofs
+
+Eight freeze tests passed:
+
+1. 400 verifier-valid reviewed rows freeze in exact selected order and produce
+   the v2 assigned role with Phase E passed;
+2. swapping the first two selection entries blocks freeze and leaves no final
+   dataset;
+3. one prior exact-SKU overlap blocks freeze;
+4. a 5,999-cell review or failed source gate blocks freeze;
+5. one out-of-vocabulary final label blocks freeze;
+6. a pre-existing output directory blocks before publication;
+7. recursively inspected freeze/role artifacts contain no macro-F1 and keep
+   `confirmation_metrics_calculated=false`;
+8. a parent role that already assigns confirmation cannot be reused.
+
+At this checkpoint, the then-current confirmation-focused suite passed **37
+tests in 37.88 seconds**. The freeze implementation is 17,125 bytes with SHA-256
+`a993a1da193192ffe61fac5009d59f78713bba69b54b4d2cbbcedde32b616e2e`.
+Its tests are 9,925 bytes with SHA-256
+`b300df7c0efc123ac15e7ec3aacc3da82ae922daa47d48ce8ead1c27e5f416ec`.
+
+Direct finding: every automatable stage from approved-source acquisition through
+final sealed freeze now has a fail-closed implementation and full-shape
+synthetic evidence. Inference: once real source permission and human judgments
+exist, the process no longer depends on ad hoc notebooks or manually remembered
+rules. Limitation: the successful freeze is synthetic. The production
+`data/confirmation_run2_v1` directory and v2 role successor do not exist because
+the real source, labeling and human-review prerequisites remain unmet.
+
+After adding the readiness audit, the then-current repository-wide validation
+reached **836 passing tests and one failure in 92.21 seconds**. The sole failure was the same pre-existing
+deterministic-rebuild mismatch already described in Section 74: the published
+Run-2 comparison contract contains stale byte/hash identities for three
+Markdown inputs. All 37 confirmation-focused tests pass, so this is not a
+confirmation-pipeline regression; it remains visible rather than being hidden
+or silently regenerated.
+
+A production-path boundary check used
+`python -m training.run2_confirmation_acquisition --repo-root .`. It exited
+with code 2 at the source gate, reporting 0 approved versus 8 required. Both
+`data/confirmation_run2_v1_prelabel` and the acquisition-failure artifact were
+absent afterward. This proves the real command does not create a candidate
+snapshot, failure snapshot or partial membership when authorization is absent.
+
+## 80. Machine-readable readiness separates code readiness from data readiness
+
+`training/audit_run2_confirmation_readiness.py` adds a read-only production
+audit across the five real artifact stages: pre-label membership, frontier
+labels, completed human review, final freeze and the assigned-role successor.
+For each stage it records the expected path, whether the file exists, whether
+its status is the exact required status and—when present—its bytes and SHA-256.
+It also records identities for the eight core and production-workflow
+implementations.
+
+This matters because a green synthetic test can prove that a state transition
+is implemented without proving that the transition happened on real data. The
+auditor counts only valid production manifests; source code and tests are
+reported separately and cannot increase the completed-real-stage count.
+
+The first production report is
+`runs/grpo-run2-confirmation-readiness.json`:
+
+| readiness fact | observed value |
+|---|---:|
+| approved sources | 0 |
+| required approved sources | 8 |
+| completed real stages | 0 |
+| required real stages | 5 |
+| current status | `blocked_before_acquisition_by_source_permission` |
+
+The current report is 4,513 bytes with SHA-256
+`2b3493340800895b6a84d81f2030cf42a4f2e50227ba593e34ffdc1f71ad97a8`.
+It explicitly records false for network access, frontier labeling, human
+review, model prediction, confirmation metric calculation and GPU work by the
+audit itself. Its exact next action is to retain written collection and
+research-use permission for at least eight stores, publish a new point-in-time
+terms audit and rerun the gate.
+
+Five tests prove that a blocked gate cannot look like data progress, a passed
+gate advances only to the first missing real stage, valid statuses are counted
+in order, an incorrect manifest status does not count and missing implementation
+code fails closed. After the permission-evidence hardening in Section 81, **45
+confirmation-focused tests pass in 38.07 seconds**. The readiness implementation is now 7,018 bytes with
+SHA-256
+`0fe8a66c32e4a8988eb1af82e81c7320608f5816fc4523a42a36bb3a290c38bd`;
+its 5,077-byte test file has SHA-256
+`92a6381cccb262abfbb9cf6e340f0d74baeb5ac375c3d425196f8380a80b3017`.
+
+Direct finding: all real confirmation stages remain at zero even though all
+local transition machinery is green. Intuition: this is the same distinction
+as having a tested airplane checklist versus having completed a particular
+flight—the checklist lowers execution risk, but it is not flight evidence.
+Limitation: the audit cannot create permission or substitute for 6,600 human
+review decisions. Those remain genuine external prerequisites, not software
+defects that can be coded around.
+
+## 81. “Approved” now requires hashed written permission, not a note
+
+The first source gate required a non-empty `permission_basis`, but that was too
+weak: a prose sentence could claim permission without proving what was granted
+or where the underlying evidence was retained. Because the real audit still has
+zero approvals, the schema could be strengthened without invalidating any
+accepted source.
+
+Every approved domain must now provide a structured permission object with:
+
+- evidence type exactly `written_merchant_authorization`;
+- a secure evidence reference and SHA-256 of the retained written record;
+- the exact authorized endpoint domain;
+- grant UTC time and grantor role;
+- explicit scopes for automated `products.json` access, research retention,
+  human labeling and model evaluation;
+- an explicit `allowed` or `not_allowed` decision for publishing raw metadata.
+
+The gate rejects missing scopes, duplicate scopes, malformed evidence hashes,
+domain mismatch, missing grant lineage and a publication policy that is left
+implicit. The raw permission document need not be committed publicly—its secure
+reference and hash can prove which retained bytes justified the decision while
+avoiding unnecessary personal information in the repository.
+
+Three new tests prove missing evaluation scope, domain mismatch and an invalid
+evidence hash all fail closed. The gate now has eight tests. Its implementation
+is 6,861 bytes with SHA-256
+`a3e477ea2ddbacab1e063a734659427b6286557fb45d3598f7c334dfdacf16b9`;
+the 4,440-byte test file has SHA-256
+`cdde774d67da8bd0536a099b927138424da5a1804120f57f772898f5c88b1716`.
+
+Direct finding: source approval is now an auditable evidence claim rather than
+a free-text assertion. Intuition: permission is like a key—the important facts
+are which door it opens, who issued it and whether the key can be identified
+later. Limitation: hashing a permission record proves identity, not legal
+validity; the merchant's authority and the intended use still need human
+judgment. This protocol is an operational research safeguard, not legal advice.
+
+## 82. The external unblock is now a reproducible protocol
+
+`W2_GRPO_RUN2_PERMISSION_REQUEST.md` turns “get merchant permission” into an
+exact operational handoff. It contains a ready-to-review message that names the
+endpoint, one-request-per-second behavior, global 403/429 stop, collected
+fields, non-training boundary and four required scopes. Raw-metadata
+publication is asked separately, because a merchant can permit private research
+evaluation without permitting republication.
+
+The protocol also locks the evidence workflow: export the full written thread
+to private storage, hash the exact bytes, assign a stable reference, transcribe
+the grant and restrictions into the audit, obtain a second-person transcription
+check and rerun the executable source gate. Ambiguous authority, a partial yes,
+an unanswered scope or a verbal-only response remains unresolved. The document
+explicitly says that no outreach is sent without user authorization.
+
+The permission protocol is 4,586 bytes with SHA-256
+`ef4d2b4ece77d6ef4b6fea51634b4497652203e25b564e4fce6a9493f554263f`.
+
+Direct finding: every local action that can responsibly precede merchant
+outreach is now specified, tested and auditable. Intuition: the remaining delay
+is no longer uncertainty about what code to write; it is waiting for eight data
+owners to grant a clearly bounded use. Limitation: a template cannot create
+consent, and this task did not send external messages. Until approvals exist,
+the correct real dataset size remains zero rather than a fabricated 400.
+
+## 83. Frontier API calls now have crash-safe intent and receipt lineage
+
+The core k=5 state machine proved the labeling rules but did not provide a safe
+operator command around the external Batch API. A crash after provider
+submission but before a local batch ID was written could tempt an operator to
+submit the same 2,000 requests again. That is both costly and ambiguous.
+
+`training/run2_confirmation_labeling_workflow.py` now exposes five production
+operations: initialize, submit, status, collect and finalize. Initialization
+proves `selected.jsonl` is the exact snapshot named by the pre-label manifest
+and publishes immutable state generation zero. Submission then follows a
+write-ahead pattern:
+
+1. rebuild every pending request and verify its predeclared body hash;
+2. exclusively publish an intent containing all custom IDs and body identities;
+3. call OpenAI Batch exactly once;
+4. exclusively publish the returned batch ID and intent/state identities.
+
+If step 3 raises or the process disappears before step 4, the intent remains
+with `do_not_resubmit_if_receipt_missing=true`. The operator must inspect the
+provider account for an orphaned batch rather than guessing that submission
+failed. Collection refuses an unready batch, proves the receipt names the exact
+state and intent, rechecks every request body, imports results and publishes a
+new state generation rather than overwriting the parent.
+
+The OpenAI output parser was also extended to retain the batch result ID,
+request ID and usage object. Those fields now survive into every raw attempt,
+along with response text and provider errors. Four workflow tests prove the
+happy path, write-ahead survival after an uncertain submit, refusal to collect
+an unfinished batch and rejection of state drift. Provider plus core/workflow
+labeling tests pass **24/24 in 35.47 seconds**.
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/run2_confirmation_labeling_workflow.py` | 13,825 | `d971d407fec70c952ece7d702a4526471173c03948104a4374a3cdf5a55d0807` |
+| `tests/test_run2_confirmation_labeling_workflow.py` | 7,791 | `bb0101b5ff9befa2bfc38ac30402860fc32bcc8438e8427150dab014e91739b1` |
+| `labeling/providers.py` | 19,161 | `2c32eff64f4c6623c0f7fb603ec8b4518890402f3ac16f2fd1812742422efdf4` |
+| `tests/test_providers.py` | 4,925 | `6644894be70fd5faedd41b93b7c85bf26b507d5b9fea0529d58a17221095b6f3` |
+
+Direct finding: the external labeling call is now recoverable and attributable
+without treating “the script returned” as sufficient lineage. Intuition: the
+intent is a signed-out library card written before taking a book, while the
+receipt records which book the library actually issued. Limitation: no real
+Batch API request was sent because no confirmation membership exists yet.
+
+## 84. Human review is now an executable blinded workflow
+
+`training/run2_confirmation_review_workflow.py` connects the previously tested
+review functions into production commands: prepare packets, import primary or
+secondary decisions, compare reviewers, import adjudication and finalize. The
+prepare command proves the frontier and raw-attempt files match their manifest
+before creating the 6,000-cell primary packet and separately blinded 600-cell
+secondary packet.
+
+Every completed CSV import records both the expected blank packet and the
+completed human file by bytes and SHA-256. Comparison atomically publishes the
+agreement/disagreement record and a fresh adjudication CSV. A zero-disagreement
+case still gets a header-only adjudication packet and explicit zero-resolution
+artifact; silence is not interpreted as completed work. Finalization loads only
+the immutable imported decisions, requires all disagreements to be resolved and
+delegates the full verifier/support gate.
+
+Four new workflow tests prove packet lineage, rejection after frontier drift,
+collision-safe comparison publication and the explicit empty-adjudication path.
+Core and workflow review tests pass **12/12 in 2.52 seconds**.
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/run2_confirmation_review_workflow.py` | 12,184 | `2119cc8b6b49b25390db01f2268b57c4b9a337e19abb46bc1ff2217e7eaa02e6` |
+| `tests/test_run2_confirmation_review_workflow.py` | 6,538 | `27124ca953e970b7105dca3e26f5783f91e511bec44eef5f74ec79aa492c8168` |
+
+Direct finding: review completion can now be reconstructed from frozen input
+packets and human-returned files rather than mutable spreadsheets alone.
+Intuition: blindness is a property of what was distributed, not merely a
+reviewer's promise; keeping primary decisions out of the secondary packet makes
+that claim inspectable. Limitation: software can enforce packet membership and
+reviewer IDs but cannot prove attention, expertise or real-world identity. The
+6,600 judgments still need qualified humans and an operational identity policy.
+
+## 85. Final freeze now has one committed-code production command
+
+`training/run2_confirmation_freeze_workflow.py` loads the terms audit,
+acquisition and selection manifests, frontier manifest, reviewed manifest and
+dataset, support report, prior 4,000-product universe, locked pack and parent
+role. It computes all six required lineage identities and passes them into the
+already tested freezer.
+
+Before production freeze, every source-gate, acquisition, labeling, review and
+freeze implementation file must be tracked in Git and byte-identical to `HEAD`.
+This check is scoped to the eight implementation files: unrelated notes do not
+block freezing, while uncommitted changes to decision-bearing code do. Four
+workflow tests prove complete lineage handoff, source-gate stopping before the
+freezer, rejection of modified tracked code and rejection of untracked freeze
+code. Core and workflow freeze tests pass **12/12 in 1.37 seconds**.
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/run2_confirmation_freeze_workflow.py` | 7,479 | `6cf7650e6da6b25b027f6c2eed078d2a0759e0c80bb894559f570201c4569a06` |
+| `tests/test_run2_confirmation_freeze_workflow.py` | 7,140 | `aaca12c8a000045e7c03d8f24210394997eadcb1e114e2f1bb2f6c00d83eaf75` |
+
+Direct finding: the real freeze no longer requires a custom Python notebook or
+manually assembled dictionaries. Intuition: a reproducible dataset is not just
+the final JSONL—it is the exact chain of authorized source, selected population,
+frontier attempts, human decisions and code that produced those bytes.
+Limitation: the production command intentionally refuses this dirty, uncommitted
+implementation. It must be reviewed and committed before a real freeze.
+
+## 86. Operational-readiness validation after command wiring
+
+The confirmation/provider-focused suite now passes **69 tests in 39.33
+seconds**. The complete repository suite reaches **848 passing tests and one
+failure in 93.79 seconds**. The one failure remains the historical published
+comparison-contract hash mismatch described in Section 74; none of the
+confirmation workflow tests fail.
+
+The regenerated readiness artifact identifies eight implementation files but
+still reports 0 approved sources and 0 of 5 completed real data stages. It
+records false for network requests, labeling, human review, model predictions,
+confirmation metrics and GPU work by the audit. This is the intended honest
+result: operator readiness increased, dataset completion did not.
+
+Direct finding: after closing the command gap, no further local automation can
+turn the real stage count above zero. Intuition: fail-closed tooling should make
+the blocking line sharper, not make blocked work look complete. Limitation: the
+next causal event must come from outside this repository—written authorization
+for at least eight eligible sources. No outreach was sent in this work.

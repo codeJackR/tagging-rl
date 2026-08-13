@@ -1,0 +1,199 @@
+{
+  "version": "grpo-run2-confirmation-terms-audit-v1",
+  "role": "pre_endpoint_first_party_terms_permission_audit",
+  "audited_at_utc": "2026-08-13T16:47:26Z",
+  "review_scope": "Current first-party published terms for every domain in tools/shopify_candidates.txt; product endpoints were not probed.",
+  "legal_note": "Operational research gate, not legal advice. Absence of an explicit prohibition is not treated as permission for bulk dataset collection and retention.",
+  "contract_requirement": {
+    "minimum_approved_stores": 8,
+    "approval_rule": "A store must have a documented basis permitting automated product-metadata collection and research retention before its products.json endpoint is touched.",
+    "fail_closed": true
+  },
+  "counts": {
+    "candidate_domains": 20,
+    "approved": 0,
+    "prohibited": 16,
+    "unresolved": 4
+  },
+  "gate": {
+    "passed": false,
+    "approved_store_count": 0,
+    "product_endpoint_requests_authorized": false,
+    "reason": "No candidate has published permission evidence; the locked selector requires at least eight approved stores."
+  },
+  "candidates": [
+    {
+      "endpoint_domain": "www.allbirds.com",
+      "terms_url": "https://www.allbirds.com/pages/terms-of-use",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Current terms prohibit scripts, crawlers, scraping, and comparable automated extraction.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.rothys.com",
+      "terms_url": "https://rothys.com/pages/terms-of-use",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "unresolved",
+      "evidence_summary": "The first-party site links this policy, but its current text could not be retrieved reliably enough to establish bulk research permission.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.taylorstitch.com",
+      "terms_url": "https://www.taylorstitch.com/pages/terms-of-use",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms prohibit robots, spiders, and other automatic devices used to access the site.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.buckmason.com",
+      "terms_url": "https://www.buckmason.com/",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "unresolved",
+      "evidence_summary": "No current first-party terms page granting the planned automated research use was discoverable from the site or search results.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.marinelayer.com",
+      "terms_url": "https://www.marinelayer.com/pages/privacy-policy",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "unresolved",
+      "evidence_summary": "The privacy policy says site use is subject to separate Terms of Service, but those terms could not be retrieved reliably enough to approve collection.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.outdoorvoices.com",
+      "terms_url": "https://www.outdoorvoices.com/pages/terms-of-use",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms prohibit scripts, scraping, extraction, and data-mining activity.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.mizzenandmain.com",
+      "terms_url": "https://www.mizzenandmain.com/terms-of-service",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "The prohibited-uses section disallows spidering, crawling, and scraping.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "naadam.co",
+      "terms_url": "https://naadam.co/pages/terms-conditions",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms prohibit spiders, robots, crawlers, and data-mining or extraction tools.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.vuori.com",
+      "terms_url": "https://vuoriclothing.com/pages/terms-of-use",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "The brand's current terms prohibit spidering, crawling, and scraping; the candidate endpoint domain also differs from the current brand domain.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "fahertybrand.com",
+      "terms_url": "https://fahertybrand.com/pages/terms-of-use",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Current terms prohibit automated navigation/search and scraping or data compilation without permission.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "wearpact.com",
+      "terms_url": "https://wearpact.com/terms",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms restrict content to personal non-commercial use and expressly forbid other reproduction, distribution, and exploitation without consent.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.girlfriend.com",
+      "terms_url": "https://girlfriend.com/pages/terms",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms prohibit uses outside those contemplated by the site, including reproduction and republication of protected works.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.thursdayboots.com",
+      "terms_url": "https://thursdayboots.com/pages/terms-of-service",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "The prohibited-uses section expressly disallows spidering, crawling, and scraping.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "ministryofsupply.com",
+      "terms_url": "https://www.ministryofsupply.com/policies/terms-of-service",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms strictly prohibit bots, spiders, web crawlers, indexing agents, and other automated access or copying mechanisms.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.american-giant.com",
+      "terms_url": "https://www.american-giant.com/policies/terms-of-service",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms exclude collection of product listings/descriptions and data-mining, robot, or similar extraction methods from the granted license.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.everlane.com",
+      "terms_url": "https://www.everlane.com/pages/terms",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms prohibit downloading or searching content through spiders, robots, crawlers, data-mining tools, and similar mechanisms.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "kotn.com",
+      "terms_url": "https://kotn.com/legal/terms-of-service",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "The prohibited-uses section expressly disallows spidering, crawling, and scraping.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.tentree.com",
+      "terms_url": "https://www.tentree.com/pages/terms-and-conditions",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "unresolved",
+      "evidence_summary": "Published terms cover site content and forbid automation for reward exploitation, but do not provide a clear basis for bulk product-data collection and retention.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "www.untuckit.com",
+      "terms_url": "https://www.untuckit.com/pages/terms-and-conditions-pieeye",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms prohibit automated or non-human access, systematic retrieval, scripts, data mining, robots, scrapers, and offline readers.",
+      "permission_basis": null
+    },
+    {
+      "endpoint_domain": "shop.gymshark.com",
+      "terms_url": "https://www.gymshark.com/pages/terms-of-use",
+      "reviewed_at_utc": "2026-08-13T16:47:26Z",
+      "decision": "prohibited",
+      "evidence_summary": "Terms allow only limited personal extracts and do not permit the planned bulk product-content collection; the candidate endpoint is also not the current public site domain.",
+      "permission_basis": null
+    }
+  ],
+  "execution_boundary": {
+    "terms_pages_reviewed": true,
+    "product_endpoint_requests_performed": false,
+    "candidate_rows_downloaded": 0,
+    "confirmation_members_selected": 0,
+    "frontier_label_requests_performed": 0,
+    "human_review_cells_completed": 0,
+    "model_predictions_generated": 0
+  },
+  "resolution_paths": [
+    "Obtain and record written permission for at least eight stores, then re-run this audit and only afterward probe products.json.",
+    "If licensed or open data must replace merchant endpoints, write a new pre-collection contract version and disclose the protocol change; do not silently weaken the locked v1 contract."
+  ]
+}

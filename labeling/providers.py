@@ -96,6 +96,9 @@ class BatchResult:
     custom_id: str
     text: str | None
     error: str | None = None
+    provider_result_id: str | None = None
+    provider_request_id: str | None = None
+    usage: dict[str, Any] | None = None
 
 
 class Provider(Protocol):
@@ -306,22 +309,34 @@ class OpenAIProvider:
 def parse_openai_line(obj: dict) -> BatchResult:
     """Pull one batch output line apart. Split out so it is testable offline."""
     cid = obj.get("custom_id", "")
-    if obj.get("error"):
-        return BatchResult(cid, None, str(obj["error"])[:120])
+    result_id = obj.get("id")
     response = obj.get("response") or {}
-    if response.get("status_code") != 200:
-        return BatchResult(cid, None, f"HTTP {response.get('status_code')}")
+    request_id = response.get("request_id")
     body = response.get("body") or {}
+    lineage = {
+        "provider_result_id": result_id,
+        "provider_request_id": request_id,
+        "usage": body.get("usage"),
+    }
+    if obj.get("error"):
+        return BatchResult(cid, None, str(obj["error"])[:120], **lineage)
+    if response.get("status_code") != 200:
+        return BatchResult(cid, None, f"HTTP {response.get('status_code')}", **lineage)
     choices = body.get("choices") or []
     if not choices:
-        return BatchResult(cid, None, "no choices")
+        return BatchResult(cid, None, "no choices", **lineage)
     message = choices[0].get("message") or {}
     if message.get("refusal"):
-        return BatchResult(cid, None, f"refusal: {str(message['refusal'])[:80]}")
+        return BatchResult(
+            cid,
+            None,
+            f"refusal: {str(message['refusal'])[:80]}",
+            **lineage,
+        )
     content = message.get("content")
     if not content:
-        return BatchResult(cid, None, "empty content")
-    return BatchResult(cid, content, None)
+        return BatchResult(cid, None, "empty content", **lineage)
+    return BatchResult(cid, content, None, **lineage)
 
 
 PROVIDERS = {"openai": OpenAIProvider, "anthropic": AnthropicProvider}

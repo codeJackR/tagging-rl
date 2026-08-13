@@ -78,12 +78,22 @@ def test_luna_model_id_is_not_the_bare_alias():
 
 def test_parse_success():
     line = {
+        "id": "batch-result-1",
         "custom_id": "SKU1::0",
-        "response": {"status_code": 200,
-                     "body": {"choices": [{"message": {"content": '{"a":1}'}}]}},
+        "response": {
+            "status_code": 200,
+            "request_id": "request-1",
+            "body": {
+                "choices": [{"message": {"content": '{"a":1}'}}],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 3},
+            },
+        },
     }
     r = parse_openai_line(line)
     assert r.text == '{"a":1}' and r.error is None
+    assert r.provider_result_id == "batch-result-1"
+    assert r.provider_request_id == "request-1"
+    assert r.usage == {"prompt_tokens": 10, "completion_tokens": 3}
 
 
 def test_parse_refusal_is_not_silently_empty():

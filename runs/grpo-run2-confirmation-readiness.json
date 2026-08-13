@@ -1,0 +1,120 @@
+{
+  "completed_real_stage_names": [],
+  "counts": {
+    "approved_sources": 0,
+    "completed_real_stages": 0,
+    "required_approved_sources": 8,
+    "required_real_stages": 5
+  },
+  "execution_boundary": {
+    "confirmation_metrics_calculated_by_audit": false,
+    "frontier_labeling_performed_by_audit": false,
+    "gpu_work_performed_by_audit": false,
+    "human_review_performed_by_audit": false,
+    "model_predictions_generated_by_audit": false,
+    "network_requests_performed_by_audit": false
+  },
+  "implementation_identities": {
+    "training/run2_confirmation_acquisition.py": {
+      "bytes": 21477,
+      "path": "training/run2_confirmation_acquisition.py",
+      "sha256": "4729429a23c30718105f41184207b3c512282d5c4c9773cc8e3396ab7d463bdf"
+    },
+    "training/run2_confirmation_freeze.py": {
+      "bytes": 17125,
+      "path": "training/run2_confirmation_freeze.py",
+      "sha256": "a993a1da193192ffe61fac5009d59f78713bba69b54b4d2cbbcedde32b616e2e"
+    },
+    "training/run2_confirmation_freeze_workflow.py": {
+      "bytes": 7479,
+      "path": "training/run2_confirmation_freeze_workflow.py",
+      "sha256": "6cf7650e6da6b25b027f6c2eed078d2a0759e0c80bb894559f570201c4569a06"
+    },
+    "training/run2_confirmation_labeling.py": {
+      "bytes": 19657,
+      "path": "training/run2_confirmation_labeling.py",
+      "sha256": "bd3e0e92df07aebb205fe51a166726701c7f9c5584ccb7793402198412b65f81"
+    },
+    "training/run2_confirmation_labeling_workflow.py": {
+      "bytes": 13825,
+      "path": "training/run2_confirmation_labeling_workflow.py",
+      "sha256": "d971d407fec70c952ece7d702a4526471173c03948104a4374a3cdf5a55d0807"
+    },
+    "training/run2_confirmation_review.py": {
+      "bytes": 31679,
+      "path": "training/run2_confirmation_review.py",
+      "sha256": "ed0038781ea07287a47bb7048309d20c776dd27961320d78e409d5fb03631cf9"
+    },
+    "training/run2_confirmation_review_workflow.py": {
+      "bytes": 12184,
+      "path": "training/run2_confirmation_review_workflow.py",
+      "sha256": "2119cc8b6b49b25390db01f2268b57c4b9a337e19abb46bc1ff2217e7eaa02e6"
+    },
+    "training/run2_confirmation_source_gate.py": {
+      "bytes": 6861,
+      "path": "training/run2_confirmation_source_gate.py",
+      "sha256": "a3e477ea2ddbacab1e063a734659427b6286557fb45d3598f7c334dfdacf16b9"
+    }
+  },
+  "interpretation": "implemented and synthetically tested does not mean the real confirmation dataset exists; only valid production artifacts count as completed stages",
+  "next_action": "retain written collection/research-use permission for at least eight stores, publish a new point-in-time terms audit, and rerun the gate",
+  "real_production_stages": {
+    "freeze": {
+      "exists": false,
+      "expected_path": "data/confirmation_run2_v1/manifest.json",
+      "name": "freeze",
+      "observed_status": null,
+      "valid_status": false
+    },
+    "frontier": {
+      "exists": false,
+      "expected_path": "data/confirmation_run2_v1_frontier/manifest.json",
+      "name": "frontier",
+      "observed_status": null,
+      "valid_status": false
+    },
+    "prelabel": {
+      "exists": false,
+      "expected_path": "data/confirmation_run2_v1_prelabel/manifest.json",
+      "name": "prelabel",
+      "observed_status": null,
+      "valid_status": false
+    },
+    "review": {
+      "exists": false,
+      "expected_path": "data/confirmation_run2_v1_reviewed/manifest.json",
+      "name": "review",
+      "observed_status": null,
+      "valid_status": false
+    },
+    "role_successor": {
+      "exists": false,
+      "expected_path": "runs/grpo-run2-data-role-manifest-confirmation-assigned.json",
+      "name": "role_successor",
+      "observed_status": null,
+      "valid_status": false
+    }
+  },
+  "source_audit": {
+    "bytes": 9449,
+    "path": "runs/grpo-run2-confirmation-terms-audit.json",
+    "sha256": "d8fefca831d2f2e971264501675f14d36cadd9160a738deb2248101a5dc3b286"
+  },
+  "source_gate": {
+    "approved_domains": [],
+    "approved_store_count": 0,
+    "decision_counts": {
+      "approved": 0,
+      "candidate_domains": 20,
+      "prohibited": 16,
+      "unresolved": 4
+    },
+    "failure_reason": "published permission evidence exists for only 0 stores; contract requires at least 8",
+    "minimum_approved_stores": 8,
+    "passed": false,
+    "product_endpoint_requests_authorized": false,
+    "version": "grpo-run2-confirmation-source-gate-v1"
+  },
+  "status": "blocked_before_acquisition_by_source_permission",
+  "version": "grpo-run2-confirmation-readiness-v1"
+}
