@@ -182,22 +182,27 @@ def run_supervised_monitor(
         timed_out = False
         return_code: int | None = None
         validation_error: str | None = None
+        spawn_error: str | None = None
         with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-            process = popen_fn(
-                normalized,
-                cwd=repo_root,
-                stdin=subprocess.DEVNULL,
-                stdout=stdout,
-                stderr=stderr,
-                start_new_session=True,
-                env={**os.environ, "PYTHONUNBUFFERED": "1"},
-            )
             try:
-                return_code = process.wait(timeout=timeout_seconds)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                termination = _stop_process_group(process)
-                return_code = process.returncode
+                process = popen_fn(
+                    normalized,
+                    cwd=repo_root,
+                    stdin=subprocess.DEVNULL,
+                    stdout=stdout,
+                    stderr=stderr,
+                    start_new_session=True,
+                    env={**os.environ, "PYTHONUNBUFFERED": "1"},
+                )
+            except Exception as exc:
+                spawn_error = f"{type(exc).__name__}: {exc}"
+            else:
+                try:
+                    return_code = process.wait(timeout=timeout_seconds)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    termination = _stop_process_group(process)
+                    return_code = process.returncode
         streams = {
             "stdout": _stream_evidence(stdout_path),
             "stderr": _stream_evidence(stderr_path),
@@ -226,6 +231,7 @@ def run_supervised_monitor(
             "timeout_seconds": timeout_seconds,
             "return_code": return_code,
             "timed_out": timed_out,
+            "spawn_error": spawn_error,
             "termination": termination,
             "streams": streams,
         }
@@ -234,7 +240,13 @@ def run_supervised_monitor(
                 **common,
                 "status": "checkpoint_monitor_failed",
                 "reason": (
-                    "timeout" if timed_out else "nonzero_exit" if return_code != 0 else "invalid_success_bundle"
+                    "spawn_error"
+                    if spawn_error is not None
+                    else "timeout"
+                    if timed_out
+                    else "nonzero_exit"
+                    if return_code != 0
+                    else "invalid_success_bundle"
                 ),
                 "validation_error": validation_error,
                 "training_must_abort": True,

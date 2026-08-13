@@ -37,6 +37,16 @@ CODE_FILES = (
     "training/run2_checkpoint_monitor.py",
     "training/run2_checkpoint_monitor_runtime.py",
     "training/run2_checkpoint_monitor_control.py",
+    "training/predict.py",
+    "training/rewards.py",
+    "training/run2_rewards.py",
+    "training/audit_data_boundaries.py",
+    "evalharness/metrics.py",
+    "evalharness/predictions.py",
+    "labeling/records.py",
+    "verifier/__init__.py",
+    "verifier/rules.py",
+    "verifier/schema.py",
 )
 
 

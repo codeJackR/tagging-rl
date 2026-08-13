@@ -129,6 +129,23 @@ def test_supervisor_publishes_nonzero_and_invalid_success_failures(tmp_path, com
     assert failure["quality_threshold_involved"] is False
 
 
+def test_supervisor_publishes_failure_when_child_cannot_be_spawned(tmp_path):
+    paths = _paths(tmp_path)
+    with pytest.raises(CheckpointMonitorError, match="spawn_error"):
+        run_supervised_monitor(
+            command=[str(tmp_path / "missing-evaluator")],
+            repo_root=tmp_path,
+            timeout_seconds=5,
+            expected_mode="smoke",
+            **paths,
+        )
+    failure = json.loads(paths["failure_path"].read_text(encoding="utf-8"))
+    assert failure["reason"] == "spawn_error"
+    assert failure["spawn_error"].startswith("FileNotFoundError:")
+    assert failure["return_code"] is None
+    assert failure["training_must_abort"] is True
+
+
 def _contract(tmp_path: Path) -> Path:
     path = tmp_path / "monitor-contract.json"
     path.write_text(
