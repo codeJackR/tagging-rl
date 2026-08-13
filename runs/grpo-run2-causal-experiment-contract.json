@@ -311,9 +311,9 @@
       "sha256": "ac9658028c62a84b32a8ba52c9e53e8d27ecaba05cd6d1703e398917aec1706d"
     },
     "training/run2_causal_experiment.py": {
-      "bytes": 39464,
+      "bytes": 39947,
       "path": "training/run2_causal_experiment.py",
-      "sha256": "530efc1b9cd491011f0a4f3a10bd9fe1f1c0d89c39c5ce273c3f8a6ffe1f20ae"
+      "sha256": "3cebd3d067e9ce59125126c64a665fe07f4bb4b5d069ae6f8386c38ffe6abbb4"
     },
     "training/run2_checkpoint_monitor.py": {
       "bytes": 13785,
@@ -361,7 +361,7 @@
       "sha256": "aed20907d91f677aff5156fbbfafd86fba19c8b878a4bd09d2f14be3fb61805c"
     }
   },
-  "expected_execution_code_commit": "e0800b2f14b17f4b345337c5cd25b1a0a27abfbb",
+  "expected_execution_code_commit": "5f4c5280f7503e629cfd890dbed5fd926476f4a9",
   "inputs": {
     "baseline_manifest": {
       "bytes": 7503,
