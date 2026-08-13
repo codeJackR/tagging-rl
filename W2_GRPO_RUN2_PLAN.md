@@ -829,6 +829,34 @@ its difference from historical Run 1.
 **Phase G gate:** signed run contract is committed, construction/preflight is
 read-only, no deferred parameter remains unresolved and no output path exists.
 
+**Phase G completed on 2026-08-13.** The causal question is now encoded in
+`W2_GRPO_RUN2_CAUSAL_EXPERIMENT_CONTRACT.md` and the machine-readable
+`runs/grpo-run2-causal-experiment-contract.json`. Arm A is the corrected
+original-reward control and Arm B changes only the reward definition to
+Candidate UA; `beta=0` in both arms. Both begin from the same hash-locked SFT
+adapter and consume the same 300 unique products in the same optimizer-step
+order. Run 1 is retained only as historical context.
+
+The contract pins 18 input artifacts and 24 execution files to code commit
+`e3c4d6f9c31ba8c136107f7d123c9da1a107f91a`. Its fixed schedule has order hash
+`7a73e21387b344ee67606008b41f3c57c04da7a7345dfb5fdc10a0cb07f344f6`.
+The production Vast.ai preflight verified all hashes, the exact software/GPU
+environment, 3 GiB suite-start disk floor and ten unused arm/monitor/failure
+paths. It found zero deferred choices and created no arm path. A separate
+construction proof instantiated the real TRL `GRPOConfig` for both arms and
+verified that only reward bindings plus bookkeeping output names differ. It
+constructed no model or trainer and dispatched no training.
+
+A full 360-product SFT monitor baseline, with deterministic greedy decoding and
+eight sampled repeats, sets the live quality policy before training. Each mode
+is anchored to its own baseline. A single breach warns; the same metric, view
+and decoding mode must breach at two consecutive checkpoints to abort. Monitor
+failure or insufficient checkpoint-boundary GPU headroom aborts immediately.
+The primary endpoint is the paired checkpoint-300 representative greedy
+macro-F1 difference, B minus A, with a 10,000-replicate product bootstrap.
+Earlier checkpoints are diagnostic only. No confirmation or legacy frozen-300
+output was opened.
+
 ## 12. Phase H: corrected control and dense treatment
 
 1. Run Arm A under the existing detached, fail-closed publication machinery.
@@ -978,14 +1006,16 @@ commits separate from rendered blog/hosting changes.
 - [x] Phase D4: lock one candidate or stop if none passes.
 - [ ] Phase E: lock development, easy-retention and confirmation roles.
 - [x] Phase F: implement and smoke greedy plus sampled checkpoint monitoring.
-- [ ] Phase G: commit corrected-control/treatment run contract.
+- [x] Phase G: commit corrected-control/treatment run contract.
 - [ ] Phase H: run corrected original-reward control and dense-reward treatment.
 - [ ] Phase I: decide whether a separate KL arm is justified.
 - [ ] Phase J: perform untouched confirmation and close W2.
 
 ## 18. Immediate next small step
 
-Predeclare the Phase G corrected-control/treatment experiment and wire the
-already-smoked checkpoint-monitor callback into its construction path. Keep the
-untouched-confirmation acquisition blocker separate: Phase F did not open,
-score or replace confirmation data, and Phase G must not weaken that boundary.
+Implement and read-only validate the fail-closed Phase H Arm A launch bridge
+against the committed causal contract. The bridge must consume the fixed
+schedule, bind the corrected original reward, run the resource gate and invoke
+the synchronous checkpoint monitor, but its validation step must stop before
+model/trainer construction or GPU training dispatch. Dispatch should remain a
+separate, explicit step after that proof is reviewed.

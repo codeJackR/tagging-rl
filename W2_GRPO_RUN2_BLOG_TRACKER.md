@@ -5946,3 +5946,321 @@ checkpoint-boundary GPU headroom, establish baseline variability and lock any
 material/repeated quality guardrail before dispatch. Final confirmation remains
 blocked on authorized source acquisition and is still unopened. No full Run 2
 GRPO training occurred in Phase F.
+
+## 93. Phase G asks one causal question, not “did another run look better?”
+
+The Run 2 experiment is now locked around one question: **under the corrected
+training boundary and an otherwise identical recipe, what is the effect of
+replacing the original `1:1:2` reward with Candidate UA?** This wording matters.
+Historical Run 1 cannot serve as the control because it used the old pool and
+order. Comparing a new dense-reward run only with Run 1 would mix at least two
+causes—reward design and data repair—and any attribution would be ambiguous.
+
+The clean comparison is therefore:
+
+| arm | role | reward | beta |
+|---|---|---|---:|
+| A | corrected control | format + vocabulary/rules + golden agreement, weights `1,1,2` | 0 |
+| B | treatment | Candidate UA, weight `1` | 0 |
+
+Arm A runs first. Arm B may start only after Arm A has a success manifest, a
+checkpoint-300 monitor receipt, enough disk, and the same code/environment.
+There is no KL arm in this experiment. Changing `beta` at the same time as the
+reward would make it impossible to tell which change caused an outcome; a KL
+arm remains an optional later ablation.
+
+Both arms start from the same Qwen2.5-1.5B combined SFT LoRA checkpoint. Its
+73,911,112-byte adapter has SHA-256
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+The LoRA has rank 16, alpha 16, zero dropout, no bias and targets all attention
+and MLP projection modules (`q/k/v/o`, `gate/up/down`), for 18,464,768 trainable
+parameters. This identity is checked before either arm; sharing only the same
+path name would not be sufficient evidence.
+
+Direct finding: Run 2 now has a real contemporaneous control. Intuition: if two
+plants get the same soil, water, light and starting size, but only one receives
+a new fertilizer, their difference is evidence about that fertilizer. Run 1
+grew in different soil, so it remains useful history but not the control.
+Limitation: both arms use one training seed. The paired product bootstrap will
+measure uncertainty across development products, not variance from rerunning
+training with different seeds.
+
+## 94. A fixed 300-step product schedule removes a hidden source of variation
+
+The corrected pool contains 1,438 eligible training products. A dedicated
+builder selected 300 unique SKUs without replacement by sorting the SHA-256 of
+a fixed namespace, seed 42 and SKU, with SKU as the tie-break. That exact order
+is also the optimizer-step order: one product generates eight completions per
+step, trainer shuffling is disabled, and both arms consume the same row at each
+of 300 steps. The order hash is
+`7a73e21387b344ee67606008b41f3c57c04da7a7345dfb5fdc10a0cb07f344f6`.
+
+The schedule contains 271 normalized product families. There are 247 singleton
+families, 19 with two scheduled products and five with three; no family exceeds
+the corrected pool's cap. Gold-scorable fields range from 2 to 14, with mean
+8.623. The selected difficulty counts span every available nonterminal bucket:
+67, 41, 30, 36, 32, 41 and 53 products from pass-rate buckets 0.125 through
+0.875. Category, difficulty and store total-variation distances from the full
+pool are 0.0529, 0.0456 and 0.0742 respectively.
+
+The deterministic sample is broad but not perfectly stratified. The full pool
+has three coats and 11 Ministry of Supply products; neither appears in the
+300-row schedule. We did not manually add them after seeing the sample because
+that would mutate a simple predeclared selection rule and could invite outcome-
+driven exceptions. Results should not be presented as direct evidence for
+those absent slices.
+
+Every scheduled row is in the authoritative training split, belongs to the
+corrected pool, has an eligible nonterminal SFT pass rate and has no duplicate
+SKU. No validation, legacy frozen-300 or confirmation row is used. The schedule
+JSONL is 664,367 bytes with SHA-256
+`5c76697df7c44c4cf140883d618783559e00dd8b8d6d0874dd562b8f0ec1971e`;
+its 19,302-byte manifest has SHA-256
+`211d0b4fcfa031f369da734886b290f79ddecfc08021ac930c9aea7d63a98299`.
+
+Direct finding: data exposure and order can no longer differ silently between
+the two arms. Intuition: the schedule is a shuffled exam booklet duplicated
+before either student enters the room. Limitation: fixing order improves causal
+comparability but does not prove that 300 products represent every rare slice.
+
+## 95. The full starting-policy baseline established normal decoding variation
+
+Before selecting stop thresholds, the locked SFT adapter was evaluated on all
+360 development products with one deterministic greedy pass and eight sampled
+passes at the training distribution (`temperature=0.7`, `top_p=0.95`). That is
+360 greedy plus 2,880 sampled outputs, or 3,240 scored product completions. The
+run finished successfully under the fail-closed Phase F supervisor in
+2,517.589 seconds (41 minutes 57.6 seconds) with zero stderr bytes.
+
+| representative metric | greedy | sampled mean | sampled population SD | sampled min–max |
+|---|---:|---:|---:|---:|
+| macro-F1 | 0.8537 | 0.8504 | 0.0133 | 0.8272–0.8634 |
+| selective macro-F1 | 0.8676 | 0.8682 | 0.0164 | 0.8407–0.8858 |
+| coverage | 0.9770 | 0.9728 | 0.0011 | 0.9708–0.9740 |
+| schema validity | 0.9972 | 0.9972 | 0.0000 | 0.9972–0.9972 |
+| vocabulary validity | 0.9417 | 0.9358 | 0.0075 | 0.9222–0.9444 |
+| rule-violation rate | 0.0278 | 0.0347 | 0.0089 | 0.0194–0.0528 |
+| original reward | 2.9361 | 2.8740 | 0.0194 | 2.8417–2.8972 |
+| Candidate UA reward | 0.6467 | 0.6017 | 0.0157 | 0.5754–0.6207 |
+
+The easy-retention slice starts much higher: greedy macro-F1 is 0.9882 and
+coverage is 0.9977; sampled macro-F1 is 0.9822 with population SD 0.0075 and
+sampled coverage is 0.9966 with SD 0.0010. These values become a “do no large
+harm” monitor rather than an optimization target.
+
+The timing profile was 6.727 seconds for model load, 271.042 seconds for greedy
+generation, 2,232.842 seconds for eight sampled passes and 2.933 seconds for
+CPU scoring; evaluator total was 2,515.393 seconds. Generation, especially the
+eight sampled passes, dominates monitor latency. Maximum allocated CUDA memory
+was 3,918,550,016 bytes. Cleanup returned allocated memory to 9,568,256 bytes,
+within the predeclared 64 MiB release allowance, and the process returned the
+GPU to its approximately 396 MiB driver-idle state.
+
+Direct finding: ordinary sampled-decoding variation is now measured rather
+than guessed. Intuition: a stop rule needs to know how much the speedometer
+needle normally wiggles before calling a wiggle a breakdown. Limitation: this
+is a development baseline used to design and monitor the experiment; it is not
+untouched confirmation evidence.
+
+## 96. Live abort thresholds are mode-specific and require persistence
+
+For each guardrail, the allowed movement is the larger of two sampled
+population standard deviations or a predeclared practical margin. Greedy
+thresholds are anchored to the greedy baseline; sampled-mean thresholds are
+anchored to the sampled baseline. This correction is important: using one
+sampled threshold for both modes would compare a deterministic estimate and a
+sampling-distribution mean against the wrong common reference.
+
+| guardrail | allowance | greedy threshold | sampled-mean threshold |
+|---|---:|---:|---:|
+| representative macro-F1, lower bound | 0.05 | 0.8037 | 0.8004 |
+| representative selective macro-F1, lower bound | 0.05 | 0.8176 | 0.8182 |
+| representative coverage, lower bound | 0.10 | 0.8770 | 0.8728 |
+| representative schema validity, lower bound | 0.02 | 0.9772 | 0.9772 |
+| representative vocabulary validity, lower bound | 0.02 | 0.9217 | 0.9158 |
+| representative rule-violation rate, upper bound | 0.02 | 0.0478 | 0.0547 |
+| easy-retention macro-F1, lower bound | 0.05 | 0.9382 | 0.9322 |
+| easy-retention coverage, lower bound | 0.10 | 0.8977 | 0.8966 |
+
+A single quality breach only warns. The same metric, view and decoding mode
+must breach at two consecutive checkpoints to stop training; a clean
+intervening checkpoint resets that sequence. This avoids killing a run because
+one stochastic checkpoint fluctuated, while still stopping sustained material
+damage. Monitor execution failure, invalid publication, timeout, or insufficient
+GPU headroom aborts immediately because those are evidence failures, not noisy
+quality observations. Reward values cannot trigger the safety stop: using the
+optimized reward to certify its own safety would be circular.
+
+Direct finding: all material stop choices are fixed before training and none is
+deferred. Intuition: one bad medical reading asks for a recheck; the same bad
+reading twice demands action. A broken monitor is different—we then have no
+trustworthy reading at all, so continuing would be unaudited. Limitation: these
+practical margins are engineering safety choices, not confidence intervals or
+claims of statistical optimality.
+
+## 97. Every training setting is locked; reward is the sole causal change
+
+Both real TRL `GRPOConfig` objects now construct successfully with the following
+shared settings:
+
+- 300 optimizer steps over the fixed schedule; batch size 8 and eight
+  generations mean one product/group per step; gradient accumulation is 1;
+- seed and data seed 42; no trainer shuffle;
+- AdamW 8-bit, learning rate `5e-6`, betas `0.9/0.999`, epsilon `1e-8`, weight
+  decay `0.001`, cosine schedule and 10% warmup;
+- BF16, gradient checkpointing, max gradient norm 1.0 and no vLLM;
+- temperature 0.7, top-p 0.95, maximum prompt 600 tokens and completion 170;
+- DAPO loss, epsilon 0.20/0.28, group reward scaling, one iteration and
+  explicit `beta=0`;
+- checkpoints at steps 100, 200 and 300, `save_total_limit=2`, and
+  `save_only_model=true`.
+
+The construction audit normalized both configs and found only `output_dir` and
+`run_name` differences in trainer settings; those are necessary bookkeeping,
+not treatment variables. Reward bindings were exact: Arm A resolved three
+functions from `training.rewards`, while Arm B resolved only
+`candidate_ua_reward` from `training.run2_rewards`. The starting adapter, LoRA,
+data, optimizer, sampling, clipping, loss, beta, checkpointing and environment
+are otherwise identical.
+
+The smoke-to-full differences are also explicit: four fixture rows become 300
+fixed rows, five smoke steps become 300, warmup changes from zero to 10%, and
+full monitoring/checkpoint retention is enabled. Completion-table logging is
+disabled for the causal runs to control disk use. Every inherited generation,
+optimizer and LoRA setting was re-justified rather than silently copied.
+
+Direct finding: a future B-minus-A difference has one designed model-training
+cause: reward definition. Intuition: a causal experiment is like changing one
+line in a recipe while measuring everything else. Limitation:
+`save_only_model=true` preserves evaluable adapters but not optimizer state for
+an exact mid-run resume; a failed arm must be retained as failure evidence and
+restarted under a newly declared recovery decision, not quietly resumed.
+
+## 98. The endpoint and treatment decision are fixed before seeing outcomes
+
+The primary endpoint is Arm B minus Arm A on checkpoint-300 representative
+greedy macro-F1. Uncertainty is a paired bootstrap over development products:
+10,000 replicates, seed 20260821 and a 95% interval. Pairing by SKU removes
+between-product difficulty from the arm contrast. Checkpoints 100 and 200 are
+diagnostic monitor points, not candidates from which to cherry-pick a winner.
+
+Candidate UA is accepted only if **all** predeclared conditions pass:
+
+- primary macro-F1 improvement is at least +0.02;
+- the paired interval's lower bound is greater than zero;
+- sampled macro-F1 mean does not regress;
+- greedy coverage, schema validity, vocabulary validity and easy-retention
+  macro-F1 each regress by no more than 0.03;
+- rule-violation rate increases by no more than 0.02.
+
+If both arms finish but B misses any requirement, retain Arm A. If either arm
+aborts or is missing, the experiment is incomplete and names no winner. The
+legacy frozen 300 and untouched confirmation set are forbidden during this
+selection. Confirmation can be opened once only after one recipe is selected.
+
+Direct finding: the success definition can no longer move after attractive or
+disappointing curves appear. Intuition: deciding where the finish line is after
+the race lets us crown whichever runner we prefer. Limitation: the paired
+bootstrap quantifies product-sample uncertainty on this development set, not
+training-seed or dataset-provenance uncertainty.
+
+## 99. GPU, disk and wall-time gates make the experiment operationally honest
+
+The full production monitor measured a 3,918,550,016-byte allocation peak. The
+historical GRPO training peak was 4,914,862,080 bytes. Their deliberately
+conservative additive estimate is 8,833,412,096 bytes, well below a 24 GB RTX
+3090 in principle. Before launching each monitor child, however, the live
+controller still requires at least 6 GiB of driver-reported free GPU memory;
+an estimate cannot replace a runtime gate when the trainer is resident.
+
+Disk is tighter. The suite requires at least 3 GiB free before Arm A, 2.5 GiB
+before Arm B and 2 GiB after each arm. Final preflight found 3,685,707,776 bytes
+free—only about 465 MB above the suite-start floor. Therefore
+`save_total_limit=2`, model-only checkpoints, bounded completion logging and
+post-arm disk checks are mandatory rather than aesthetic choices. Existing
+output paths are collisions, never implicit resume targets.
+
+Historical Run 1 trained in roughly 1,386 seconds (23.1 minutes). The measured
+production monitor takes about 42 minutes and runs at three checkpoints, so a
+rough per-arm estimate is 23 minutes of training plus 126 minutes of monitoring,
+or about 2.5 hours. Two arms may take around five hours. These are planning
+estimates; generation length, trainer lifecycle and checkpoint-boundary
+contention can change them.
+
+Direct finding: GPU capacity is comfortable by measured allocation, while disk
+headroom is the main operational constraint and monitoring dominates elapsed
+time. Intuition: RAM is the size of the workbench; disk is the shelf where each
+intermediate result must remain. The bench is large, but the shelf is nearly
+full. Limitation: additive GPU peaks are conservative measurements from
+different phases, not a direct concurrent-training benchmark, which is why the
+6 GiB live gate remains binding.
+
+## 100. Production preflight and config construction passed without training
+
+The final read-only preflight ran on the target Vast.ai RTX 3090 at repository
+commit `87abcb11a123b6af3eaa877f422b5fb55cff0823`. It verified 18 input artifacts,
+24 decision-bearing execution files pinned to
+`e3c4d6f9c31ba8c136107f7d123c9da1a107f91a`, the adapter hash, 300-row schedule
+and order hash, exact Python/package versions, RTX 3090/24,576 MiB identity and
+driver 590.48.01. The GPU was 0% utilized with 396 MiB used. All ten future
+arm, monitor, control, quality and failure paths were absent. Deferred
+parameters, thresholds and paths all counted zero.
+
+The construction proof then imported the real TRL/Unsloth stack and built both
+`trl.trainer.grpo_config.GRPOConfig` objects. Importing that stack initialized a
+CUDA context even though no model was loaded; the first overly strict audit had
+treated any context as failure. Inspection showed zero PyTorch CUDA bytes
+allocated and `nvidia-smi` remained at driver-idle use. The final contract
+therefore distinguishes harmless context initialization from a material CUDA
+allocation, allowing at most 64 MiB during config construction. The final proof
+recorded context initialized, zero allocated bytes, no model, no trainer, no arm
+path and no dispatch.
+
+This nuance is worth preserving: claiming “CUDA was untouched” would be false,
+while claiming “GPU work started” would also be misleading. The evidence says
+the library initialized its connection to CUDA but allocated no model/training
+memory. The failed first construction attempt produced no plausible success
+artifact; exclusive publication kept only the final accepted proof.
+
+Direct finding: the exact production environment accepts both configs and
+reward bindings before spending a training step. Intuition: this is assembling
+and checking two flight plans without starting either engine. Limitation: a
+`GRPOTrainer` and model were intentionally not constructed; the Phase H launch
+bridge must prove its fail-closed wiring before an explicit dispatch.
+
+## 101. Phase G artifact ledger, audit status and handoff
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| fixed schedule JSONL | 664,367 | `5c76697df7c44c4cf140883d618783559e00dd8b8d6d0874dd562b8f0ec1971e` |
+| schedule manifest | 19,302 | `211d0b4fcfa031f369da734886b290f79ddecfc08021ac930c9aea7d63a98299` |
+| production baseline greedy outputs | 168,093 | `6218a34ac162737a5ff12120f4214c8b4a1af1d63ab22c8433822487b330d458` |
+| production baseline sampled outputs | 1,418,763 | `e3524f89e2e4bbac8bf46c924f76bfbc922fc6ce4902acef10b8b3cb670c00f4` |
+| production baseline report | 628,546 | `0906d4138ef02b0daca2f44f99f5ce93edec770451e538be6aa622ee4e8cc94c` |
+| production baseline resource record | 1,417 | `6708b47fc0c96ce514a307bb26c982efe8fc777d970c65b521897329f8ecbfba` |
+| production baseline manifest | 7,503 | `0d9e3a8dacb3f2819097b4217ea967177fab95266908f82462f73f239bf50730` |
+| production baseline supervisor receipt | 1,943 | `059be1bbba85c1409ae9c4a82389517bc2511413d7a4312d1884adb1dcd45ef5` |
+| human-readable causal contract | 7,531 | `30430f59838bab2fd2658ef86a5e1b88467a8e8c2adb1c2bfc974197a85e33ef` |
+| machine-readable causal contract | 24,437 | `f36374e807110e53a8564ef43169ae9fbdbae702cffe239cc8fa2a55fe937fef` |
+| production preflight receipt | 3,253 | `3d34c46a4c48ad740979281dcd5d98a5bca44a6e933cf762ee52359b3ff2812e` |
+| real-config construction proof | 6,483 | `6ab1447acc99ca38d427b021d141ffa08688a8622c4783857856373fb342141e` |
+
+The machine contract itself is locked to execution-code commit
+`e3c4d6f9c31ba8c136107f7d123c9da1a107f91a`; the production receipts were
+generated after the contract-artifact commit at `87abcb1`. Focused schedule and
+causal-contract tests pass 15/15, including deterministic rebuilding from the
+pinned Git blobs, arm-equivalence checks, mode-specific threshold math,
+consecutive-breach/reset behavior, resource failure, monitor failure and real
+config normalization. The final whole-repository run reached **887 passing
+tests and one known historical failure in 96.40 seconds**. The sole failure is
+the already documented deterministic-rebuild mismatch in the old published
+Run 2 comparison contract; all 15 new Phase G tests and all Phase F monitor
+tests passed.
+
+Phase G is complete. No GRPO model, trainer, optimizer or arm output directory
+was created, and no training step ran. No legacy frozen-300 output or untouched
+confirmation labels were opened. The next conceptual step is narrower than
+“start training”: implement and read-only validate the fail-closed Arm A launch
+bridge so that the locked schedule, reward, resource gate and synchronous
+checkpoint monitor cannot be bypassed. Actual dispatch remains a separate
+explicit decision.
