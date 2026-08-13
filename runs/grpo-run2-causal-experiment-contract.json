@@ -311,9 +311,9 @@
       "sha256": "ac9658028c62a84b32a8ba52c9e53e8d27ecaba05cd6d1703e398917aec1706d"
     },
     "training/run2_causal_experiment.py": {
-      "bytes": 40487,
+      "bytes": 40840,
       "path": "training/run2_causal_experiment.py",
-      "sha256": "78f615b0ebc3da7a201d2d647de9394fa15a405275f408c975da744a8384f582"
+      "sha256": "421c7fcd82bb1a45b73c5c9ec6ea2548f5d4f08586baef170d6660f1b32ff1f8"
     },
     "training/run2_checkpoint_monitor.py": {
       "bytes": 13785,
@@ -361,7 +361,7 @@
       "sha256": "aed20907d91f677aff5156fbbfafd86fba19c8b878a4bd09d2f14be3fb61805c"
     }
   },
-  "expected_execution_code_commit": "96d5c116d4b1d9ced4723db3766fd40615092d5b",
+  "expected_execution_code_commit": "e3c4d6f9c31ba8c136107f7d123c9da1a107f91a",
   "inputs": {
     "baseline_manifest": {
       "bytes": 7503,
@@ -384,9 +384,9 @@
       "sha256": "6708b47fc0c96ce514a307bb26c982efe8fc777d970c65b521897329f8ecbfba"
     },
     "contract_document": {
-      "bytes": 7468,
+      "bytes": 7531,
       "path": "W2_GRPO_RUN2_CAUSAL_EXPERIMENT_CONTRACT.md",
-      "sha256": "a48a8053f7b14d04fec099c38619ec6dcde8d5d0c2f720f70d554296e63c23e8"
+      "sha256": "30430f59838bab2fd2658ef86a5e1b88467a8e8c2adb1c2bfc974197a85e33ef"
     },
     "corrected_pool": {
       "bytes": 3191282,
@@ -477,122 +477,122 @@
       "consecutive_breaches_to_abort": 2,
       "guardrails": [
         {
+          "baseline_greedy": 0.8536806947422352,
           "baseline_sampled_mean": 0.8503905142246487,
           "baseline_sampled_population_stddev": 0.013314998145339022,
-          "decoding_modes": [
-            "greedy",
-            "sampled_mean"
-          ],
           "direction": "lower",
           "key": "representative_all:macro_f1",
           "metric": "macro_f1",
           "practical_margin": 0.05,
-          "threshold": 0.800390514225,
+          "thresholds": {
+            "greedy": 0.803680694742,
+            "sampled_mean": 0.800390514225
+          },
           "variability_allowance": 0.05,
           "view": "representative_all"
         },
         {
+          "baseline_greedy": 0.8675592350219463,
           "baseline_sampled_mean": 0.8682199833870434,
           "baseline_sampled_population_stddev": 0.01636285988250079,
-          "decoding_modes": [
-            "greedy",
-            "sampled_mean"
-          ],
           "direction": "lower",
           "key": "representative_all:selective_macro_f1",
           "metric": "selective_macro_f1",
           "practical_margin": 0.05,
-          "threshold": 0.818219983387,
+          "thresholds": {
+            "greedy": 0.817559235022,
+            "sampled_mean": 0.818219983387
+          },
           "variability_allowance": 0.05,
           "view": "representative_all"
         },
         {
+          "baseline_greedy": 0.9769555339175592,
           "baseline_sampled_mean": 0.9727766958779617,
           "baseline_sampled_population_stddev": 0.0011177359066825497,
-          "decoding_modes": [
-            "greedy",
-            "sampled_mean"
-          ],
           "direction": "lower",
           "key": "representative_all:coverage",
           "metric": "coverage",
           "practical_margin": 0.1,
-          "threshold": 0.872776695878,
+          "thresholds": {
+            "greedy": 0.876955533918,
+            "sampled_mean": 0.872776695878
+          },
           "variability_allowance": 0.1,
           "view": "representative_all"
         },
         {
+          "baseline_greedy": 0.9972222222222222,
           "baseline_sampled_mean": 0.9972222222222222,
           "baseline_sampled_population_stddev": 0.0,
-          "decoding_modes": [
-            "greedy",
-            "sampled_mean"
-          ],
           "direction": "lower",
           "key": "representative_all:schema_validity",
           "metric": "schema_validity",
           "practical_margin": 0.02,
-          "threshold": 0.977222222222,
+          "thresholds": {
+            "greedy": 0.977222222222,
+            "sampled_mean": 0.977222222222
+          },
           "variability_allowance": 0.02,
           "view": "representative_all"
         },
         {
+          "baseline_greedy": 0.9416666666666667,
           "baseline_sampled_mean": 0.9357638888888888,
           "baseline_sampled_population_stddev": 0.007535602227156468,
-          "decoding_modes": [
-            "greedy",
-            "sampled_mean"
-          ],
           "direction": "lower",
           "key": "representative_all:vocab_validity",
           "metric": "vocab_validity",
           "practical_margin": 0.02,
-          "threshold": 0.915763888889,
+          "thresholds": {
+            "greedy": 0.921666666667,
+            "sampled_mean": 0.915763888889
+          },
           "variability_allowance": 0.02,
           "view": "representative_all"
         },
         {
+          "baseline_greedy": 0.027777777777777776,
           "baseline_sampled_mean": 0.034722222222222224,
           "baseline_sampled_population_stddev": 0.008893228107545623,
-          "decoding_modes": [
-            "greedy",
-            "sampled_mean"
-          ],
           "direction": "upper",
           "key": "representative_all:rule_violation_rate",
           "metric": "rule_violation_rate",
           "practical_margin": 0.02,
-          "threshold": 0.054722222222,
+          "thresholds": {
+            "greedy": 0.047777777778,
+            "sampled_mean": 0.054722222222
+          },
           "variability_allowance": 0.02,
           "view": "representative_all"
         },
         {
+          "baseline_greedy": 0.9881757748424415,
           "baseline_sampled_mean": 0.9822207568969996,
           "baseline_sampled_population_stddev": 0.007472422219767622,
-          "decoding_modes": [
-            "greedy",
-            "sampled_mean"
-          ],
           "direction": "lower",
           "key": "easy_retention_6_to_8_of_8:macro_f1",
           "metric": "macro_f1",
           "practical_margin": 0.05,
-          "threshold": 0.932220756897,
+          "thresholds": {
+            "greedy": 0.938175774842,
+            "sampled_mean": 0.932220756897
+          },
           "variability_allowance": 0.05,
           "view": "easy_retention_6_to_8_of_8"
         },
         {
+          "baseline_greedy": 0.9977246871444824,
           "baseline_sampled_mean": 0.9965870307167235,
           "baseline_sampled_population_stddev": 0.000985239367217806,
-          "decoding_modes": [
-            "greedy",
-            "sampled_mean"
-          ],
           "direction": "lower",
           "key": "easy_retention_6_to_8_of_8:coverage",
           "metric": "coverage",
           "practical_margin": 0.1,
-          "threshold": 0.896587030717,
+          "thresholds": {
+            "greedy": 0.897724687144,
+            "sampled_mean": 0.896587030717
+          },
           "variability_allowance": 0.1,
           "view": "easy_retention_6_to_8_of_8"
         }
