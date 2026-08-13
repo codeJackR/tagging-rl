@@ -535,6 +535,7 @@ def build_contract(*, root: str | Path, expected_code_commit: str) -> dict[str, 
     baseline_manifest = _load_json(root / LOCKED_INPUTS["baseline_manifest"])
     baseline_receipt = _load_json(root / LOCKED_INPUTS["baseline_receipt"])
     baseline_report = _load_json(root / LOCKED_INPUTS["baseline_report"])
+    baseline_resource = _load_json(root / LOCKED_INPUTS["baseline_resource"])
     if (
         baseline_manifest.get("status") != "checkpoint_monitor_complete"
         or baseline_manifest.get("mode") != "production"
@@ -545,6 +546,12 @@ def build_contract(*, root: str | Path, expected_code_commit: str) -> dict[str, 
     ):
         raise ValueError("starting-SFT production baseline is not accepted")
     quality_policy = build_quality_policy(baseline_report)
+    monitor_peak_allocated = int(
+        baseline_resource.get("cuda_peak", {}).get("max_allocated_bytes", -1)
+    )
+    if monitor_peak_allocated <= 0:
+        raise ValueError("production baseline has no valid monitor peak memory")
+    historical_training_peak_allocated = 4_914_862_080
 
     arm_a = arm_spec("A")
     arm_b = arm_spec("B")
@@ -634,9 +641,12 @@ def build_contract(*, root: str | Path, expected_code_commit: str) -> dict[str, 
             "save_total_limit": 2,
             "save_only_model": True,
             "exact_optimizer_resume_available": False,
-            "historical_training_peak_allocated_bytes": 4_914_862_080,
-            "monitor_peak_allocated_bytes": 3_388_281_344,
-            "conservative_additive_peak_bytes": 8_303_143_424,
+            "historical_training_peak_allocated_bytes": historical_training_peak_allocated,
+            "monitor_peak_allocated_bytes": monitor_peak_allocated,
+            "monitor_peak_source": inputs["baseline_resource"],
+            "conservative_additive_peak_bytes": (
+                historical_training_peak_allocated + monitor_peak_allocated
+            ),
         },
         "arm_B_gate": {
             "arm_A_success_manifest_required": True,

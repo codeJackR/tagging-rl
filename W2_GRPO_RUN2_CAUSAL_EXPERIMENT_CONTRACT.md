@@ -121,10 +121,11 @@ set cannot select a reward, checkpoint, threshold or beta.
 
 The suite requires at least 3 GiB free before Arm A, at least 2.5 GiB before Arm
 B and at least 2 GiB after each published arm. `save_total_limit=2` is
-mandatory. Historical training peaked at about 4.92 GB allocated and the Phase
-F evaluator at 3.39 GB, so their conservative additive estimate remains below
-half of a 24 GB RTX 3090. The live callback must nevertheless require at least
-6 GiB driver-free memory before launching each child evaluator.
+mandatory. Historical training peaked at about 4.92 GB allocated and the full
+360-row monitor baseline at 3.92 GB, so their conservative additive estimate is
+about 8.83 GB and remains below half of a 24 GB RTX 3090. The live callback must
+nevertheless require at least 6 GiB driver-free memory before launching each
+child evaluator.
 
 Each arm uses detached, fail-closed execution with distinct final, staging,
 control, monitor, failure and receipt paths. Existing paths are collisions, not

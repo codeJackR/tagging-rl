@@ -191,6 +191,8 @@ def test_published_causal_contract_rebuilds_from_its_pinned_code_commit():
         expected_code_commit=published["expected_execution_code_commit"],
     )
     assert published == rebuilt
+    assert published["resources"]["monitor_peak_allocated_bytes"] == 3_918_550_016
+    assert published["resources"]["conservative_additive_peak_bytes"] == 8_833_412_096
 
 
 def _base_monitor(tmp_path: Path):
