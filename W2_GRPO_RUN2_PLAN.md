@@ -874,6 +874,22 @@ corrected data and training configuration.
 evidence. Select no checkpoint using the legacy frozen 300 or untouched
 confirmation set.
 
+**Arm A read-only launch bridge completed on 2026-08-13.**
+`training/run2_arm_a_launcher.py` composes the locked corrected-control surface
+without modifying any of the 24 execution files pinned by Phase G. The launcher
+independently pins its own source to commit
+`b6bc2ce32c0efd5009064981a7dea5b8f0617b45`, reruns the causal preflight, checks
+the accepted config-construction lineage, verifies all 300 unique scheduled
+SKUs and their optimizer-step order, binds the original three reward callables
+and constructs the Phase F plus Phase G monitor coordinator/callback graph.
+
+The production proof fixed exact evaluator commands for checkpoints 100, 200
+and 300 and verified both the current 3 GiB disk floor and 6 GiB monitor-memory
+floor. Its CLI exposes only `validate`; it cannot dispatch work. No dataset was
+materialized, no callback lifecycle was entered, no monitor process started,
+and no Arm A output/control/monitor/failure path was created. This is a launch-
+wiring proof, not a training or concurrent-memory proof.
+
 ## 13. Phase I: optional KL arm
 
 Only proceed if dense reward is sufficiently promising to justify another arm.
@@ -1013,9 +1029,10 @@ commits separate from rendered blog/hosting changes.
 
 ## 18. Immediate next small step
 
-Implement and read-only validate the fail-closed Phase H Arm A launch bridge
-against the committed causal contract. The bridge must consume the fixed
-schedule, bind the corrected original reward, run the resource gate and invoke
-the synchronous checkpoint monitor, but its validation step must stop before
-model/trainer construction or GPU training dispatch. Dispatch should remain a
-separate, explicit step after that proof is reviewed.
+Implement and CPU-prove the Arm A runtime/trainer composition behind the
+validated bridge. Use injected fake model, trainer, config and callback types to
+prove the 300-row dataset remains ordered, the original reward is attached, the
+profiler and causal monitor callbacks are both retained, and every failure
+prevents success publication. Keep model loading, a real `GRPOTrainer`, detached
+process launch and GPU optimizer steps unavailable until that composition proof
+is reviewed.

@@ -6264,3 +6264,183 @@ confirmation labels were opened. The next conceptual step is narrower than
 bridge so that the locked schedule, reward, resource gate and synchronous
 checkpoint monitor cannot be bypassed. Actual dispatch remains a separate
 explicit decision.
+
+## 102. The first Phase H step was launch wiring, not training
+
+The next bounded task was to answer a practical question: can Arm A's locked
+pieces be connected into one launch surface without accidentally starting the
+experiment? This is different from checking each piece independently. Phase G
+had proven the schedule, rewards, two TRL configs and monitor machinery, but a
+future launcher could still select the wrong arm, reorder the data, omit the
+resource gate or forget to attach the quality wrapper.
+
+The implementation deliberately did **not** edit any of the 24 execution files
+already pinned by the causal contract. Even a harmless change to the old Run 1
+detached launcher would make the Phase G preflight reject the repository because
+its bytes would no longer match commit `e3c4d6f...`. Instead, a separate
+`training/run2_arm_a_launcher.py` was added and independently pinned to commit
+`b6bc2ce32c0efd5009064981a7dea5b8f0617b45`. This creates a two-level chain:
+
+1. the causal contract pins data, rewards, training logic and monitoring code;
+2. the Arm A readiness receipt pins the new bridge that composes those locked
+   components.
+
+The bridge exposes only a `validate` command. There is no `launch` or `execute`
+subcommand, so passing the wrong flag fails during argument parsing rather than
+falling through to training. The report explicitly records
+`dispatch_cli_available=false`, `training_dispatched=false` and zero optimizer
+steps.
+
+Direct finding: launch integration can be tested without weakening the causal
+lock or creating an accidental training path. Intuition: the experiment
+contract is a sealed engine; the new bridge checks the wiring harness without
+opening or starting that engine. Limitation: a bridge with no execute path
+cannot yet prove the eventual detached worker lifecycle.
+
+## 103. The bridge revalidates lineage before composing Arm A
+
+The readiness builder does not trust a filename such as
+`grpo-run2-causal-preflight.json` merely because it exists. It checks that:
+
+- the causal contract is the locked, no-dispatch version and orders A before B;
+- the accepted preflight contains the exact contract byte/hash identity;
+- the preflight's execution commit, 18-input count and 24-file count match the
+  contract;
+- the accepted construction proof contains the exact contract and preflight
+  identities;
+- construction preserved the contract's causal-difference audit;
+- neither prior artifact loaded/constructed a model or trainer or dispatched
+  training;
+- the new launcher source is byte-identical to its declared Git commit and that
+  commit is an ancestor of the current checkout.
+
+It then reruns the causal preflight from current repository state. On the Vast
+box this fresh pass again verified all 18 inputs, all 24 pinned execution files,
+the RTX 3090/package environment, adapter, disk floor, absent output paths and
+zero deferred decisions. It ran at Git SHA
+`b6bc2ce32c0efd5009064981a7dea5b8f0617b45`.
+
+Direct finding: stale-but-valid old receipts cannot silently authorize a
+changed checkout. Intuition: the bridge checks both the passport's seal and the
+person currently standing at the gate. Limitation: the launcher itself is a new
+layer outside the original causal contract, which is why its separate commit
+and source hash are required.
+
+## 104. Schedule, reward and config bindings were proved without materializing training
+
+The bridge opened the fixed schedule as plain records and verified:
+
+- exactly 300 rows and 300 unique SKUs;
+- ordered SKU hash
+  `7a73e21387b344ee67606008b41f3c57c04da7a7345dfb5fdc10a0cb07f344f6`;
+- one product per optimizer step and `shuffle_dataset=false`;
+- every SFT pass rate remains inside the eligible nonterminal interval, with
+  observed minimum 0.125 and maximum 0.875;
+- the future loader is exactly `training.dataset.load_grpo_prompts`, using the
+  locked schedule and `require_pass_rate_band=true`.
+
+The Hugging Face dataset was intentionally not materialized in this step. That
+keeps the proof read-only while still freezing the loader and arguments the
+runtime must use. The later runtime composition test must materialize it and
+recheck columns, row count and order before trainer construction.
+
+Arm A's callables resolved, in order, to
+`format_validity_reward`, `vocab_rule_compliance_reward` and
+`golden_agreement_reward`, all from `training.rewards`, with weights `1,1,2`.
+Those names and modules matched both the causal contract and prior real-config
+construction proof. No reward was called. The normalized Arm A construction
+settings also matched every locked trainer setting after accounting for TRL's
+normalization of `report_to="none"` into an empty list.
+
+Direct finding: the corrected control cannot silently receive Candidate UA or
+a shuffled schedule at launch. Intuition: the bridge checks the exact exam
+booklet and grading rubric before handing either to the student. Limitation:
+binding Python functions proves identity and order, not the behavior of a real
+trainer invoking them; that remains part of runtime composition.
+
+## 105. The synchronous monitor path is now explicit for all three checkpoints
+
+The bridge instantiated a real `CheckpointMonitorCoordinator`, wrapped it in
+`CausalCheckpointMonitorCoordinator`, generated the Transformers-compatible
+causal callback class and verified that the callback retained the wrapper. It
+did not invoke `on_train_begin` or `on_save`, because those lifecycle calls
+would create monitor directories or launch evaluators.
+
+For checkpoints 100, 200 and 300 it fixed exact argument-vector commands—no
+shell string—to run `training.run2_checkpoint_monitor_runtime` in production
+mode with:
+
+- repository `/workspace/tagging-rl`;
+- the locked monitor contract and Vastraa pack;
+- base model `unsloth/Qwen2.5-1.5B-Instruct` from local cache;
+- the corresponding Arm A checkpoint directory;
+- the corresponding Arm A monitor output directory.
+
+Each path is derived from the Arm A contract and path drift raises before a
+process can start. The evaluator remains synchronous after checkpoint save.
+Before each future evaluator child, the causal wrapper rechecks at least
+6,442,450,944 bytes (6 GiB) of driver-reported free GPU memory. Monitor spawn,
+timeout, nonzero exit, invalid atomic bundle or checkpoint-hash mismatch aborts
+immediately. Quality decisions retain the predeclared “warn once, abort on the
+same metric/view/mode twice consecutively” rule.
+
+Direct finding: monitoring is part of the planned training control flow rather
+than a script someone must remember to run later. Intuition: the train cannot
+leave each station until the inspector signs that checkpoint. Limitation: the
+callback graph was constructed but no callback lifecycle or evaluator process
+ran here; Phase F's GPU smoke remains the execution evidence for the monitor
+itself.
+
+## 106. Production readiness passed, but current idle memory is not concurrent proof
+
+The production proof observed 24,883,757,056 bytes of driver-free GPU memory,
+comfortably above the 6 GiB monitor gate, with `nvidia-smi` showing 396 MiB used
+and 0% utilization. Disk free space was 3,685,179,392 bytes against the
+3,221,225,472-byte suite-start floor—a margin of only 463,953,920 bytes
+(approximately 442 MiB). This reinforces that checkpoint retention and bounded
+logging are operational requirements.
+
+The receipt explicitly labels the GPU result as a readiness snapshot, not proof
+that 6 GiB will remain free while the trainer is resident. The real callback
+must repeat the check at every checkpoint boundary. All five reserved Arm A
+paths—training output, monitor output, quality decisions, detached control and
+failure evidence—were absent before and after validation. The bridge did not
+materialize the dataset, call a reward, import a CUDA training library, load a
+model, construct a trainer or optimizer, start a callback lifecycle or monitor,
+or run an optimizer step.
+
+Eight new CPU tests cover successful composition, exact monitor commands,
+invalid step/checkpoint paths, schedule drift, output collision, stale artifact
+lineage, mutated fresh preflight, low GPU memory, low disk and the validation-
+only CLI, plus the published receipt's Git/file lineage. Together with the
+causal and monitor-control suites, **29 focused tests passed in 0.95 seconds**.
+The final repository-wide run reached **895 passing tests and one known
+historical failure in 97.72 seconds**. The only
+failure remains the already documented deterministic-rebuild mismatch in the
+old published Run 2 comparison contract; every new Arm A bridge test passed.
+
+Direct finding: Arm A is wired up to—but still cleanly separated from—the GPU
+dispatch boundary. Intuition: every switch and alarm has been continuity-tested,
+but the main breaker remains off. Limitation: the next gate must still prove
+runtime/trainer composition using injected fakes before a model or real
+`GRPOTrainer` is allowed.
+
+## 107. Arm A launch-readiness artifact and handoff
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/run2_arm_a_launcher.py` at pinned commit | 22,009 | `08e0bd30cbd4b8a0a9c724842e84617dceef4118b4b86fbcfb934aef5347f80b` |
+| `runs/grpo-run2-arm-a-launch-readiness.json` | 13,591 | `5fa0de298ea0e867c38f23ffc9035164185b13b92a978aca5958d8538d9a64ae` |
+
+The readiness artifact also carries exact identities for the causal contract
+(`f36374e8...937fef`), accepted causal preflight
+(`3d34c46a...f2812e`) and real-config construction proof
+(`6ab1447a...141e`). It is development/launch-control evidence only; it opened
+neither the legacy frozen 300 nor untouched confirmation data.
+
+This small step is complete. Phase H itself remains open because no Arm A
+training occurred. The next conceptual step is to implement and CPU-prove the
+runtime/trainer composition behind this bridge: ordered materialized dataset,
+original reward, profiler callback, causal monitor callback, checkpoint
+handoffs and fail-closed publication. Model loading, detached launch and real
+GPU optimizer work remain separate and unavailable until that proof is reviewed.

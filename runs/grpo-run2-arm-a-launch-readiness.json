@@ -1,0 +1,399 @@
+{
+  "arm": "A",
+  "artifacts": {
+    "accepted_causal_preflight": {
+      "bytes": 3253,
+      "path": "runs/grpo-run2-causal-preflight.json",
+      "sha256": "3d34c46a4c48ad740979281dcd5d98a5bca44a6e933cf762ee52359b3ff2812e"
+    },
+    "accepted_config_construction": {
+      "bytes": 6483,
+      "path": "runs/grpo-run2-causal-construction.json",
+      "sha256": "6ab1447acc99ca38d427b021d141ffa08688a8622c4783857856373fb342141e"
+    },
+    "causal_contract": {
+      "bytes": 24437,
+      "path": "runs/grpo-run2-causal-experiment-contract.json",
+      "sha256": "f36374e807110e53a8564ef43169ae9fbdbae702cffe239cc8fa2a55fe937fef"
+    }
+  },
+  "boundaries": {
+    "arm_paths_created": false,
+    "callback_lifecycle_started": false,
+    "confirmation_data_used": false,
+    "cuda_library_imported_by_launcher": false,
+    "dataset_materialized": false,
+    "dispatch_cli_available": false,
+    "legacy_frozen_300_used": false,
+    "model_loaded": false,
+    "monitor_process_started": false,
+    "optimizer_constructed": false,
+    "optimizer_steps": 0,
+    "reward_called": false,
+    "trainer_constructed": false,
+    "training_dispatched": false
+  },
+  "causal_execution_code_commit": "e3c4d6f9c31ba8c136107f7d123c9da1a107f91a",
+  "checkpoint_monitor_binding": {
+    "base_coordinator_class": "CheckpointMonitorCoordinator",
+    "callback_class": "Run2CausalMonitor_ReadOnlyCallbackBase",
+    "callback_lifecycle_invoked": false,
+    "causal_coordinator_class": "CausalCheckpointMonitorCoordinator",
+    "driver_free_gate_bytes": 6442450944,
+    "driver_free_gate_rechecked_before_each_monitor": true,
+    "monitor_commands": {
+      "100": [
+        "/venv/rl/bin/python",
+        "-m",
+        "training.run2_checkpoint_monitor_runtime",
+        "--repo-root",
+        "/workspace/tagging-rl",
+        "--contract",
+        "runs/grpo-run2-checkpoint-monitor-contract.json",
+        "--pack",
+        "packs/vastraa_taste_v1",
+        "--base-model",
+        "unsloth/Qwen2.5-1.5B-Instruct",
+        "--local-files-only",
+        "evaluate",
+        "--checkpoint",
+        "/workspace/tagging-rl/runs/grpo-run2-arm-a-original/checkpoint-100",
+        "--output",
+        "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor/checkpoint-100",
+        "--mode",
+        "production"
+      ],
+      "200": [
+        "/venv/rl/bin/python",
+        "-m",
+        "training.run2_checkpoint_monitor_runtime",
+        "--repo-root",
+        "/workspace/tagging-rl",
+        "--contract",
+        "runs/grpo-run2-checkpoint-monitor-contract.json",
+        "--pack",
+        "packs/vastraa_taste_v1",
+        "--base-model",
+        "unsloth/Qwen2.5-1.5B-Instruct",
+        "--local-files-only",
+        "evaluate",
+        "--checkpoint",
+        "/workspace/tagging-rl/runs/grpo-run2-arm-a-original/checkpoint-200",
+        "--output",
+        "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor/checkpoint-200",
+        "--mode",
+        "production"
+      ],
+      "300": [
+        "/venv/rl/bin/python",
+        "-m",
+        "training.run2_checkpoint_monitor_runtime",
+        "--repo-root",
+        "/workspace/tagging-rl",
+        "--contract",
+        "runs/grpo-run2-checkpoint-monitor-contract.json",
+        "--pack",
+        "packs/vastraa_taste_v1",
+        "--base-model",
+        "unsloth/Qwen2.5-1.5B-Instruct",
+        "--local-files-only",
+        "evaluate",
+        "--checkpoint",
+        "/workspace/tagging-rl/runs/grpo-run2-arm-a-original/checkpoint-300",
+        "--output",
+        "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor/checkpoint-300",
+        "--mode",
+        "production"
+      ]
+    },
+    "monitor_failure_aborts_immediately": true,
+    "monitor_paths_created": false,
+    "monitor_runner_invoked": false,
+    "quality_policy": {
+      "checkpoints": [
+        100,
+        200,
+        300
+      ],
+      "clean_checkpoint_resets_sequence": true,
+      "consecutive_breaches_to_abort": 2,
+      "guardrails": [
+        {
+          "baseline_greedy": 0.8536806947422352,
+          "baseline_sampled_mean": 0.8503905142246487,
+          "baseline_sampled_population_stddev": 0.013314998145339022,
+          "direction": "lower",
+          "key": "representative_all:macro_f1",
+          "metric": "macro_f1",
+          "practical_margin": 0.05,
+          "thresholds": {
+            "greedy": 0.803680694742,
+            "sampled_mean": 0.800390514225
+          },
+          "variability_allowance": 0.05,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.8675592350219463,
+          "baseline_sampled_mean": 0.8682199833870434,
+          "baseline_sampled_population_stddev": 0.01636285988250079,
+          "direction": "lower",
+          "key": "representative_all:selective_macro_f1",
+          "metric": "selective_macro_f1",
+          "practical_margin": 0.05,
+          "thresholds": {
+            "greedy": 0.817559235022,
+            "sampled_mean": 0.818219983387
+          },
+          "variability_allowance": 0.05,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.9769555339175592,
+          "baseline_sampled_mean": 0.9727766958779617,
+          "baseline_sampled_population_stddev": 0.0011177359066825497,
+          "direction": "lower",
+          "key": "representative_all:coverage",
+          "metric": "coverage",
+          "practical_margin": 0.1,
+          "thresholds": {
+            "greedy": 0.876955533918,
+            "sampled_mean": 0.872776695878
+          },
+          "variability_allowance": 0.1,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.9972222222222222,
+          "baseline_sampled_mean": 0.9972222222222222,
+          "baseline_sampled_population_stddev": 0.0,
+          "direction": "lower",
+          "key": "representative_all:schema_validity",
+          "metric": "schema_validity",
+          "practical_margin": 0.02,
+          "thresholds": {
+            "greedy": 0.977222222222,
+            "sampled_mean": 0.977222222222
+          },
+          "variability_allowance": 0.02,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.9416666666666667,
+          "baseline_sampled_mean": 0.9357638888888888,
+          "baseline_sampled_population_stddev": 0.007535602227156468,
+          "direction": "lower",
+          "key": "representative_all:vocab_validity",
+          "metric": "vocab_validity",
+          "practical_margin": 0.02,
+          "thresholds": {
+            "greedy": 0.921666666667,
+            "sampled_mean": 0.915763888889
+          },
+          "variability_allowance": 0.02,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.027777777777777776,
+          "baseline_sampled_mean": 0.034722222222222224,
+          "baseline_sampled_population_stddev": 0.008893228107545623,
+          "direction": "upper",
+          "key": "representative_all:rule_violation_rate",
+          "metric": "rule_violation_rate",
+          "practical_margin": 0.02,
+          "thresholds": {
+            "greedy": 0.047777777778,
+            "sampled_mean": 0.054722222222
+          },
+          "variability_allowance": 0.02,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.9881757748424415,
+          "baseline_sampled_mean": 0.9822207568969996,
+          "baseline_sampled_population_stddev": 0.007472422219767622,
+          "direction": "lower",
+          "key": "easy_retention_6_to_8_of_8:macro_f1",
+          "metric": "macro_f1",
+          "practical_margin": 0.05,
+          "thresholds": {
+            "greedy": 0.938175774842,
+            "sampled_mean": 0.932220756897
+          },
+          "variability_allowance": 0.05,
+          "view": "easy_retention_6_to_8_of_8"
+        },
+        {
+          "baseline_greedy": 0.9977246871444824,
+          "baseline_sampled_mean": 0.9965870307167235,
+          "baseline_sampled_population_stddev": 0.000985239367217806,
+          "direction": "lower",
+          "key": "easy_retention_6_to_8_of_8:coverage",
+          "metric": "coverage",
+          "practical_margin": 0.1,
+          "thresholds": {
+            "greedy": 0.897724687144,
+            "sampled_mean": 0.896587030717
+          },
+          "variability_allowance": 0.1,
+          "view": "easy_retention_6_to_8_of_8"
+        }
+      ],
+      "monitor_failure_aborts_immediately": true,
+      "one_breach_action": "warn_and_continue",
+      "reward_metrics_can_abort": false,
+      "same_key_and_decoding_mode_required": true,
+      "single_checkpoint_quality_abort": false,
+      "status": "baseline_derived_before_training",
+      "version": "grpo-run2-causal-quality-policy-v1"
+    },
+    "required_checkpoint_steps": [
+      100,
+      200,
+      300
+    ],
+    "synchronous_after_checkpoint_save": true
+  },
+  "fresh_causal_preflight": {
+    "current_git_commit": "b6bc2ce32c0efd5009064981a7dea5b8f0617b45",
+    "deferred_decisions": 0,
+    "disk_free_bytes": 3685179392,
+    "execution_files_verified": 24,
+    "gpu": {
+      "driver": "590.48.01",
+      "memory_mib": 24576,
+      "memory_used_mib": 396,
+      "name": "NVIDIA GeForce RTX 3090",
+      "utilization_percent": 0
+    },
+    "inputs_verified": 18,
+    "model_loaded": false,
+    "status": "passed_read_only_no_training_dispatch",
+    "trainer_constructed": false,
+    "training_dispatched": false
+  },
+  "launcher_code": {
+    "bytes": 22009,
+    "git_commit": "b6bc2ce32c0efd5009064981a7dea5b8f0617b45",
+    "path": "training/run2_arm_a_launcher.py",
+    "sha256": "08e0bd30cbd4b8a0a9c724842e84617dceef4118b4b86fbcfb934aef5347f80b"
+  },
+  "mode": "read_only_preparation",
+  "next_gate": "implement and CPU-prove the Arm A runtime/trainer composition; keep actual detached GPU dispatch separate",
+  "prior_preflight_was_read_only": true,
+  "reserved_paths": {
+    "control_dir": "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-control",
+    "failure_dir": "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-failed",
+    "monitor_root": "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor",
+    "output_dir": "/workspace/tagging-rl/runs/grpo-run2-arm-a-original",
+    "quality_root": "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor-quality"
+  },
+  "resource_readiness": {
+    "current_snapshot_is_not_concurrent_training_proof": true,
+    "current_snapshot_passed": true,
+    "disk_floor_passed": true,
+    "disk_free_bytes": 3685179392,
+    "driver_free_bytes_now": 24883757056,
+    "minimum_driver_free_bytes_before_each_monitor": 6442450944,
+    "minimum_suite_start_bytes": 3221225472
+  },
+  "reward_binding": {
+    "callable_modules": [
+      "training.rewards",
+      "training.rewards",
+      "training.rewards"
+    ],
+    "callable_names": [
+      "format_validity_reward",
+      "vocab_rule_compliance_reward",
+      "golden_agreement_reward"
+    ],
+    "policy": "original_1_1_2",
+    "reward_called": false,
+    "same_binding_as_constructed_config": true,
+    "weights": [
+      1.0,
+      1.0,
+      2.0
+    ]
+  },
+  "role": "corrected_control",
+  "schedule_binding": {
+    "dataset": {
+      "bytes": 664367,
+      "path": "data/grpo_run2_causal_schedule_v1.jsonl",
+      "sha256": "5c76697df7c44c4cf140883d618783559e00dd8b8d6d0874dd562b8f0ec1971e"
+    },
+    "dataset_loader": {
+      "arguments": {
+        "path": "data/grpo_run2_causal_schedule_v1.jsonl",
+        "require_pass_rate_band": true
+      },
+      "module": "training.dataset",
+      "name": "load_grpo_prompts"
+    },
+    "dataset_materialized": false,
+    "one_product_per_optimizer_step": true,
+    "ordered_sku_sha256": "7a73e21387b344ee67606008b41f3c57c04da7a7345dfb5fdc10a0cb07f344f6",
+    "rows": 300,
+    "sft_pass_rate_maximum": 0.875,
+    "sft_pass_rate_minimum": 0.125,
+    "trainer_shuffle": false,
+    "unique_skus": 300
+  },
+  "status": "arm_a_launch_bridge_ready_no_dispatch",
+  "trainer_config": {
+    "config_object_reused_from_proof": false,
+    "constructed_settings_match": true,
+    "future_runtime_must_reconstruct_and_revalidate": true,
+    "settings": {
+      "adam_beta1": 0.9,
+      "adam_beta2": 0.999,
+      "adam_epsilon": 1e-08,
+      "beta": 0.0,
+      "bf16": true,
+      "data_seed": 42,
+      "epsilon": 0.2,
+      "epsilon_high": 0.28,
+      "fp16": false,
+      "gradient_accumulation_steps": 1,
+      "gradient_checkpointing": true,
+      "learning_rate": 5e-06,
+      "log_completions": false,
+      "logging_first_step": true,
+      "logging_steps": 1,
+      "logging_strategy": "steps",
+      "loss_type": "dapo",
+      "lr_scheduler_type": "cosine",
+      "mask_truncated_completions": true,
+      "max_completion_length": 170,
+      "max_grad_norm": 1.0,
+      "max_prompt_length": 600,
+      "max_steps": 300,
+      "num_completions_to_print": 8,
+      "num_generations": 8,
+      "num_iterations": 1,
+      "optim": "adamw_8bit",
+      "output_dir": "runs/grpo-run2-arm-a-original",
+      "per_device_train_batch_size": 8,
+      "remove_unused_columns": false,
+      "repetition_penalty": 1.0,
+      "report_to": "none",
+      "run_name": "grpo-run2-arm-a-original",
+      "save_only_model": true,
+      "save_steps": 100,
+      "save_strategy": "steps",
+      "save_total_limit": 2,
+      "scale_rewards": "group",
+      "seed": 42,
+      "shuffle_dataset": false,
+      "steps_per_generation": 1,
+      "temperature": 0.7,
+      "top_p": 0.95,
+      "use_vllm": false,
+      "warmup_ratio": 0.1,
+      "weight_decay": 0.001
+    }
+  },
+  "version": "grpo-run2-arm-a-launch-readiness-v1"
+}

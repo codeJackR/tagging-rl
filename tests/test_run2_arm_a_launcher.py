@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import shutil
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -235,3 +237,30 @@ def test_cli_has_validation_only_and_requires_code_commit():
     with pytest.raises(SystemExit):
         parse_args(["launch"])
     assert LAUNCHER_CODE_FILE == "training/run2_arm_a_launcher.py"
+
+
+def test_published_readiness_receipt_preserves_no_dispatch_lineage_when_present():
+    root = Path(__file__).resolve().parents[1]
+    path = root / "runs/grpo-run2-arm-a-launch-readiness.json"
+    if not path.exists():
+        pytest.skip("Arm A readiness receipt has not been published")
+    report = json.loads(path.read_text(encoding="utf-8"))
+    assert report["status"] == "arm_a_launch_bridge_ready_no_dispatch"
+    assert report["arm"] == "A"
+    assert report["boundaries"]["training_dispatched"] is False
+    assert report["boundaries"]["trainer_constructed"] is False
+    assert report["boundaries"]["optimizer_steps"] == 0
+    assert report["boundaries"]["arm_paths_created"] is False
+    launcher = report["launcher_code"]
+    committed = subprocess.run(
+        ["git", "show", f"{launcher['git_commit']}:{launcher['path']}"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
+    assert len(committed) == launcher["bytes"]
+    assert hashlib.sha256(committed).hexdigest() == launcher["sha256"]
+    for identity in report["artifacts"].values():
+        artifact = root / identity["path"]
+        assert artifact.stat().st_size == identity["bytes"]
+        assert hashlib.sha256(artifact.read_bytes()).hexdigest() == identity["sha256"]
