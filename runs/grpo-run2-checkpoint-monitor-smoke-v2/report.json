@@ -1,0 +1,2380 @@
+{
+  "interpretation": {
+    "confirmation_data_used": false,
+    "greedy_sampled_gap_is_descriptive_not_causal_by_itself": true,
+    "quality_abort_threshold_applied": false,
+    "sampled_dispersion_is_across_fixed_seed_repetitions": true
+  },
+  "rows": 4,
+  "sampled_repetitions": 2,
+  "status": "checkpoint_outputs_scored",
+  "version": "grpo-run2-checkpoint-monitor-score-v1",
+  "view_order": [
+    "difficult_0_to_2_of_8",
+    "easy_retention_6_to_8_of_8",
+    "middle_3_to_5_of_8",
+    "representative_all"
+  ],
+  "views": {
+    "difficult_0_to_2_of_8": {
+      "greedy": {
+        "attempted": 2,
+        "attributes": {
+          "closure": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 2,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "collar_type": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 2,
+            "selective_macro_f1": 1.0
+          },
+          "colour_primary": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "details": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 2,
+            "selective_macro_f1": 1.0
+          },
+          "fit": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "garment_category": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 2,
+            "selective_macro_f1": 1.0
+          },
+          "garment_length": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 2,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "material": {
+            "coverage": 0.5,
+            "macro_f1": 0.6666666666666666,
+            "n_gold_unknown": 0,
+            "n_scorable": 2,
+            "selective_macro_f1": 1.0
+          },
+          "neckline": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 2,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "occasion": {
+            "coverage": 1.0,
+            "macro_f1": 0.5,
+            "n_gold_unknown": 0,
+            "n_scorable": 2,
+            "selective_macro_f1": 0.5
+          },
+          "pattern": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "silhouette": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 2,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "sleeve_length": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "sleeve_style": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 2,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "waistline": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 2,
+            "selective_macro_f1": 1.0
+          }
+        },
+        "parsed": 2,
+        "primary_metrics_conditional_on_parseable_outputs": false,
+        "rewards": {
+          "candidate_ua": {
+            "maximum": 0.8708803379178901,
+            "mean": 0.8415672303537394,
+            "minimum": 0.8122541227895888,
+            "population_stddev": 0.029313107564150676,
+            "values": [
+              0.8122541227895888,
+              0.8708803379178901
+            ]
+          },
+          "original_1_1_2": {
+            "maximum": 2.0,
+            "mean": 2.0,
+            "minimum": 2.0,
+            "population_stddev": 0.0,
+            "values": [
+              2.0,
+              2.0
+            ],
+            "weights": [
+              1.0,
+              1.0,
+              2.0
+            ]
+          }
+        },
+        "rows": 2,
+        "rule_histogram": {},
+        "scalars": {
+          "coverage": 0.9375,
+          "dense_ua_reward_mean": 0.8415672303537394,
+          "macro_f1": 0.9166666666666666,
+          "original_reward_mean": 2.0,
+          "rule_violation_rate": 0.0,
+          "rule_violations": 0.0,
+          "schema_validity": 1.0,
+          "selective_macro_f1": 0.95,
+          "vocab_validity": 1.0
+        },
+        "unparseable": 0,
+        "validity": {
+          "attempted_denominator": 2,
+          "schema_valid": 2,
+          "vocab_valid": 2
+        },
+        "version": "grpo-run2-checkpoint-monitor-score-v1"
+      },
+      "ordered_sku_sha256": "525c8d061ddb2db34ec10f2875dfa44082435283bd6cca9bcca67227bdb278e8",
+      "rows": 2,
+      "sampled": {
+        "aggregate": {
+          "coverage": {
+            "maximum": 0.875,
+            "mean": 0.875,
+            "minimum": 0.875,
+            "population_stddev": 0.0,
+            "values": [
+              0.875,
+              0.875
+            ]
+          },
+          "dense_ua_reward_mean": {
+            "maximum": 0.7569171247543988,
+            "mean": 0.7154143762280063,
+            "minimum": 0.6739116277016137,
+            "population_stddev": 0.04150274852639252,
+            "values": [
+              0.7569171247543988,
+              0.6739116277016137
+            ]
+          },
+          "macro_f1": {
+            "maximum": 0.8166666666666667,
+            "mean": 0.7916666666666667,
+            "minimum": 0.7666666666666667,
+            "population_stddev": 0.024999999999999967,
+            "values": [
+              0.8166666666666667,
+              0.7666666666666667
+            ]
+          },
+          "original_reward_mean": {
+            "maximum": 2.0,
+            "mean": 2.0,
+            "minimum": 2.0,
+            "population_stddev": 0.0,
+            "values": [
+              2.0,
+              2.0
+            ]
+          },
+          "rule_violation_rate": {
+            "maximum": 0.0,
+            "mean": 0.0,
+            "minimum": 0.0,
+            "population_stddev": 0.0,
+            "values": [
+              0.0,
+              0.0
+            ]
+          },
+          "rule_violations": {
+            "maximum": 0.0,
+            "mean": 0.0,
+            "minimum": 0.0,
+            "population_stddev": 0.0,
+            "values": [
+              0.0,
+              0.0
+            ]
+          },
+          "schema_validity": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "selective_macro_f1": {
+            "maximum": 0.85,
+            "mean": 0.825,
+            "minimum": 0.8,
+            "population_stddev": 0.024999999999999967,
+            "values": [
+              0.85,
+              0.8
+            ]
+          },
+          "vocab_validity": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          }
+        },
+        "per_repetition": [
+          {
+            "repeat": 0,
+            "score": {
+              "attempted": 2,
+              "attributes": {
+                "closure": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "collar_type": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "colour_primary": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "details": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "fit": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_category": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "material": {
+                  "coverage": 0.5,
+                  "macro_f1": 0.6666666666666666,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "neckline": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "occasion": {
+                  "coverage": 1.0,
+                  "macro_f1": 0.5,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 0.5
+                },
+                "pattern": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "silhouette": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_style": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "waistline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                }
+              },
+              "parsed": 2,
+              "primary_metrics_conditional_on_parseable_outputs": false,
+              "rewards": {
+                "candidate_ua": {
+                  "maximum": 0.8063205068768351,
+                  "mean": 0.7569171247543988,
+                  "minimum": 0.7075137426319624,
+                  "population_stddev": 0.049403382122436335,
+                  "values": [
+                    0.7075137426319624,
+                    0.8063205068768351
+                  ]
+                },
+                "original_1_1_2": {
+                  "maximum": 2.0,
+                  "mean": 2.0,
+                  "minimum": 2.0,
+                  "population_stddev": 0.0,
+                  "values": [
+                    2.0,
+                    2.0
+                  ],
+                  "weights": [
+                    1.0,
+                    1.0,
+                    2.0
+                  ]
+                }
+              },
+              "rows": 2,
+              "rule_histogram": {},
+              "scalars": {
+                "coverage": 0.875,
+                "dense_ua_reward_mean": 0.7569171247543988,
+                "macro_f1": 0.8166666666666667,
+                "original_reward_mean": 2.0,
+                "rule_violation_rate": 0.0,
+                "rule_violations": 0.0,
+                "schema_validity": 1.0,
+                "selective_macro_f1": 0.85,
+                "vocab_validity": 1.0
+              },
+              "unparseable": 0,
+              "validity": {
+                "attempted_denominator": 2,
+                "schema_valid": 2,
+                "vocab_valid": 2
+              },
+              "version": "grpo-run2-checkpoint-monitor-score-v1"
+            },
+            "seed": 20260813
+          },
+          {
+            "repeat": 1,
+            "score": {
+              "attempted": 2,
+              "attributes": {
+                "closure": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "collar_type": {
+                  "coverage": 1.0,
+                  "macro_f1": 0.5,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 0.5
+                },
+                "colour_primary": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "details": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "fit": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_category": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "material": {
+                  "coverage": 0.5,
+                  "macro_f1": 0.6666666666666666,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "neckline": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "occasion": {
+                  "coverage": 1.0,
+                  "macro_f1": 0.5,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 0.5
+                },
+                "pattern": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "silhouette": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_style": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "waistline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                }
+              },
+              "parsed": 2,
+              "primary_metrics_conditional_on_parseable_outputs": false,
+              "rewards": {
+                "candidate_ua": {
+                  "maximum": 0.8063205068768351,
+                  "mean": 0.6739116277016137,
+                  "minimum": 0.5415027485263925,
+                  "population_stddev": 0.13240887917522132,
+                  "values": [
+                    0.5415027485263925,
+                    0.8063205068768351
+                  ]
+                },
+                "original_1_1_2": {
+                  "maximum": 2.0,
+                  "mean": 2.0,
+                  "minimum": 2.0,
+                  "population_stddev": 0.0,
+                  "values": [
+                    2.0,
+                    2.0
+                  ],
+                  "weights": [
+                    1.0,
+                    1.0,
+                    2.0
+                  ]
+                }
+              },
+              "rows": 2,
+              "rule_histogram": {},
+              "scalars": {
+                "coverage": 0.875,
+                "dense_ua_reward_mean": 0.6739116277016137,
+                "macro_f1": 0.7666666666666667,
+                "original_reward_mean": 2.0,
+                "rule_violation_rate": 0.0,
+                "rule_violations": 0.0,
+                "schema_validity": 1.0,
+                "selective_macro_f1": 0.8,
+                "vocab_validity": 1.0
+              },
+              "unparseable": 0,
+              "validity": {
+                "attempted_denominator": 2,
+                "schema_valid": 2,
+                "vocab_valid": 2
+              },
+              "version": "grpo-run2-checkpoint-monitor-score-v1"
+            },
+            "seed": 20260814
+          }
+        ],
+        "repetitions": 2,
+        "seeds": [
+          20260813,
+          20260814
+        ]
+      }
+    },
+    "easy_retention_6_to_8_of_8": {
+      "greedy": {
+        "attempted": 1,
+        "attributes": {
+          "closure": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "collar_type": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "colour_primary": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "details": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "fit": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "garment_category": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "garment_length": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "material": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "neckline": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "occasion": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "pattern": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "silhouette": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "sleeve_length": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "sleeve_style": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "waistline": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          }
+        },
+        "parsed": 1,
+        "primary_metrics_conditional_on_parseable_outputs": false,
+        "rewards": {
+          "candidate_ua": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0
+            ]
+          },
+          "original_1_1_2": {
+            "maximum": 4.0,
+            "mean": 4.0,
+            "minimum": 4.0,
+            "population_stddev": 0.0,
+            "values": [
+              4.0
+            ],
+            "weights": [
+              1.0,
+              1.0,
+              2.0
+            ]
+          }
+        },
+        "rows": 1,
+        "rule_histogram": {},
+        "scalars": {
+          "coverage": 1.0,
+          "dense_ua_reward_mean": 1.0,
+          "macro_f1": 1.0,
+          "original_reward_mean": 4.0,
+          "rule_violation_rate": 0.0,
+          "rule_violations": 0.0,
+          "schema_validity": 1.0,
+          "selective_macro_f1": 1.0,
+          "vocab_validity": 1.0
+        },
+        "unparseable": 0,
+        "validity": {
+          "attempted_denominator": 1,
+          "schema_valid": 1,
+          "vocab_valid": 1
+        },
+        "version": "grpo-run2-checkpoint-monitor-score-v1"
+      },
+      "ordered_sku_sha256": "ebc2eb8f63407edbd741495342880d4c14ef71cd43d5f655f0c100f779ecc50e",
+      "rows": 1,
+      "sampled": {
+        "aggregate": {
+          "coverage": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "dense_ua_reward_mean": {
+            "maximum": 1.0,
+            "mean": 0.965086539947458,
+            "minimum": 0.9301730798949158,
+            "population_stddev": 0.03491346005254209,
+            "values": [
+              0.9301730798949158,
+              1.0
+            ]
+          },
+          "macro_f1": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "original_reward_mean": {
+            "maximum": 4.0,
+            "mean": 4.0,
+            "minimum": 4.0,
+            "population_stddev": 0.0,
+            "values": [
+              4.0,
+              4.0
+            ]
+          },
+          "rule_violation_rate": {
+            "maximum": 0.0,
+            "mean": 0.0,
+            "minimum": 0.0,
+            "population_stddev": 0.0,
+            "values": [
+              0.0,
+              0.0
+            ]
+          },
+          "rule_violations": {
+            "maximum": 0.0,
+            "mean": 0.0,
+            "minimum": 0.0,
+            "population_stddev": 0.0,
+            "values": [
+              0.0,
+              0.0
+            ]
+          },
+          "schema_validity": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "selective_macro_f1": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "vocab_validity": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          }
+        },
+        "per_repetition": [
+          {
+            "repeat": 0,
+            "score": {
+              "attempted": 1,
+              "attributes": {
+                "closure": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "collar_type": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "colour_primary": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "details": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "fit": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "garment_category": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "material": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "neckline": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "occasion": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "pattern": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "silhouette": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_length": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "sleeve_style": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "waistline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                }
+              },
+              "parsed": 1,
+              "primary_metrics_conditional_on_parseable_outputs": false,
+              "rewards": {
+                "candidate_ua": {
+                  "maximum": 0.9301730798949158,
+                  "mean": 0.9301730798949158,
+                  "minimum": 0.9301730798949158,
+                  "population_stddev": 0.0,
+                  "values": [
+                    0.9301730798949158
+                  ]
+                },
+                "original_1_1_2": {
+                  "maximum": 4.0,
+                  "mean": 4.0,
+                  "minimum": 4.0,
+                  "population_stddev": 0.0,
+                  "values": [
+                    4.0
+                  ],
+                  "weights": [
+                    1.0,
+                    1.0,
+                    2.0
+                  ]
+                }
+              },
+              "rows": 1,
+              "rule_histogram": {},
+              "scalars": {
+                "coverage": 1.0,
+                "dense_ua_reward_mean": 0.9301730798949158,
+                "macro_f1": 1.0,
+                "original_reward_mean": 4.0,
+                "rule_violation_rate": 0.0,
+                "rule_violations": 0.0,
+                "schema_validity": 1.0,
+                "selective_macro_f1": 1.0,
+                "vocab_validity": 1.0
+              },
+              "unparseable": 0,
+              "validity": {
+                "attempted_denominator": 1,
+                "schema_valid": 1,
+                "vocab_valid": 1
+              },
+              "version": "grpo-run2-checkpoint-monitor-score-v1"
+            },
+            "seed": 20260813
+          },
+          {
+            "repeat": 1,
+            "score": {
+              "attempted": 1,
+              "attributes": {
+                "closure": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "collar_type": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "colour_primary": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "details": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "fit": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "garment_category": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "material": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "neckline": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "occasion": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "pattern": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "silhouette": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_length": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "sleeve_style": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "waistline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                }
+              },
+              "parsed": 1,
+              "primary_metrics_conditional_on_parseable_outputs": false,
+              "rewards": {
+                "candidate_ua": {
+                  "maximum": 1.0,
+                  "mean": 1.0,
+                  "minimum": 1.0,
+                  "population_stddev": 0.0,
+                  "values": [
+                    1.0
+                  ]
+                },
+                "original_1_1_2": {
+                  "maximum": 4.0,
+                  "mean": 4.0,
+                  "minimum": 4.0,
+                  "population_stddev": 0.0,
+                  "values": [
+                    4.0
+                  ],
+                  "weights": [
+                    1.0,
+                    1.0,
+                    2.0
+                  ]
+                }
+              },
+              "rows": 1,
+              "rule_histogram": {},
+              "scalars": {
+                "coverage": 1.0,
+                "dense_ua_reward_mean": 1.0,
+                "macro_f1": 1.0,
+                "original_reward_mean": 4.0,
+                "rule_violation_rate": 0.0,
+                "rule_violations": 0.0,
+                "schema_validity": 1.0,
+                "selective_macro_f1": 1.0,
+                "vocab_validity": 1.0
+              },
+              "unparseable": 0,
+              "validity": {
+                "attempted_denominator": 1,
+                "schema_valid": 1,
+                "vocab_valid": 1
+              },
+              "version": "grpo-run2-checkpoint-monitor-score-v1"
+            },
+            "seed": 20260814
+          }
+        ],
+        "repetitions": 2,
+        "seeds": [
+          20260813,
+          20260814
+        ]
+      }
+    },
+    "middle_3_to_5_of_8": {
+      "greedy": {
+        "attempted": 1,
+        "attributes": {
+          "closure": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "collar_type": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "colour_primary": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "details": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "fit": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "garment_category": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "garment_length": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "material": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "neckline": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "occasion": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "pattern": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "silhouette": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "sleeve_length": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "sleeve_style": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "waistline": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          }
+        },
+        "parsed": 1,
+        "primary_metrics_conditional_on_parseable_outputs": false,
+        "rewards": {
+          "candidate_ua": {
+            "maximum": 0.5810384793694947,
+            "mean": 0.5810384793694947,
+            "minimum": 0.5810384793694947,
+            "population_stddev": 0.0,
+            "values": [
+              0.5810384793694947
+            ]
+          },
+          "original_1_1_2": {
+            "maximum": 4.0,
+            "mean": 4.0,
+            "minimum": 4.0,
+            "population_stddev": 0.0,
+            "values": [
+              4.0
+            ],
+            "weights": [
+              1.0,
+              1.0,
+              2.0
+            ]
+          }
+        },
+        "rows": 1,
+        "rule_histogram": {},
+        "scalars": {
+          "coverage": 1.0,
+          "dense_ua_reward_mean": 0.5810384793694947,
+          "macro_f1": 1.0,
+          "original_reward_mean": 4.0,
+          "rule_violation_rate": 0.0,
+          "rule_violations": 0.0,
+          "schema_validity": 1.0,
+          "selective_macro_f1": 1.0,
+          "vocab_validity": 1.0
+        },
+        "unparseable": 0,
+        "validity": {
+          "attempted_denominator": 1,
+          "schema_valid": 1,
+          "vocab_valid": 1
+        },
+        "version": "grpo-run2-checkpoint-monitor-score-v1"
+      },
+      "ordered_sku_sha256": "441fb1521b2229bed1f05ebdc3069ba79dc893c23062413bf57dd898eff93df3",
+      "rows": 1,
+      "sampled": {
+        "aggregate": {
+          "coverage": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "dense_ua_reward_mean": {
+            "maximum": 0.5810384793694947,
+            "mean": 0.44138463915932624,
+            "minimum": 0.30173079894915783,
+            "population_stddev": 0.13965384021016844,
+            "values": [
+              0.30173079894915783,
+              0.5810384793694947
+            ]
+          },
+          "macro_f1": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "original_reward_mean": {
+            "maximum": 4.0,
+            "mean": 4.0,
+            "minimum": 4.0,
+            "population_stddev": 0.0,
+            "values": [
+              4.0,
+              4.0
+            ]
+          },
+          "rule_violation_rate": {
+            "maximum": 0.0,
+            "mean": 0.0,
+            "minimum": 0.0,
+            "population_stddev": 0.0,
+            "values": [
+              0.0,
+              0.0
+            ]
+          },
+          "rule_violations": {
+            "maximum": 0.0,
+            "mean": 0.0,
+            "minimum": 0.0,
+            "population_stddev": 0.0,
+            "values": [
+              0.0,
+              0.0
+            ]
+          },
+          "schema_validity": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "selective_macro_f1": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "vocab_validity": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          }
+        },
+        "per_repetition": [
+          {
+            "repeat": 0,
+            "score": {
+              "attempted": 1,
+              "attributes": {
+                "closure": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "collar_type": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "colour_primary": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "details": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "fit": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_category": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "material": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "neckline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "occasion": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "pattern": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "silhouette": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_length": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "sleeve_style": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "waistline": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                }
+              },
+              "parsed": 1,
+              "primary_metrics_conditional_on_parseable_outputs": false,
+              "rewards": {
+                "candidate_ua": {
+                  "maximum": 0.30173079894915783,
+                  "mean": 0.30173079894915783,
+                  "minimum": 0.30173079894915783,
+                  "population_stddev": 0.0,
+                  "values": [
+                    0.30173079894915783
+                  ]
+                },
+                "original_1_1_2": {
+                  "maximum": 4.0,
+                  "mean": 4.0,
+                  "minimum": 4.0,
+                  "population_stddev": 0.0,
+                  "values": [
+                    4.0
+                  ],
+                  "weights": [
+                    1.0,
+                    1.0,
+                    2.0
+                  ]
+                }
+              },
+              "rows": 1,
+              "rule_histogram": {},
+              "scalars": {
+                "coverage": 1.0,
+                "dense_ua_reward_mean": 0.30173079894915783,
+                "macro_f1": 1.0,
+                "original_reward_mean": 4.0,
+                "rule_violation_rate": 0.0,
+                "rule_violations": 0.0,
+                "schema_validity": 1.0,
+                "selective_macro_f1": 1.0,
+                "vocab_validity": 1.0
+              },
+              "unparseable": 0,
+              "validity": {
+                "attempted_denominator": 1,
+                "schema_valid": 1,
+                "vocab_valid": 1
+              },
+              "version": "grpo-run2-checkpoint-monitor-score-v1"
+            },
+            "seed": 20260813
+          },
+          {
+            "repeat": 1,
+            "score": {
+              "attempted": 1,
+              "attributes": {
+                "closure": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "collar_type": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "colour_primary": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "details": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "fit": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_category": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "material": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "neckline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "occasion": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "pattern": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "silhouette": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_length": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "sleeve_style": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "waistline": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                }
+              },
+              "parsed": 1,
+              "primary_metrics_conditional_on_parseable_outputs": false,
+              "rewards": {
+                "candidate_ua": {
+                  "maximum": 0.5810384793694947,
+                  "mean": 0.5810384793694947,
+                  "minimum": 0.5810384793694947,
+                  "population_stddev": 0.0,
+                  "values": [
+                    0.5810384793694947
+                  ]
+                },
+                "original_1_1_2": {
+                  "maximum": 4.0,
+                  "mean": 4.0,
+                  "minimum": 4.0,
+                  "population_stddev": 0.0,
+                  "values": [
+                    4.0
+                  ],
+                  "weights": [
+                    1.0,
+                    1.0,
+                    2.0
+                  ]
+                }
+              },
+              "rows": 1,
+              "rule_histogram": {},
+              "scalars": {
+                "coverage": 1.0,
+                "dense_ua_reward_mean": 0.5810384793694947,
+                "macro_f1": 1.0,
+                "original_reward_mean": 4.0,
+                "rule_violation_rate": 0.0,
+                "rule_violations": 0.0,
+                "schema_validity": 1.0,
+                "selective_macro_f1": 1.0,
+                "vocab_validity": 1.0
+              },
+              "unparseable": 0,
+              "validity": {
+                "attempted_denominator": 1,
+                "schema_valid": 1,
+                "vocab_valid": 1
+              },
+              "version": "grpo-run2-checkpoint-monitor-score-v1"
+            },
+            "seed": 20260814
+          }
+        ],
+        "repetitions": 2,
+        "seeds": [
+          20260813,
+          20260814
+        ]
+      }
+    },
+    "representative_all": {
+      "greedy": {
+        "attempted": 4,
+        "attributes": {
+          "closure": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 3,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "collar_type": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 3,
+            "selective_macro_f1": 1.0
+          },
+          "colour_primary": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 3,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "details": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 2,
+            "n_scorable": 2,
+            "selective_macro_f1": 1.0
+          },
+          "fit": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 2,
+            "n_scorable": 2,
+            "selective_macro_f1": 1.0
+          },
+          "garment_category": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 0,
+            "n_scorable": 4,
+            "selective_macro_f1": 1.0
+          },
+          "garment_length": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 4,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "material": {
+            "coverage": 0.6666666666666666,
+            "macro_f1": 0.8,
+            "n_gold_unknown": 1,
+            "n_scorable": 3,
+            "selective_macro_f1": 1.0
+          },
+          "neckline": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 3,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "occasion": {
+            "coverage": 1.0,
+            "macro_f1": 0.5555555555555555,
+            "n_gold_unknown": 1,
+            "n_scorable": 3,
+            "selective_macro_f1": 0.5555555555555555
+          },
+          "pattern": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 3,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "silhouette": {
+            "coverage": 0.0,
+            "macro_f1": 0.0,
+            "n_gold_unknown": 4,
+            "n_scorable": 0,
+            "selective_macro_f1": 0.0
+          },
+          "sleeve_length": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 3,
+            "selective_macro_f1": 1.0
+          },
+          "sleeve_style": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 3,
+            "n_scorable": 1,
+            "selective_macro_f1": 1.0
+          },
+          "waistline": {
+            "coverage": 1.0,
+            "macro_f1": 1.0,
+            "n_gold_unknown": 1,
+            "n_scorable": 3,
+            "selective_macro_f1": 1.0
+          }
+        },
+        "parsed": 4,
+        "primary_metrics_conditional_on_parseable_outputs": false,
+        "rewards": {
+          "candidate_ua": {
+            "maximum": 1.0,
+            "mean": 0.8160432350192434,
+            "minimum": 0.5810384793694947,
+            "population_stddev": 0.15173067569380053,
+            "values": [
+              0.5810384793694947,
+              0.8122541227895888,
+              1.0,
+              0.8708803379178901
+            ]
+          },
+          "original_1_1_2": {
+            "maximum": 4.0,
+            "mean": 3.0,
+            "minimum": 2.0,
+            "population_stddev": 1.0,
+            "values": [
+              4.0,
+              2.0,
+              4.0,
+              2.0
+            ],
+            "weights": [
+              1.0,
+              1.0,
+              2.0
+            ]
+          }
+        },
+        "rows": 4,
+        "rule_histogram": {},
+        "scalars": {
+          "coverage": 0.9642857142857143,
+          "dense_ua_reward_mean": 0.8160432350192434,
+          "macro_f1": 0.9504273504273505,
+          "original_reward_mean": 3.0,
+          "rule_violation_rate": 0.0,
+          "rule_violations": 0.0,
+          "schema_validity": 1.0,
+          "selective_macro_f1": 0.9658119658119658,
+          "vocab_validity": 1.0
+        },
+        "unparseable": 0,
+        "validity": {
+          "attempted_denominator": 4,
+          "schema_valid": 4,
+          "vocab_valid": 4
+        },
+        "version": "grpo-run2-checkpoint-monitor-score-v1"
+      },
+      "ordered_sku_sha256": "2e0d867aa24e537008285e1c4e695d9c0eb9822a704e3b011c9a50bb7f248f33",
+      "rows": 4,
+      "sampled": {
+        "aggregate": {
+          "coverage": {
+            "maximum": 0.9285714285714286,
+            "mean": 0.9285714285714286,
+            "minimum": 0.9285714285714286,
+            "population_stddev": 0.0,
+            "values": [
+              0.9285714285714286,
+              0.9285714285714286
+            ]
+          },
+          "dense_ua_reward_mean": {
+            "maximum": 0.7322154336931805,
+            "mean": 0.7093249828906991,
+            "minimum": 0.6864345320882178,
+            "population_stddev": 0.022890450802481366,
+            "values": [
+              0.6864345320882178,
+              0.7322154336931805
+            ]
+          },
+          "macro_f1": {
+            "maximum": 0.9376068376068376,
+            "mean": 0.9205128205128205,
+            "minimum": 0.9034188034188033,
+            "population_stddev": 0.017094017094017144,
+            "values": [
+              0.9376068376068376,
+              0.9034188034188033
+            ]
+          },
+          "original_reward_mean": {
+            "maximum": 3.0,
+            "mean": 3.0,
+            "minimum": 3.0,
+            "population_stddev": 0.0,
+            "values": [
+              3.0,
+              3.0
+            ]
+          },
+          "rule_violation_rate": {
+            "maximum": 0.0,
+            "mean": 0.0,
+            "minimum": 0.0,
+            "population_stddev": 0.0,
+            "values": [
+              0.0,
+              0.0
+            ]
+          },
+          "rule_violations": {
+            "maximum": 0.0,
+            "mean": 0.0,
+            "minimum": 0.0,
+            "population_stddev": 0.0,
+            "values": [
+              0.0,
+              0.0
+            ]
+          },
+          "schema_validity": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          },
+          "selective_macro_f1": {
+            "maximum": 0.9658119658119658,
+            "mean": 0.9487179487179487,
+            "minimum": 0.9316239316239316,
+            "population_stddev": 0.01709401709401709,
+            "values": [
+              0.9658119658119658,
+              0.9316239316239316
+            ]
+          },
+          "vocab_validity": {
+            "maximum": 1.0,
+            "mean": 1.0,
+            "minimum": 1.0,
+            "population_stddev": 0.0,
+            "values": [
+              1.0,
+              1.0
+            ]
+          }
+        },
+        "per_repetition": [
+          {
+            "repeat": 0,
+            "score": {
+              "attempted": 4,
+              "attributes": {
+                "closure": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "collar_type": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 1.0
+                },
+                "colour_primary": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "details": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "fit": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_category": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 4,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 4,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "material": {
+                  "coverage": 0.6666666666666666,
+                  "macro_f1": 0.8,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 1.0
+                },
+                "neckline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "occasion": {
+                  "coverage": 1.0,
+                  "macro_f1": 0.5555555555555555,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 0.5555555555555555
+                },
+                "pattern": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "silhouette": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 4,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_length": {
+                  "coverage": 0.6666666666666666,
+                  "macro_f1": 0.8333333333333333,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 1.0
+                },
+                "sleeve_style": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "waistline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 1.0
+                }
+              },
+              "parsed": 4,
+              "primary_metrics_conditional_on_parseable_outputs": false,
+              "rewards": {
+                "candidate_ua": {
+                  "maximum": 0.9301730798949158,
+                  "mean": 0.6864345320882178,
+                  "minimum": 0.30173079894915783,
+                  "population_stddev": 0.23570236636816547,
+                  "values": [
+                    0.30173079894915783,
+                    0.7075137426319624,
+                    0.9301730798949158,
+                    0.8063205068768351
+                  ]
+                },
+                "original_1_1_2": {
+                  "maximum": 4.0,
+                  "mean": 3.0,
+                  "minimum": 2.0,
+                  "population_stddev": 1.0,
+                  "values": [
+                    4.0,
+                    2.0,
+                    4.0,
+                    2.0
+                  ],
+                  "weights": [
+                    1.0,
+                    1.0,
+                    2.0
+                  ]
+                }
+              },
+              "rows": 4,
+              "rule_histogram": {},
+              "scalars": {
+                "coverage": 0.9285714285714286,
+                "dense_ua_reward_mean": 0.6864345320882178,
+                "macro_f1": 0.9376068376068376,
+                "original_reward_mean": 3.0,
+                "rule_violation_rate": 0.0,
+                "rule_violations": 0.0,
+                "schema_validity": 1.0,
+                "selective_macro_f1": 0.9658119658119658,
+                "vocab_validity": 1.0
+              },
+              "unparseable": 0,
+              "validity": {
+                "attempted_denominator": 4,
+                "schema_valid": 4,
+                "vocab_valid": 4
+              },
+              "version": "grpo-run2-checkpoint-monitor-score-v1"
+            },
+            "seed": 20260813
+          },
+          {
+            "repeat": 1,
+            "score": {
+              "attempted": 4,
+              "attributes": {
+                "closure": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "collar_type": {
+                  "coverage": 1.0,
+                  "macro_f1": 0.5555555555555555,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 0.5555555555555555
+                },
+                "colour_primary": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "details": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "fit": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 2,
+                  "n_scorable": 2,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_category": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 0,
+                  "n_scorable": 4,
+                  "selective_macro_f1": 1.0
+                },
+                "garment_length": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 4,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "material": {
+                  "coverage": 0.6666666666666666,
+                  "macro_f1": 0.8,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 1.0
+                },
+                "neckline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "occasion": {
+                  "coverage": 1.0,
+                  "macro_f1": 0.5555555555555555,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 0.5555555555555555
+                },
+                "pattern": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "silhouette": {
+                  "coverage": 0.0,
+                  "macro_f1": 0.0,
+                  "n_gold_unknown": 4,
+                  "n_scorable": 0,
+                  "selective_macro_f1": 0.0
+                },
+                "sleeve_length": {
+                  "coverage": 0.6666666666666666,
+                  "macro_f1": 0.8333333333333333,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 1.0
+                },
+                "sleeve_style": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 3,
+                  "n_scorable": 1,
+                  "selective_macro_f1": 1.0
+                },
+                "waistline": {
+                  "coverage": 1.0,
+                  "macro_f1": 1.0,
+                  "n_gold_unknown": 1,
+                  "n_scorable": 3,
+                  "selective_macro_f1": 1.0
+                }
+              },
+              "parsed": 4,
+              "primary_metrics_conditional_on_parseable_outputs": false,
+              "rewards": {
+                "candidate_ua": {
+                  "maximum": 1.0,
+                  "mean": 0.7322154336931805,
+                  "minimum": 0.5415027485263925,
+                  "population_stddev": 0.18467940845272815,
+                  "values": [
+                    0.5810384793694947,
+                    0.5415027485263925,
+                    1.0,
+                    0.8063205068768351
+                  ]
+                },
+                "original_1_1_2": {
+                  "maximum": 4.0,
+                  "mean": 3.0,
+                  "minimum": 2.0,
+                  "population_stddev": 1.0,
+                  "values": [
+                    4.0,
+                    2.0,
+                    4.0,
+                    2.0
+                  ],
+                  "weights": [
+                    1.0,
+                    1.0,
+                    2.0
+                  ]
+                }
+              },
+              "rows": 4,
+              "rule_histogram": {},
+              "scalars": {
+                "coverage": 0.9285714285714286,
+                "dense_ua_reward_mean": 0.7322154336931805,
+                "macro_f1": 0.9034188034188033,
+                "original_reward_mean": 3.0,
+                "rule_violation_rate": 0.0,
+                "rule_violations": 0.0,
+                "schema_validity": 1.0,
+                "selective_macro_f1": 0.9316239316239316,
+                "vocab_validity": 1.0
+              },
+              "unparseable": 0,
+              "validity": {
+                "attempted_denominator": 4,
+                "schema_valid": 4,
+                "vocab_valid": 4
+              },
+              "version": "grpo-run2-checkpoint-monitor-score-v1"
+            },
+            "seed": 20260814
+          }
+        ],
+        "repetitions": 2,
+        "seeds": [
+          20260813,
+          20260814
+        ]
+      }
+    }
+  }
+}

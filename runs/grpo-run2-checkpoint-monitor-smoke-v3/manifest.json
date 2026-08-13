@@ -1,0 +1,164 @@
+{
+  "checkpoint": {
+    "adapter_model_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+    "files": {
+      "README.md": {
+        "bytes": 5212,
+        "path": "README.md",
+        "sha256": "5d1383dd6571996301f7f5b2dfca4873972ba4a43f3b7c8c3a51bc0d3dcf062e"
+      },
+      "adapter_config.json": {
+        "bytes": 1242,
+        "path": "adapter_config.json",
+        "sha256": "e480610d0b68069b98104efecfc89278d496597fe60519f090250a55297e0fc5"
+      },
+      "adapter_model.safetensors": {
+        "bytes": 73911112,
+        "path": "adapter_model.safetensors",
+        "sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af"
+      }
+    },
+    "path": "/workspace/tagging-rl/runs/run2-monitor-smoke-checkpoint-9cyqypzq/checkpoint-smoke"
+  },
+  "checkpoint_created_by_smoke": true,
+  "code": {
+    "files": {
+      "evalharness/metrics.py": {
+        "bytes": 10267,
+        "path": "evalharness/metrics.py",
+        "sha256": "98763087717a8c904a8cb7e5ab6728797354320c45f5f9675df77a7f5a08c4ad"
+      },
+      "evalharness/predictions.py": {
+        "bytes": 4617,
+        "path": "evalharness/predictions.py",
+        "sha256": "87967600fe842af202f21d404fcb8c1ee47e3e2bc8997c9b704e67f0d255913c"
+      },
+      "labeling/records.py": {
+        "bytes": 8974,
+        "path": "labeling/records.py",
+        "sha256": "727f1b361834eeb985acaac7861cb2eff5df5ea3cff758ecce0b724ec5f0a683"
+      },
+      "training/audit_data_boundaries.py": {
+        "bytes": 21398,
+        "path": "training/audit_data_boundaries.py",
+        "sha256": "80920cefb81f81895645c46b20c893af9a0f7fe59783f9959233ea878bff7a53"
+      },
+      "training/predict.py": {
+        "bytes": 5669,
+        "path": "training/predict.py",
+        "sha256": "1477919e40dcf981c740b69e33e46ada8eba0add63df3e7dfe5806e3a69999e8"
+      },
+      "training/rewards.py": {
+        "bytes": 4671,
+        "path": "training/rewards.py",
+        "sha256": "ac9658028c62a84b32a8ba52c9e53e8d27ecaba05cd6d1703e398917aec1706d"
+      },
+      "training/run2_checkpoint_monitor.py": {
+        "bytes": 13785,
+        "path": "training/run2_checkpoint_monitor.py",
+        "sha256": "3a08cb1cee1cda76359470f5860d17698231c5b3e4ad1e7a49ed4f66d71d1acf"
+      },
+      "training/run2_checkpoint_monitor_contract.py": {
+        "bytes": 8129,
+        "path": "training/run2_checkpoint_monitor_contract.py",
+        "sha256": "ff3637988d9f9819a530f4b8094afc02b62be1e7bb138f93abdafb47075f74b3"
+      },
+      "training/run2_checkpoint_monitor_control.py": {
+        "bytes": 17646,
+        "path": "training/run2_checkpoint_monitor_control.py",
+        "sha256": "c05dd3555a23ba8586f1a863a2fc8fbb3fcadd84758959846ecc0728e61c35c5"
+      },
+      "training/run2_checkpoint_monitor_runtime.py": {
+        "bytes": 21481,
+        "path": "training/run2_checkpoint_monitor_runtime.py",
+        "sha256": "dba936f27e6850cb0bf1f5060d3e7d367c452e8955c972e5be877f9c95bf89f5"
+      },
+      "training/run2_rewards.py": {
+        "bytes": 38893,
+        "path": "training/run2_rewards.py",
+        "sha256": "5197095bf77762481cbf8c3803ac651ec0f69733b4b3c52638c7b76923350ab4"
+      },
+      "verifier/__init__.py": {
+        "bytes": 8281,
+        "path": "verifier/__init__.py",
+        "sha256": "19ea656adae0003f3a4feeccf7effce8432a26100785ae81b367bd6780627836"
+      },
+      "verifier/rules.py": {
+        "bytes": 7598,
+        "path": "verifier/rules.py",
+        "sha256": "d4c5287fa059237a9af1e12477f8dacd637481fca7b89b904b6d8f6910d3d796"
+      },
+      "verifier/schema.py": {
+        "bytes": 6214,
+        "path": "verifier/schema.py",
+        "sha256": "aed20907d91f677aff5156fbbfafd86fba19c8b878a4bd09d2f14be3fb61805c"
+      }
+    },
+    "git_commit": "f41a14f15a28f28a1ce9f132ed7e5cea7bd92e60"
+  },
+  "configuration": {
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "batch_size": 8,
+    "greedy_repetitions": 1,
+    "max_completion_length": 170,
+    "max_prompt_length": 600,
+    "rows": 4,
+    "sampled_repetitions": 2,
+    "sampled_seeds": [
+      20260813,
+      20260814
+    ],
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "view_rows": {
+      "difficult_0_to_2_of_8": 2,
+      "easy_retention_6_to_8_of_8": 1,
+      "middle_3_to_5_of_8": 1,
+      "representative_all": 4
+    }
+  },
+  "contract": {
+    "bytes": 44812,
+    "path": "runs/grpo-run2-checkpoint-monitor-contract.json",
+    "sha256": "81048bff4cdf067ee53b46a4442084728e79c876be5efe572422fce99bc79059"
+  },
+  "execution_boundary": {
+    "confirmation_data_used": false,
+    "full_grpo_training_dispatched": false,
+    "quality_abort_threshold_applied": false
+  },
+  "files": {
+    "greedy_predictions": {
+      "bytes": 1904,
+      "path": "greedy.jsonl",
+      "sha256": "edb8a2cfc9b4ef3a2f56b4209d4257371abf6cfcdb0d02e9a1d4871c323be71a"
+    },
+    "resource_report": {
+      "bytes": 3439,
+      "path": "resource.json",
+      "sha256": "b08495ec1ce3d7984454218755a777e6d4dc6b4c73aef4214b0e4f805a11ad1e"
+    },
+    "sampled_predictions": {
+      "bytes": 4023,
+      "path": "sampled.jsonl",
+      "sha256": "b35eeb9a2b22713d383ce811b235ed75578ead924af180395ba5d8efca7f6cbf"
+    },
+    "scored_report": {
+      "bytes": 72778,
+      "path": "report.json",
+      "sha256": "4507020b088b92461deaff133c6c3ce6c8b2414cf2e5c00d821591d75f82e4fa"
+    }
+  },
+  "invariants": {
+    "confirmation_data_used": false,
+    "fixed_development_membership": true,
+    "greedy_and_repeated_sampled_complete": true,
+    "original_and_dense_rewards_scored": true,
+    "published_exclusively_and_atomically": true,
+    "quality_abort_threshold_applied": false
+  },
+  "mode": "smoke",
+  "quality_evidence": false,
+  "status": "checkpoint_monitor_complete",
+  "version": "grpo-run2-checkpoint-monitor-runtime-v1"
+}

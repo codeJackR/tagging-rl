@@ -974,10 +974,10 @@ commits separate from rendered blog/hosting changes.
 - [x] Calculate and independently verify Gate G10 from the verified full-scope replay.
 - [x] Lock and synthetically test the production D3 aggregate result path and schema.
 - [x] Integrate the D3 contract into a production-only launcher with preflight-only mode.
-- [ ] Phase D3: replay and compare all candidates on identical groups.
-- [ ] Phase D4: lock one candidate or stop if none passes.
+- [x] Phase D3: replay and compare all candidates on identical groups.
+- [x] Phase D4: lock one candidate or stop if none passes.
 - [ ] Phase E: lock development, easy-retention and confirmation roles.
-- [ ] Phase F: implement and smoke greedy plus sampled checkpoint monitoring.
+- [x] Phase F: implement and smoke greedy plus sampled checkpoint monitoring.
 - [ ] Phase G: commit corrected-control/treatment run contract.
 - [ ] Phase H: run corrected original-reward control and dense-reward treatment.
 - [ ] Phase I: decide whether a separate KL arm is justified.
@@ -985,9 +985,7 @@ commits separate from rendered blog/hosting changes.
 
 ## 18. Immediate next small step
 
-Add an explicit `--execute` mode to the D3 production launcher, but prove its
-dispatch and failure boundaries only with synthetic substitutes in this step.
-The explicit path must rerun the locked preflight, build the complete artifact
-in memory, validate the full D3 contract and publish exclusively. Re-run the
-real preflight with gzip forbidden after adding the flag. Do not invoke real
-execution, calculate active-pool D3 outcomes or apply Gates G1-G9 yet.
+Predeclare the Phase G corrected-control/treatment experiment and wire the
+already-smoked checkpoint-monitor callback into its construction path. Keep the
+untouched-confirmation acquisition blocker separate: Phase F did not open,
+score or replace confirmation data, and Phase G must not weaken that boundary.

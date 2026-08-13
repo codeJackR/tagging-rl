@@ -1,0 +1,60 @@
+{
+  "checkpoint_adapter_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+  "command": [
+    "/venv/rl/bin/python",
+    "-m",
+    "training.run2_checkpoint_monitor_runtime",
+    "--repo-root",
+    ".",
+    "--contract",
+    "runs/grpo-run2-checkpoint-monitor-contract.json",
+    "--pack",
+    "packs/vastraa_taste_v1",
+    "--base-model",
+    "unsloth/Qwen2.5-1.5B-Instruct",
+    "--local-files-only",
+    "smoke",
+    "--source-adapter",
+    "runs/sft-combined-2epoch/checkpoint-406",
+    "--output",
+    "runs/grpo-run2-checkpoint-monitor-smoke-v2"
+  ],
+  "elapsed_seconds": 32.206493003992364,
+  "ended_at": "2026-08-13T18:19:46.690040Z",
+  "expected_checkpoint_sha256": null,
+  "expected_mode": "smoke",
+  "manifest": {
+    "bytes": 3834,
+    "sha256": "b02b829585cc267262b4b2082de10a8f6b139a633e7d58b9c59265b9125addf9"
+  },
+  "output_dir": "/workspace/tagging-rl/runs/grpo-run2-checkpoint-monitor-smoke-v2",
+  "quality_abort_threshold_applied": false,
+  "repo_root": "/workspace/tagging-rl",
+  "return_code": 0,
+  "started_at": "2026-08-13T18:19:14.483530Z",
+  "status": "checkpoint_monitor_accepted",
+  "streams": {
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": "",
+      "tail_bytes": 0,
+      "tail_truncated": false
+    },
+    "stdout": {
+      "bytes": 98,
+      "sha256": "1029544b7fd660b5a6141a3d5eb96f27d4957554faee7b563d54c701e485ad92",
+      "tail": "{\"output\": \"runs/grpo-run2-checkpoint-monitor-smoke-v2\", \"status\": \"checkpoint_monitor_complete\"}\n",
+      "tail_bytes": 98,
+      "tail_truncated": false
+    }
+  },
+  "termination": {
+    "kill_sent": false,
+    "terminate_sent": false
+  },
+  "timed_out": false,
+  "timeout_seconds": 900.0,
+  "training_may_continue": true,
+  "version": "grpo-run2-checkpoint-monitor-control-v1"
+}

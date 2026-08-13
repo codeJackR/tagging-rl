@@ -5661,3 +5661,288 @@ turn the real stage count above zero. Intuition: fail-closed tooling should make
 the blocking line sharper, not make blocked work look complete. Limitation: the
 next causal event must come from outside this repository—written authorization
 for at least eight eligible sources. No outreach was sent in this work.
+
+## 87. Phase F started with a locked checkpoint-monitor contract
+
+Checkpoint monitoring was specified before any new checkpoint was evaluated.
+`W2_GRPO_RUN2_CHECKPOINT_MONITOR_CONTRACT.md` is the human-readable decision
+record; `runs/grpo-run2-checkpoint-monitor-contract.json` is its executable,
+hash-bound form. The builder fails closed if the data-role manifest, SFT split,
+reward choice, pack vocabulary/rules, reward code or locked starting SFT adapter
+changes.
+
+The production monitor population is the fixed 360-row SFT validation set. It
+is reported four ways without resampling:
+
+| view | definition | rows | reason |
+|---|---|---:|---|
+| representative | every development row | 360 | overall checkpoint direction |
+| difficult | starting-SFT pass count 0-2 of 8 | 204 | regression and hard-case behavior |
+| middle | starting-SFT pass count 3-5 of 8 | 46 | transition-region behavior |
+| easy retention | starting-SFT pass count 6-8 of 8 | 110 | detect loss of already learned behavior |
+
+These 360 rows have zero SKU overlap and zero normalized-family overlap with
+the corrected 1,438-row Run 2 training pool. They are useful for development
+and checkpoint selection, but not untouched confirmation: they previously
+participated in SFT selection, and 21 were historically touched by Run 1.
+
+Every retained production checkpoint is scheduled for one deterministic greedy
+pass and eight sampled passes using seeds `20260813` through `20260820`,
+temperature `0.7`, top-p `0.95`, batch size 8, maximum prompt length 600 and
+maximum completion length 170. The sampled settings deliberately match GRPO
+generation. Greedy answers show what the deployed deterministic policy would
+do; repeated sampled answers show the distribution the RL optimizer actually
+experiences. Either view alone would leave H4 underdetermined.
+
+Each decoding view reports macro-F1, selective macro-F1, coverage, schema and
+vocabulary validity, rule violations, original `1:1:2` reward, selected dense
+Candidate UA reward and all sampled values plus mean, population standard
+deviation, minimum and maximum. Raw literal outputs are retained. A malformed
+answer remains in the validity denominator instead of disappearing from a
+survivor-only F1 calculation.
+
+The smoke population was frozen to four exact products before inference:
+
+1. `shopify:www.tentree.com:8322453373114`;
+2. `shopify:naadam.co:7696137453664`;
+3. `shopify:www.marinelayer.com:8084574273610`;
+4. `shopify:www.untuckit.com:6442802437`.
+
+They were selected as the first difficult, first middle, first easy-retention
+and final representative SKU. The final representative row also belongs to the
+difficult slice, so smoke slice counts are difficult 2, middle 1 and easy 1.
+That overlap is expected because `representative` is the parent population;
+the three difficulty buckets remain mutually exclusive.
+
+The smoke uses one greedy plus two sampled repetitions, or 12 raw outputs in
+total. It proves machinery only. The contract explicitly records
+`quality_evidence=false`, forbids confirmation paths and the exposed legacy
+frozen 300, leaves full GRPO dispatch false and disables quality-based aborting.
+Only evaluator failure is allowed to abort at Phase F. A quality threshold must
+wait for baseline variability and a predeclared Phase G rule.
+
+Direct finding: the measurement question is now fixed independently of any
+Run 2 checkpoint result. Intuition: a checkpoint monitor is a smoke alarm, but
+one must decide where the sensor sits and what counts as smoke before lighting
+the fire. Limitation: the untouched confirmation set is still externally
+blocked; this development monitor does not solve or bypass that problem.
+
+## 88. The monitor is a scorer, GPU worker, supervisor and callback
+
+The implementation was deliberately split into four layers:
+
+| layer | file | responsibility |
+|---|---|---|
+| contract builder | `training/run2_checkpoint_monitor_contract.py` | rebuild and verify frozen inputs, memberships and decoding policy |
+| CPU scorer | `training/run2_checkpoint_monitor.py` | pair exact outputs, run the primary evaluator, replay both rewards and aggregate slices/repetitions |
+| GPU runtime | `training/run2_checkpoint_monitor_runtime.py` | load Qwen plus PEFT, generate, score, record CUDA/timing evidence and atomically publish |
+| control bridge | `training/run2_checkpoint_monitor_control.py` | supervise timeout/failure, validate success bytes and connect ordered Trainer save events |
+
+The scorer rejects missing, extra, duplicate or out-of-order SKU outputs. For
+sampled inference it also requires every predeclared `(repeat, seed, SKU)` cell.
+Schema and vocabulary validity use all attempts as their denominator. Primary
+F1 is marked conditional whenever parsing dropped an attempted row. Both reward
+paths call the same implementations already selected earlier rather than
+reimplementing blog-only formulas.
+
+Success publication is exclusive and atomic. The evaluator first writes a
+private staging directory containing `greedy.jsonl`, `sampled.jsonl`,
+`report.json`, `resource.json` and `manifest.json`; it renames that complete
+inventory into place only after all scoring succeeds. The manifest binds raw
+file hashes, checkpoint adapter bytes, contract, code files, Git commit,
+configuration and boundaries. Existing output is never overwritten.
+
+The CPU-only supervisor launches the evaluator as its own process group, saves
+complete stdout/stderr identities and up to a 256 KiB tail, enforces the locked
+one-hour production timeout, sends terminate then kill if needed, and publishes
+an exclusive failure JSON. A nonzero process, timeout or malformed success
+bundle raises `CheckpointMonitorError`; this propagates through the Trainer
+callback and stops training. A zero exit code alone is not success—the
+supervisor rehashes every published file, verifies checkpoint identity and
+requires the no-confirmation/no-quality-threshold invariants before writing a
+success receipt.
+
+`CheckpointMonitorCoordinator` accepts saves only in order 100, 200, 300,
+hashes the exact PEFT checkpoint before dispatch and refuses to end training
+until all three receipts exist. A factory wraps it in a Transformers-compatible
+callback without importing Transformers in CPU tests. Phase G still has to wire
+this callback into the final experiment construction; Phase F proved the
+standalone integration point rather than silently changing the not-yet-locked
+run contract.
+
+The focused suite now passes **24/24 tests in 2.97 seconds**. It covers contract
+rebuild drift, population membership, exact pairing, malformed-output
+denominators, metrics and rewards, sampled aggregation, PEFT checkpoint
+identity, atomic collision behavior, explicit greedy/sampled parameters,
+process-group timeout, spawn, nonzero and invalid-success failure publication,
+checkpoint ordering, callback completion and failure propagation. A real
+30-second sleeping child is terminated by a 0.05-second test timeout and leaves
+durable `training_must_abort=true` evidence.
+
+After final audit hardening, the whole repository reached **872 passing tests
+and one known historical failure in 170.02 seconds**. The sole
+failure is the already tracked deterministic rebuild mismatch for the old
+published comparison contract; every checkpoint-monitor test passed.
+
+Direct finding: monitoring failure is now a first-class training failure rather
+than a warning in a log. Intuition: a checkpoint is not “checked” because a
+script started; it is checked only when a second process verifies the complete
+sealed package. Limitation: quality abort remains intentionally absent, and the
+callback has not yet been inserted into a Phase G experiment contract.
+
+## 89. The first GPU smoke exposed an ambiguous greedy warning
+
+The first bounded RTX 3090 smoke ran committed code `5c01ba8` and was accepted
+by the supervisor in 33.375 seconds. It correctly created a temporary PEFT
+checkpoint, generated and scored all 12 outputs, published atomically and
+deleted the temporary checkpoint. However, its captured stderr contained 152
+bytes from Transformers 4.57.6:
+
+> Sampling-related generation flags might be ignored.
+
+The cause was Qwen's inherited `generation_config.json`: it carries non-neutral
+temperature, top-p and top-k defaults. `do_sample=false` still made greedy
+decoding deterministic, and sampled decoding explicitly supplied `0.7/0.95`,
+but the warning made the audit stream ambiguous about which call it described.
+That ambiguity was treated as an instrumentation defect rather than waved away.
+
+The generation helper now explicitly supplies neutral values for greedy
+decoding—temperature 1.0, top-p 1.0 and top-k 50—while sampled decoding still
+requires and supplies temperature 0.7 and top-p 0.95. A CPU test locks both
+argument dictionaries. The correction was committed as `f52942f` before the
+second smoke.
+
+The initial and corrected greedy JSONL hashes are identical
+(`edb8a2cf...323be71a`); sampled JSONL hashes are also identical
+(`b35eeb9a...7f6cbf`), as are scored-report hashes
+(`4507020b...2e4fa`). Only runtime/manifest/receipt evidence changed. This is
+strong evidence that the refinement removed log ambiguity without changing the
+observed generations or metrics.
+
+Direct finding: the first smoke passed functionally but still improved the
+instrumentation. Intuition: a warning is like a dashboard light—even if the car
+is moving correctly, an experiment should not require readers to guess which
+subsystem the light referred to. Limitation: identical outputs across these two
+small deterministic replays do not prove equivalence for every possible input;
+the explicit parameter test is the durable semantic guard.
+
+## 90. The clean RTX 3090 smoke passed the complete Phase F gate
+
+The final clean smoke ran on an NVIDIA GeForce RTX 3090 under committed Git SHA
+`f41a14f15a28f28a1ce9f132ed7e5cea7bd92e60`. Before this final replay, audit
+review added durable spawn-failure publication and expanded the manifest from
+the four monitor modules to all 14 imported, decision-bearing prompt,
+evaluator, reward, record, verifier and publication files. The supervisor
+accepted the resulting bundle with
+return code 0, no timeout, no terminate/kill signal and **zero stderr bytes**.
+The source and recreated temporary checkpoint adapter weights were both exactly
+73,911,112 bytes with SHA-256
+`00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af`.
+
+| measured phase | seconds |
+|---|---:|
+| temporary checkpoint save | 7.446 |
+| evaluator model load | 2.097 |
+| one greedy batch | 6.413 |
+| two sampled batches | 12.022 |
+| CPU scoring | 0.015 |
+| evaluator total, excluding smoke checkpoint creation | 20.778 |
+| complete supervised child wall time | 31.873 |
+
+The evaluator's maximum PyTorch allocated memory was 3,388,281,344 bytes
+(3.39 GB decimal) and maximum observed reserved memory was 3,479,175,168 bytes.
+Checkpoint-save cleanup returned from 3,235,147,264 peak allocated bytes to
+zero. Evaluation cleanup returned to 9,568,256 allocated bytes inside the child,
+well below the predeclared 64 MiB allowance; process exit then returned
+`nvidia-smi` to the box's 396 MiB idle use. No temporary
+`run2-monitor-smoke-checkpoint-*` directory survived. Disk remained at
+3,693,379,584 bytes available, reported by `df` as 3.5 GB.
+
+The final smoke bundle is 87,905 bytes before its 1,893-byte supervisor receipt.
+The larger manifest accounts for the complete 14-file code ledger. It
+contains four greedy rows, eight sampled rows, both rewards, all four fixed
+views, timing/CUDA evidence and the binding manifest. No failure artifact was
+published.
+
+The four-row machinery sanity report happened to show:
+
+| representative metric | greedy | sampled mean | sampled population SD |
+|---|---:|---:|---:|
+| macro-F1 | 0.9504 | 0.9205 | 0.0171 |
+| selective macro-F1 | 0.9658 | 0.9487 | 0.0171 |
+| coverage | 0.9643 | 0.9286 | 0.0000 |
+| schema validity | 1.0000 | 1.0000 | 0.0000 |
+| vocabulary validity | 1.0000 | 1.0000 | 0.0000 |
+| rule violations | 0 | 0 | 0 |
+| original reward mean | 3.0000 | 3.0000 | 0.0000 |
+| Candidate UA reward mean | 0.8160 | 0.7093 | 0.0229 |
+
+These numbers prove that every calculation path returned finite, correctly
+shaped output. They are **not model-quality findings**: four deliberately chosen
+development rows and two sampled seeds are too small and nonrepresentative for
+selection, threshold setting or confirmation. The greedy-sampled gap is only
+descriptive here.
+
+Direct finding: Phase F's required checkpoint save, greedy evaluation, repeated
+sampled evaluation, dual reward replay, cleanup, timeout supervision and atomic
+publication all work on the target GPU. Intuition: the smoke checked the whole
+electrical circuit with a tiny load; it did not estimate how well the eventual
+model will perform. Limitation: the trainer itself was not resident during this
+smoke, so Phase G must verify concurrent GPU headroom before dispatch.
+
+## 91. Runtime implications for production monitoring
+
+Production monitoring is materially larger than the smoke: 360 products create
+45 batches per pass, and one greedy plus eight sampled passes create 405 GPU
+batches. The smoke used only three batches. Scaling the measured per-batch times
+naively gives about 292 seconds for greedy generation and 2,206 seconds for
+sampled generation, or roughly **42 minutes per checkpoint** before allowing
+for longer-prompt mix, trainer contention and scoring. This is an estimate, not
+a benchmark; batching efficiency and sequence lengths can change it.
+
+The locked one-hour per-checkpoint timeout is therefore plausible but not
+generous. Three retained checkpoints could add roughly two hours of monitoring
+to a run. More importantly, the evaluator temporarily needs about 3.39 GB of
+allocated GPU memory while the training process remains resident. Phase G
+should measure the trainer's checkpoint-boundary free memory and either prove at
+least this headroom plus a safety margin or choose an explicitly contracted
+lifecycle strategy. The clean idle-GPU smoke cannot prove concurrent fit.
+
+Direct finding: correctness is proven, while full-monitor cost and concurrent
+headroom remain Phase G launch questions. Intuition: testing a spare tire in the
+garage proves it holds air, but one still has to verify it fits in the loaded
+car and account for the time needed to install it. Limitation: no full 360-row
+baseline was run, so no quality-stop threshold or empirical production runtime
+has been selected.
+
+## 92. Phase F artifact ledger and boundary at handoff
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `W2_GRPO_RUN2_CHECKPOINT_MONITOR_CONTRACT.md` | 4,334 | `6b4a6c21af96f1d16d168b73bb3acdf7fc6bbab8d7169a6152a7064fb75d1024` |
+| `runs/grpo-run2-checkpoint-monitor-contract.json` | 44,812 | `81048bff4cdf067ee53b46a4442084728e79c876be5efe572422fce99bc79059` |
+| `training/run2_checkpoint_monitor_contract.py` | 8,129 | `ff3637988d9f9819a530f4b8094afc02b62be1e7bb138f93abdafb47075f74b3` |
+| `training/run2_checkpoint_monitor.py` | 13,785 | `3a08cb1cee1cda76359470f5860d17698231c5b3e4ad1e7a49ed4f66d71d1acf` |
+| `training/run2_checkpoint_monitor_runtime.py` | 21,481 | `dba936f27e6850cb0bf1f5060d3e7d367c452e8955c972e5be877f9c95bf89f5` |
+| `training/run2_checkpoint_monitor_control.py` | 17,646 | `c05dd3555a23ba8586f1a863a2fc8fbb3fcadd84758959846ecc0728e61c35c5` |
+| clean smoke `greedy.jsonl` | 1,904 | `edb8a2cfc9b4ef3a2f56b4209d4257371abf6cfcdb0d02e9a1d4871c323be71a` |
+| clean smoke `sampled.jsonl` | 4,023 | `b35eeb9a2b22713d383ce811b235ed75578ead924af180395ba5d8efca7f6cbf` |
+| clean smoke `report.json` | 72,778 | `4507020b088b92461deaff133c6c3ce6c8b2414cf2e5c00d821591d75f82e4fa` |
+| clean smoke `resource.json` | 3,439 | `b08495ec1ce3d7984454218755a777e6d4dc6b4c73aef4214b0e4f805a11ad1e` |
+| clean smoke `manifest.json` | 5,761 | `f58e237579393609dddaf0bc20582b36560e2491cb07a8b1f7844f55ce01cceb` |
+| clean smoke supervisor receipt | 1,893 | `ce275e03eecbd383106014b69538787e41aa5ad574e5d3a7bb1e4a4a97d3254f` |
+
+The initial diagnostic, warning-clean v2 and final fully bound v3 bundles are
+retained under `runs/`. All three have identical greedy, sampled and report
+bytes; v3 is the authoritative Phase F proof. During the remote fast-forward,
+the old untracked
+`runs/sft-attention-2epoch/README.md` differed from the incoming tracked file.
+It was preserved on the box as `README.remote-pre-pull.md` before pulling; no
+training artifact was deleted or overwritten.
+
+Phase F is complete. The next conceptual phase is G: predeclare the corrected
+control/treatment experiment, integrate this callback, measure concurrent
+checkpoint-boundary GPU headroom, establish baseline variability and lock any
+material/repeated quality guardrail before dispatch. Final confirmation remains
+blocked on authorized source acquisition and is still unopened. No full Run 2
+GRPO training occurred in Phase F.

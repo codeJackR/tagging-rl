@@ -1,0 +1,114 @@
+{
+  "checkpoint": {
+    "adapter_model_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+    "files": {
+      "README.md": {
+        "bytes": 5212,
+        "path": "README.md",
+        "sha256": "5d1383dd6571996301f7f5b2dfca4873972ba4a43f3b7c8c3a51bc0d3dcf062e"
+      },
+      "adapter_config.json": {
+        "bytes": 1242,
+        "path": "adapter_config.json",
+        "sha256": "aedf6eb2d2ced80ef481dd9cce41e9e145c9b7eec8d3daa0a71b5acc60302c81"
+      },
+      "adapter_model.safetensors": {
+        "bytes": 73911112,
+        "path": "adapter_model.safetensors",
+        "sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af"
+      }
+    },
+    "path": "/workspace/tagging-rl/runs/run2-monitor-smoke-checkpoint-xrqb7kxs/checkpoint-smoke"
+  },
+  "checkpoint_created_by_smoke": true,
+  "code": {
+    "files": {
+      "training/run2_checkpoint_monitor.py": {
+        "bytes": 13785,
+        "path": "training/run2_checkpoint_monitor.py",
+        "sha256": "3a08cb1cee1cda76359470f5860d17698231c5b3e4ad1e7a49ed4f66d71d1acf"
+      },
+      "training/run2_checkpoint_monitor_contract.py": {
+        "bytes": 8129,
+        "path": "training/run2_checkpoint_monitor_contract.py",
+        "sha256": "ff3637988d9f9819a530f4b8094afc02b62be1e7bb138f93abdafb47075f74b3"
+      },
+      "training/run2_checkpoint_monitor_control.py": {
+        "bytes": 17208,
+        "path": "training/run2_checkpoint_monitor_control.py",
+        "sha256": "e99de2a622d50ec03ede3f8a93f49da0ea7d23cd5d81ee9600bfad0ef1a37678"
+      },
+      "training/run2_checkpoint_monitor_runtime.py": {
+        "bytes": 20329,
+        "path": "training/run2_checkpoint_monitor_runtime.py",
+        "sha256": "8169c8b4620043e4266de7e764641c744e3eae49df3b0bf8c9b3a8e7342afe8c"
+      }
+    },
+    "git_commit": "5c01ba87940734bc03ce9ef58311a803f8b1cf94"
+  },
+  "configuration": {
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "batch_size": 8,
+    "greedy_repetitions": 1,
+    "max_completion_length": 170,
+    "max_prompt_length": 600,
+    "rows": 4,
+    "sampled_repetitions": 2,
+    "sampled_seeds": [
+      20260813,
+      20260814
+    ],
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "view_rows": {
+      "difficult_0_to_2_of_8": 2,
+      "easy_retention_6_to_8_of_8": 1,
+      "middle_3_to_5_of_8": 1,
+      "representative_all": 4
+    }
+  },
+  "contract": {
+    "bytes": 44812,
+    "path": "runs/grpo-run2-checkpoint-monitor-contract.json",
+    "sha256": "81048bff4cdf067ee53b46a4442084728e79c876be5efe572422fce99bc79059"
+  },
+  "execution_boundary": {
+    "confirmation_data_used": false,
+    "full_grpo_training_dispatched": false,
+    "quality_abort_threshold_applied": false
+  },
+  "files": {
+    "greedy_predictions": {
+      "bytes": 1904,
+      "path": "greedy.jsonl",
+      "sha256": "edb8a2cfc9b4ef3a2f56b4209d4257371abf6cfcdb0d02e9a1d4871c323be71a"
+    },
+    "resource_report": {
+      "bytes": 3436,
+      "path": "resource.json",
+      "sha256": "f17d773922230d96296ea9add78b9bcb3785b195f467fca973ed06cfed5fb0a3"
+    },
+    "sampled_predictions": {
+      "bytes": 4023,
+      "path": "sampled.jsonl",
+      "sha256": "b35eeb9a2b22713d383ce811b235ed75578ead924af180395ba5d8efca7f6cbf"
+    },
+    "scored_report": {
+      "bytes": 72778,
+      "path": "report.json",
+      "sha256": "4507020b088b92461deaff133c6c3ce6c8b2414cf2e5c00d821591d75f82e4fa"
+    }
+  },
+  "invariants": {
+    "confirmation_data_used": false,
+    "fixed_development_membership": true,
+    "greedy_and_repeated_sampled_complete": true,
+    "original_and_dense_rewards_scored": true,
+    "published_exclusively_and_atomically": true,
+    "quality_abort_threshold_applied": false
+  },
+  "mode": "smoke",
+  "quality_evidence": false,
+  "status": "checkpoint_monitor_complete",
+  "version": "grpo-run2-checkpoint-monitor-runtime-v1"
+}
