@@ -162,6 +162,32 @@ def _load_policy(base_model: str, checkpoint: Path, *, local_files_only: bool):
     return torch, model, tokenizer
 
 
+def _generation_kwargs(
+    *,
+    tokenizer: Any,
+    max_completion_length: int,
+    do_sample: bool,
+    temperature: float | None,
+    top_p: float | None,
+) -> dict[str, Any]:
+    generation = {
+        "max_new_tokens": max_completion_length,
+        "do_sample": do_sample,
+        "pad_token_id": tokenizer.pad_token_id,
+        "eos_token_id": tokenizer.eos_token_id,
+    }
+    if do_sample:
+        if temperature is None or top_p is None:
+            raise ValueError("sampled decoding requires temperature and top-p")
+        generation.update({"temperature": temperature, "top_p": top_p})
+    else:
+        # Qwen's generation_config.json carries non-neutral sampling defaults.
+        # They do not affect greedy decoding, but explicitly neutralizing them
+        # prevents an ambiguous Transformers warning in the audit stream.
+        generation.update({"temperature": 1.0, "top_p": 1.0, "top_k": 50})
+    return generation
+
+
 def _generate(
     *,
     torch: Any,
@@ -198,14 +224,13 @@ def _generate(
             truncation=True,
             max_length=max_prompt_length,
         ).to(model.device)
-        generation = {
-            "max_new_tokens": max_completion_length,
-            "do_sample": do_sample,
-            "pad_token_id": tokenizer.pad_token_id,
-            "eos_token_id": tokenizer.eos_token_id,
-        }
-        if do_sample:
-            generation.update({"temperature": temperature, "top_p": top_p})
+        generation = _generation_kwargs(
+            tokenizer=tokenizer,
+            max_completion_length=max_completion_length,
+            do_sample=do_sample,
+            temperature=temperature,
+            top_p=top_p,
+        )
         with torch.inference_mode():
             generated = model.generate(**encoded, **generation)
         prompt_width = encoded["input_ids"].shape[1]

@@ -4,6 +4,7 @@ import pytest
 
 from training.run2_checkpoint_monitor_runtime import (
     _checkpoint_identity,
+    _generation_kwargs,
     publish_monitor_bundle,
 )
 
@@ -65,3 +66,34 @@ def test_confirmation_named_output_is_rejected_before_staging(tmp_path):
             manifest_context={},
         )
     assert not (tmp_path / "confirmation").exists()
+
+
+def test_generation_parameters_are_explicit_for_both_decoding_modes():
+    tokenizer = type("Tokenizer", (), {"pad_token_id": 4, "eos_token_id": 5})()
+    greedy = _generation_kwargs(
+        tokenizer=tokenizer,
+        max_completion_length=170,
+        do_sample=False,
+        temperature=None,
+        top_p=None,
+    )
+    assert greedy == {
+        "max_new_tokens": 170,
+        "do_sample": False,
+        "pad_token_id": 4,
+        "eos_token_id": 5,
+        "temperature": 1.0,
+        "top_p": 1.0,
+        "top_k": 50,
+    }
+    sampled = _generation_kwargs(
+        tokenizer=tokenizer,
+        max_completion_length=170,
+        do_sample=True,
+        temperature=0.7,
+        top_p=0.95,
+    )
+    assert sampled["do_sample"] is True
+    assert sampled["temperature"] == 0.7
+    assert sampled["top_p"] == 0.95
+    assert "top_k" not in sampled
