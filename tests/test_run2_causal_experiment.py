@@ -313,3 +313,4 @@ def test_read_only_construction_binds_both_configs_and_rewards(tmp_path):
     ]
     assert report["arms"]["B"]["reward_callable_names"] == ["candidate_ua_reward"]
     assert report["trainer_constructed"] is False
+    assert report["cuda_context"]["material_cuda_allocation"] is False

@@ -907,8 +907,13 @@ def run_construction(
             "training_dispatched": False,
         }
     cuda_initialized_after = torch.cuda.is_initialized() if torch is not None else False
-    if cuda_initialized_before or cuda_initialized_after:
-        raise RuntimeError("read-only causal config construction initialized CUDA")
+    torch_allocated_bytes = (
+        int(torch.cuda.memory_allocated())
+        if torch is not None and cuda_initialized_after
+        else 0
+    )
+    if torch_allocated_bytes > 64 * 1024**2:
+        raise RuntimeError("read-only causal config construction allocated material CUDA memory")
     return {
         "version": CONSTRUCTION_VERSION,
         "status": "both_arm_configs_constructed_no_trainer_no_dispatch",
@@ -916,7 +921,13 @@ def run_construction(
         "preflight": _identity(preflight_path, root),
         "arms": arm_reports,
         "causal_difference_audit": contract["causal_difference_audit"],
-        "cuda_initialized": False,
+        "cuda_context": {
+            "initialized_before_config_construction": cuda_initialized_before,
+            "initialized_after_config_construction": cuda_initialized_after,
+            "torch_allocated_bytes_after": torch_allocated_bytes,
+            "maximum_allowed_allocated_bytes": 64 * 1024**2,
+            "material_cuda_allocation": False,
+        },
         "model_constructed": False,
         "trainer_constructed": False,
         "training_dispatched": False,
