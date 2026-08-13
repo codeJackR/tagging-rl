@@ -1,0 +1,926 @@
+{
+  "cuda_imports_performed": false,
+  "implementation": {
+    "bytes": 13335,
+    "path": "training/build_cb_class_weights.py",
+    "sha256": "0968c2894379ca94d04f7c7931fbb97f79def4a7ee651d79c5b6d6fc5943b0fb"
+  },
+  "inputs": {
+    "active_pool": {
+      "bytes": 3191282,
+      "path": "data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+      "sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53"
+    },
+    "active_pool_manifest": {
+      "bytes": 82235,
+      "path": "runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json",
+      "sha256": "42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a"
+    },
+    "pack_vocab": {
+      "bytes": 48449,
+      "path": "packs/vastraa_taste_v1/vocab.yaml",
+      "sha256": "f98eba2177343867ce7f010b0ef4ec8d745b1154219a7137d29ad1807925c17d"
+    },
+    "pool_preflight": {
+      "cuda_imports_performed": false,
+      "manifest_invariants": {
+        "active_and_capped_are_disjoint": true,
+        "active_and_capped_cover_eligible": true,
+        "active_and_sft_validation_families_are_disjoint": true,
+        "active_and_sft_validation_skus_are_disjoint": true,
+        "all_active_rows_are_authoritative_sft_train": true,
+        "all_active_rows_are_eligible": true,
+        "all_eligible_families_represented": true,
+        "family_cap_respected": true
+      },
+      "pool": {
+        "active_sku_set_sha256": "dd5fafa64c09d231d0db1fb321518650524ccf7ef3d1a899c439e2f038232d1c",
+        "data_bytes": 3191282,
+        "data_path": "/Users/rp7/Documents/Study/tagging-rl/data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+        "data_sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53",
+        "families": 1051,
+        "manifest_path": "/Users/rp7/Documents/Study/tagging-rl/runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json",
+        "manifest_sha256": "42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a",
+        "manifest_version": "grpo-pool-cap4-sft-train-v1",
+        "maximum_family_size": 4,
+        "rows": 1438
+      },
+      "split_authority": {
+        "active_validation_family_overlap": 0,
+        "active_validation_sku_overlap": 0,
+        "manifest_path": "/Users/rp7/Documents/Study/tagging-rl/data/splits/sft-v1.json",
+        "manifest_sha256": "4d14d46fa4f7df95a24658c741940db64093e7798b5ccd1558f4faa29bbe9a3b",
+        "manifest_version": "sft-v1",
+        "source_path": "/Users/rp7/Documents/Study/tagging-rl/data/train_weak.jsonl",
+        "source_sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b",
+        "training_skus": 3240,
+        "validation_skus": 360
+      },
+      "status": "passed",
+      "version": "grpo-run2-pool-preflight-v1"
+    },
+    "sft_split_manifest": {
+      "bytes": 172056,
+      "path": "data/splits/sft-v1.json",
+      "sha256": "4d14d46fa4f7df95a24658c741940db64093e7798b5ccd1558f4faa29bbe9a3b"
+    }
+  },
+  "invariants": {
+    "active_row_count_matches": true,
+    "all_class_pairs_have_one_clipping_state": true,
+    "all_weights_within_locked_bounds": true,
+    "attribute_class_pair_count_matches": true,
+    "field_count_matches": true,
+    "known_cell_count_matches": true,
+    "multi_label_observation_accounting_matches": true,
+    "not_applicable_is_explicit_where_observed": true,
+    "rare_below_five_count_matches": true,
+    "rare_below_ten_count_matches": true,
+    "unknown_cell_count_matches": true,
+    "unknown_token_has_no_support": true
+  },
+  "role": "immutable Candidate CB class-support and bounded-weight lookup",
+  "selection_boundary": {
+    "allowed": "corrected active SFT-training pool gold labels only",
+    "candidate_completion_rewards_calculated": false,
+    "prohibited": [
+      "rollout completions",
+      "candidate reward outcomes",
+      "SFT validation",
+      "legacy frozen 300",
+      "probe 100",
+      "future confirmation data"
+    ]
+  },
+  "status": "passed",
+  "version": "grpo-run2-cb-class-weights-v1",
+  "weight_contract": {
+    "formula": "clip(sqrt(attribute_median_positive_support / class_support), 0.5, 2.0)",
+    "maximum": 2.0,
+    "minimum": 0.5,
+    "multi_label_field_weight_later": "mean of gold-label weights",
+    "not_applicable_key": "__not_applicable__",
+    "support_grain": "one count per gold class within attribute",
+    "unknown_handling": "excluded"
+  },
+  "weight_map": {
+    "attributes": {
+      "closure": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.2819764234185446,
+            "support": 327,
+            "weight": 0.5
+          },
+          "drawstring": {
+            "clipped_at": null,
+            "raw_weight": 1.2018504251546631,
+            "support": 18,
+            "weight": 1.2018504251546631
+          },
+          "fly": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.5495097567963922,
+            "support": 4,
+            "weight": 2.0
+          },
+          "lace_up": {
+            "clipped_at": null,
+            "raw_weight": 1.0,
+            "support": 26,
+            "weight": 1.0
+          },
+          "pullover": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.3477502445119766,
+            "support": 215,
+            "weight": 0.5
+          },
+          "wrap": {
+            "clipped_at": "maximum",
+            "raw_weight": 5.0990195135927845,
+            "support": 1,
+            "weight": 2.0
+          },
+          "zip": {
+            "clipped_at": null,
+            "raw_weight": 0.5259237061407777,
+            "support": 94,
+            "weight": 0.5259237061407777
+          }
+        },
+        "median_positive_support": 26,
+        "observed_classes": 7
+      },
+      "collar_type": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.24402113392003966,
+            "support": 529,
+            "weight": 0.5
+          },
+          "band": {
+            "clipped_at": null,
+            "raw_weight": 1.6922282244532987,
+            "support": 11,
+            "weight": 1.6922282244532987
+          },
+          "hooded": {
+            "clipped_at": null,
+            "raw_weight": 0.8366600265340756,
+            "support": 45,
+            "weight": 0.8366600265340756
+          },
+          "none": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.3542569801261896,
+            "support": 251,
+            "weight": 0.5
+          },
+          "notched_lapel": {
+            "clipped_at": "maximum",
+            "raw_weight": 5.612486080160912,
+            "support": 1,
+            "weight": 2.0
+          },
+          "polo": {
+            "clipped_at": null,
+            "raw_weight": 1.3228756555322954,
+            "support": 18,
+            "weight": 1.3228756555322954
+          },
+          "shawl_lapel": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.806243040080456,
+            "support": 4,
+            "weight": 2.0
+          },
+          "shirt": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.3684777633303881,
+            "support": 232,
+            "weight": 0.5
+          }
+        },
+        "median_positive_support": 31.5,
+        "observed_classes": 8
+      },
+      "colour_primary": {
+        "classes": {
+          "beige": {
+            "clipped_at": null,
+            "raw_weight": 0.9318911162960933,
+            "support": 76,
+            "weight": 0.9318911162960933
+          },
+          "black": {
+            "clipped_at": null,
+            "raw_weight": 0.6267831705280087,
+            "support": 168,
+            "weight": 0.6267831705280087
+          },
+          "blue": {
+            "clipped_at": null,
+            "raw_weight": 0.6463137929731515,
+            "support": 158,
+            "weight": 0.6463137929731515
+          },
+          "brown": {
+            "clipped_at": null,
+            "raw_weight": 0.7642452462790835,
+            "support": 113,
+            "weight": 0.7642452462790835
+          },
+          "green": {
+            "clipped_at": null,
+            "raw_weight": 1.0,
+            "support": 66,
+            "weight": 1.0
+          },
+          "grey": {
+            "clipped_at": null,
+            "raw_weight": 1.015504800579495,
+            "support": 64,
+            "weight": 1.015504800579495
+          },
+          "multicolour": {
+            "clipped_at": null,
+            "raw_weight": 0.881175685227012,
+            "support": 85,
+            "weight": 0.881175685227012
+          },
+          "navy": {
+            "clipped_at": null,
+            "raw_weight": 1.023532631438318,
+            "support": 63,
+            "weight": 1.023532631438318
+          },
+          "pink": {
+            "clipped_at": null,
+            "raw_weight": 1.970368732287556,
+            "support": 17,
+            "weight": 1.970368732287556
+          },
+          "purple": {
+            "clipped_at": "maximum",
+            "raw_weight": 3.070597894314954,
+            "support": 7,
+            "weight": 2.0
+          },
+          "red": {
+            "clipped_at": null,
+            "raw_weight": 1.0667385033281394,
+            "support": 58,
+            "weight": 1.0667385033281394
+          },
+          "white": {
+            "clipped_at": null,
+            "raw_weight": 0.7928249671720918,
+            "support": 105,
+            "weight": 0.7928249671720918
+          },
+          "yellow": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.345207879911715,
+            "support": 12,
+            "weight": 2.0
+          }
+        },
+        "median_positive_support": 66,
+        "observed_classes": 13
+      },
+      "details": {
+        "classes": {
+          "cutout": {
+            "clipped_at": "maximum",
+            "raw_weight": 3.3166247903554,
+            "support": 2,
+            "weight": 2.0
+          },
+          "embroidered": {
+            "clipped_at": null,
+            "raw_weight": 1.0,
+            "support": 22,
+            "weight": 1.0
+          },
+          "lined": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.3308364192745532,
+            "support": 201,
+            "weight": 0.5
+          },
+          "none": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.20393111999232302,
+            "support": 529,
+            "weight": 0.5
+          },
+          "pleated": {
+            "clipped_at": null,
+            "raw_weight": 0.8043996665398437,
+            "support": 34,
+            "weight": 0.8043996665398437
+          },
+          "quilted": {
+            "clipped_at": null,
+            "raw_weight": 1.6583123951777,
+            "support": 8,
+            "weight": 1.6583123951777
+          },
+          "slit": {
+            "clipped_at": "maximum",
+            "raw_weight": 3.3166247903554,
+            "support": 2,
+            "weight": 2.0
+          },
+          "studded": {
+            "clipped_at": null,
+            "raw_weight": 1.1726039399558574,
+            "support": 16,
+            "weight": 1.1726039399558574
+          },
+          "washed": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.35057813384887665,
+            "support": 179,
+            "weight": 0.5
+          }
+        },
+        "median_positive_support": 22,
+        "observed_classes": 9
+      },
+      "fit": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": null,
+            "raw_weight": 0.5321520841901914,
+            "support": 339,
+            "weight": 0.5321520841901914
+          },
+          "loose": {
+            "clipped_at": null,
+            "raw_weight": 0.6945588962078793,
+            "support": 199,
+            "weight": 0.6945588962078793
+          },
+          "oversized": {
+            "clipped_at": null,
+            "raw_weight": 1.5118578920369088,
+            "support": 42,
+            "weight": 1.5118578920369088
+          },
+          "regular": {
+            "clipped_at": null,
+            "raw_weight": 1.0,
+            "support": 96,
+            "weight": 1.0
+          },
+          "tight": {
+            "clipped_at": null,
+            "raw_weight": 1.0385815737789972,
+            "support": 89,
+            "weight": 1.0385815737789972
+          }
+        },
+        "median_positive_support": 96,
+        "observed_classes": 5
+      },
+      "garment_category": {
+        "classes": {
+          "bag": {
+            "clipped_at": null,
+            "raw_weight": 0.8807048459279793,
+            "support": 78,
+            "weight": 0.8807048459279793
+          },
+          "cardigan": {
+            "clipped_at": null,
+            "raw_weight": 1.2298373876248843,
+            "support": 40,
+            "weight": 1.2298373876248843
+          },
+          "coat": {
+            "clipped_at": "maximum",
+            "raw_weight": 4.4907311951024935,
+            "support": 3,
+            "weight": 2.0
+          },
+          "dress": {
+            "clipped_at": null,
+            "raw_weight": 0.8387421368293256,
+            "support": 86,
+            "weight": 0.8387421368293256
+          },
+          "jacket": {
+            "clipped_at": null,
+            "raw_weight": 0.7554831017177897,
+            "support": 106,
+            "weight": 0.7554831017177897
+          },
+          "other": {
+            "clipped_at": "maximum",
+            "raw_weight": 7.7781745930520225,
+            "support": 1,
+            "weight": 2.0
+          },
+          "pants": {
+            "clipped_at": null,
+            "raw_weight": 1.1861605052378226,
+            "support": 43,
+            "weight": 1.1861605052378226
+          },
+          "shirt_blouse": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.44248489269002134,
+            "support": 309,
+            "weight": 0.5
+          },
+          "shoe": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.4823819106188661,
+            "support": 260,
+            "weight": 0.5
+          },
+          "shorts": {
+            "clipped_at": null,
+            "raw_weight": 1.278724026182012,
+            "support": 37,
+            "weight": 1.278724026182012
+          },
+          "skirt": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.2453655975512468,
+            "support": 12,
+            "weight": 2.0
+          },
+          "sweater": {
+            "clipped_at": null,
+            "raw_weight": 0.5419311029903612,
+            "support": 206,
+            "weight": 0.5419311029903612
+          },
+          "top": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.4959182990670878,
+            "support": 246,
+            "weight": 0.5
+          },
+          "vest": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.345207879911715,
+            "support": 11,
+            "weight": 2.0
+          }
+        },
+        "median_positive_support": 60.5,
+        "observed_classes": 14
+      },
+      "garment_length": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.2660760420950957,
+            "support": 339,
+            "weight": 0.5
+          },
+          "above_knee": {
+            "clipped_at": null,
+            "raw_weight": 2.0,
+            "support": 6,
+            "weight": 2.0
+          },
+          "cropped": {
+            "clipped_at": null,
+            "raw_weight": 0.7470873676376284,
+            "support": 43,
+            "weight": 0.7470873676376284
+          },
+          "hip": {
+            "clipped_at": null,
+            "raw_weight": 1.4142135623730951,
+            "support": 12,
+            "weight": 1.4142135623730951
+          },
+          "maxi": {
+            "clipped_at": null,
+            "raw_weight": 1.224744871391589,
+            "support": 16,
+            "weight": 1.224744871391589
+          },
+          "midi": {
+            "clipped_at": null,
+            "raw_weight": 1.0,
+            "support": 24,
+            "weight": 1.0
+          },
+          "mini": {
+            "clipped_at": null,
+            "raw_weight": 0.909717652294684,
+            "support": 29,
+            "weight": 0.909717652294684
+          }
+        },
+        "median_positive_support": 24,
+        "observed_classes": 7
+      },
+      "material": {
+        "classes": {
+          "cashmere": {
+            "clipped_at": null,
+            "raw_weight": 0.7880689256524124,
+            "support": 95,
+            "weight": 0.7880689256524124
+          },
+          "cotton": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.3305438840143004,
+            "support": 540,
+            "weight": 0.5
+          },
+          "denim": {
+            "clipped_at": null,
+            "raw_weight": 1.2983506020002016,
+            "support": 35,
+            "weight": 1.2983506020002016
+          },
+          "knit": {
+            "clipped_at": null,
+            "raw_weight": 1.0755755413256844,
+            "support": 51,
+            "weight": 1.0755755413256844
+          },
+          "leather": {
+            "clipped_at": null,
+            "raw_weight": 0.6149838438569978,
+            "support": 156,
+            "weight": 0.6149838438569978
+          },
+          "linen": {
+            "clipped_at": null,
+            "raw_weight": 0.9454836825347087,
+            "support": 66,
+            "weight": 0.9454836825347087
+          },
+          "silk": {
+            "clipped_at": "maximum",
+            "raw_weight": 4.43471156521669,
+            "support": 3,
+            "weight": 2.0
+          },
+          "suede": {
+            "clipped_at": null,
+            "raw_weight": 1.1086778913041726,
+            "support": 48,
+            "weight": 1.1086778913041726
+          },
+          "synthetic": {
+            "clipped_at": null,
+            "raw_weight": 0.9180725150319787,
+            "support": 70,
+            "weight": 0.9180725150319787
+          },
+          "wool": {
+            "clipped_at": null,
+            "raw_weight": 1.0651832633943252,
+            "support": 52,
+            "weight": 1.0651832633943252
+          }
+        },
+        "median_positive_support": 59.0,
+        "observed_classes": 10
+      },
+      "neckline": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.13025385930663036,
+            "support": 501,
+            "weight": 0.5
+          },
+          "boat": {
+            "clipped_at": null,
+            "raw_weight": 1.0307764064044151,
+            "support": 8,
+            "weight": 1.0307764064044151
+          },
+          "cowl": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.9154759474226504,
+            "support": 1,
+            "weight": 2.0
+          },
+          "crew": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.20615528128088303,
+            "support": 200,
+            "weight": 0.5
+          },
+          "mock": {
+            "clipped_at": null,
+            "raw_weight": 1.3038404810405297,
+            "support": 5,
+            "weight": 1.3038404810405297
+          },
+          "one_shoulder": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.0615528128088303,
+            "support": 2,
+            "weight": 2.0
+          },
+          "scoop": {
+            "clipped_at": null,
+            "raw_weight": 0.97182531580755,
+            "support": 9,
+            "weight": 0.97182531580755
+          },
+          "square": {
+            "clipped_at": null,
+            "raw_weight": 1.0307764064044151,
+            "support": 8,
+            "weight": 1.0307764064044151
+          },
+          "turtle": {
+            "clipped_at": null,
+            "raw_weight": 0.6871842709362768,
+            "support": 18,
+            "weight": 0.6871842709362768
+          },
+          "v_neck": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.3795626385857405,
+            "support": 59,
+            "weight": 0.5
+          }
+        },
+        "median_positive_support": 8.5,
+        "observed_classes": 10
+      },
+      "occasion": {
+        "classes": {
+          "athletic": {
+            "clipped_at": null,
+            "raw_weight": 0.9710083124552245,
+            "support": 35,
+            "weight": 0.9710083124552245
+          },
+          "beach": {
+            "clipped_at": null,
+            "raw_weight": 0.8379305815963922,
+            "support": 47,
+            "weight": 0.8379305815963922
+          },
+          "casual": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.22601679435667907,
+            "support": 646,
+            "weight": 0.5
+          },
+          "formal": {
+            "clipped_at": "maximum",
+            "raw_weight": 4.06201920231798,
+            "support": 2,
+            "weight": 2.0
+          },
+          "lounge": {
+            "clipped_at": null,
+            "raw_weight": 1.284523257866513,
+            "support": 20,
+            "weight": 1.284523257866513
+          },
+          "work": {
+            "clipped_at": null,
+            "raw_weight": 1.031753909143192,
+            "support": 31,
+            "weight": 1.031753909143192
+          }
+        },
+        "median_positive_support": 33.0,
+        "observed_classes": 6
+      },
+      "pattern": {
+        "classes": {
+          "animal": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.309401076758503,
+            "support": 3,
+            "weight": 2.0
+          },
+          "camouflage": {
+            "clipped_at": "maximum",
+            "raw_weight": 4.0,
+            "support": 1,
+            "weight": 2.0
+          },
+          "check": {
+            "clipped_at": null,
+            "raw_weight": 0.5345224838248488,
+            "support": 56,
+            "weight": 0.5345224838248488
+          },
+          "floral": {
+            "clipped_at": null,
+            "raw_weight": 1.0,
+            "support": 16,
+            "weight": 1.0
+          },
+          "geometric": {
+            "clipped_at": null,
+            "raw_weight": 1.5118578920369088,
+            "support": 7,
+            "weight": 1.5118578920369088
+          },
+          "graphic": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.49236596391733095,
+            "support": 66,
+            "weight": 0.5
+          },
+          "herringbone": {
+            "clipped_at": null,
+            "raw_weight": 1.3333333333333333,
+            "support": 9,
+            "weight": 1.3333333333333333
+          },
+          "solid": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.43133109281375365,
+            "support": 86,
+            "weight": 0.5
+          },
+          "stripe": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.4472135954999579,
+            "support": 80,
+            "weight": 0.5
+          }
+        },
+        "median_positive_support": 16,
+        "observed_classes": 9
+      },
+      "silhouette": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.1629376339780705,
+            "support": 339,
+            "weight": 0.5
+          },
+          "a_line": {
+            "clipped_at": null,
+            "raw_weight": 1.5,
+            "support": 4,
+            "weight": 1.5
+          },
+          "bodycon": {
+            "clipped_at": null,
+            "raw_weight": 0.9486832980505138,
+            "support": 10,
+            "weight": 0.9486832980505138
+          },
+          "flare": {
+            "clipped_at": null,
+            "raw_weight": 1.3416407864998738,
+            "support": 5,
+            "weight": 1.3416407864998738
+          },
+          "straight": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.408248290463863,
+            "support": 54,
+            "weight": 0.5
+          },
+          "wide_leg": {
+            "clipped_at": null,
+            "raw_weight": 1.0606601717798212,
+            "support": 8,
+            "weight": 1.0606601717798212
+          }
+        },
+        "median_positive_support": 9.0,
+        "observed_classes": 6
+      },
+      "sleeve_length": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": null,
+            "raw_weight": 0.6993104373018454,
+            "support": 456,
+            "weight": 0.6993104373018454
+          },
+          "long": {
+            "clipped_at": null,
+            "raw_weight": 1.100888968851596,
+            "support": 184,
+            "weight": 1.100888968851596
+          },
+          "short": {
+            "clipped_at": null,
+            "raw_weight": 0.9225752208724982,
+            "support": 262,
+            "weight": 0.9225752208724982
+          },
+          "sleeveless": {
+            "clipped_at": null,
+            "raw_weight": 1.7017943166269818,
+            "support": 77,
+            "weight": 1.7017943166269818
+          }
+        },
+        "median_positive_support": 223.0,
+        "observed_classes": 4
+      },
+      "sleeve_style": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.14671884264365215,
+            "support": 511,
+            "weight": 0.5
+          },
+          "cap": {
+            "clipped_at": "maximum",
+            "raw_weight": 2.345207879911715,
+            "support": 2,
+            "weight": 2.0
+          },
+          "dropped_shoulder": {
+            "clipped_at": null,
+            "raw_weight": 0.8043996665398437,
+            "support": 17,
+            "weight": 0.8043996665398437
+          },
+          "puff": {
+            "clipped_at": "maximum",
+            "raw_weight": 3.3166247903554,
+            "support": 1,
+            "weight": 2.0
+          },
+          "raglan": {
+            "clipped_at": null,
+            "raw_weight": 1.0,
+            "support": 11,
+            "weight": 1.0
+          }
+        },
+        "median_positive_support": 11,
+        "observed_classes": 5
+      },
+      "waistline": {
+        "classes": {
+          "__not_applicable__": {
+            "clipped_at": "minimum",
+            "raw_weight": 0.08336952587937554,
+            "support": 1151,
+            "weight": 0.5
+          },
+          "high": {
+            "clipped_at": null,
+            "raw_weight": 1.0,
+            "support": 8,
+            "weight": 1.0
+          },
+          "normal": {
+            "clipped_at": null,
+            "raw_weight": 1.1547005383792515,
+            "support": 6,
+            "weight": 1.1547005383792515
+          }
+        },
+        "median_positive_support": 8,
+        "observed_classes": 3
+      }
+    },
+    "class_observations": 12571,
+    "classes_below_five": 17,
+    "classes_below_ten": 30,
+    "clipping_counts": {
+      "maximum": 20,
+      "minimum": 24,
+      "unclipped": 72
+    },
+    "fields": 15,
+    "known_field_cells": 12533,
+    "maximum_derived_weight": 2.0,
+    "maximum_support": 1151,
+    "minimum_derived_weight": 0.5,
+    "minimum_support": 1,
+    "multi_label_extra_observations": 38,
+    "not_applicable_field_cells": 4492,
+    "not_applicable_fields": [
+      "silhouette",
+      "fit",
+      "garment_length",
+      "sleeve_length",
+      "sleeve_style",
+      "neckline",
+      "collar_type",
+      "waistline",
+      "closure"
+    ],
+    "observed_attribute_class_pairs": 116,
+    "rows": 1438,
+    "unknown_field_cells": 9037
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "candidate_assessments": {
+    "eval_candidates_300": {
+      "eligible": false,
+      "reason": "exactly the same SKU set as the diagnosis-exposed frozen evaluation set",
+      "rows": 300
+    },
+    "probe_100_whole": {
+      "eligible": false,
+      "family_overlap_with_corrected_run2_training": 33,
+      "probe_rows_in_overlapping_families": 35,
+      "reason": "fails the family-disjoint requirement",
+      "rows": 100
+    },
+    "probe_family_disjoint_remainder": {
+      "eligible": false,
+      "ordered_skus": [
+        "shopify:fahertybrand.com:6900366049349",
+        "shopify:fahertybrand.com:6907236253765",
+        "shopify:fahertybrand.com:7552634650693",
+        "shopify:fahertybrand.com:7784080998469",
+        "shopify:fahertybrand.com:7876090265669",
+        "shopify:fahertybrand.com:8021064417349",
+        "shopify:fahertybrand.com:8021112291397",
+        "shopify:fahertybrand.com:8021115961413",
+        "shopify:naadam.co:6589687038048",
+        "shopify:naadam.co:6835721142368",
+        "shopify:naadam.co:7519922258016",
+        "shopify:www.allbirds.com:3689948315728",
+        "shopify:www.allbirds.com:4826197655632",
+        "shopify:www.allbirds.com:6930103238736",
+        "shopify:www.allbirds.com:7009871495248",
+        "shopify:www.allbirds.com:7188363575376",
+        "shopify:www.allbirds.com:7193758990416",
+        "shopify:www.allbirds.com:7205192335440",
+        "shopify:www.american-giant.com:10414089207989",
+        "shopify:www.american-giant.com:8226071937205",
+        "shopify:www.american-giant.com:8226073313461",
+        "shopify:www.everlane.com:7827422576726",
+        "shopify:www.everlane.com:7841453375574",
+        "shopify:www.girlfriend.com:7706049904703",
+        "shopify:www.marinelayer.com:8084566802506",
+        "shopify:www.marinelayer.com:8084569489482",
+        "shopify:www.marinelayer.com:8084580761674",
+        "shopify:www.marinelayer.com:8114424741962",
+        "shopify:www.marinelayer.com:8119885037642",
+        "shopify:www.marinelayer.com:8175115337802",
+        "shopify:www.marinelayer.com:8213620523082",
+        "shopify:www.marinelayer.com:8213625110602",
+        "shopify:www.marinelayer.com:8213633957962",
+        "shopify:www.outdoorvoices.com:7585332396110",
+        "shopify:www.outdoorvoices.com:7585333280846",
+        "shopify:www.outdoorvoices.com:7585334493262",
+        "shopify:www.outdoorvoices.com:7585340522574",
+        "shopify:www.outdoorvoices.com:7601535942734",
+        "shopify:www.outdoorvoices.com:7827263586382",
+        "shopify:www.rothys.com:7151990112350",
+        "shopify:www.taylorstitch.com:6865636261965",
+        "shopify:www.taylorstitch.com:7115851104333",
+        "shopify:www.taylorstitch.com:7355708932173",
+        "shopify:www.taylorstitch.com:7391323160653",
+        "shopify:www.taylorstitch.com:7523414278221",
+        "shopify:www.taylorstitch.com:7523416506445",
+        "shopify:www.tentree.com:8092938797242",
+        "shopify:www.tentree.com:8106127163578",
+        "shopify:www.tentree.com:8143542059194",
+        "shopify:www.tentree.com:8143565881530",
+        "shopify:www.tentree.com:8153295421626",
+        "shopify:www.tentree.com:8155343847610",
+        "shopify:www.tentree.com:8216161484986",
+        "shopify:www.tentree.com:8322438430906",
+        "shopify:www.tentree.com:8326293487802",
+        "shopify:www.tentree.com:8360517730490",
+        "shopify:www.thursdayboots.com:7035439841370",
+        "shopify:www.thursdayboots.com:7295932072026",
+        "shopify:www.thursdayboots.com:7383638409306",
+        "shopify:www.thursdayboots.com:7539882524762",
+        "shopify:www.thursdayboots.com:7653452283994",
+        "shopify:www.thursdayboots.com:7898462552154",
+        "shopify:www.untuckit.com:7540518125646",
+        "shopify:www.untuckit.com:7590178521166",
+        "shopify:www.untuckit.com:7828360298574"
+      ],
+      "reason": "65 rows are too small for sole macro-F1 confirmation and the probe is already a named diagnostic asset",
+      "rows": 65
+    },
+    "raw_feed_or_labeled": {
+      "eligible": false,
+      "reason": "these are source containers for the already allocated SFT, probe and evaluation products",
+      "rows": 4000
+    },
+    "unallocated_local_labeled_rows": {
+      "eligible": false,
+      "reason": "the 4,000-row labeled universe is exhaustively allocated",
+      "rows": 0
+    }
+  },
+  "collection_counts": {
+    "corrected_run2_pool": 1438,
+    "eval_candidates": 300,
+    "frozen_eval": 300,
+    "probe": 100,
+    "raw_feed": 4000,
+    "raw_labeled": 4000,
+    "sft": 3600
+  },
+  "decision": {
+    "next_action": "collect and label a new product snapshot under a predeclared confirmation acquisition contract",
+    "requirements_before_freeze": [
+      "sample products without using Run-2 model outputs",
+      "exclude every SKU and normalized family in training and development data",
+      "record source snapshot and sampling provenance",
+      "record labeler, prompt, self-consistency and human-correction provenance",
+      "audit class support before generating confirmation model outputs",
+      "publish a collision-protected dataset and role-manifest update with hashes"
+    ],
+    "suitable_untouched_local_source_exists": false
+  },
+  "execution_boundary": {
+    "confirmation_dataset_created": false,
+    "confirmation_model_outputs_generated": false,
+    "gpu_training_authorized": false,
+    "model_inference_performed": false
+  },
+  "inputs": {
+    "corrected_run2_pool": {
+      "bytes": 3191282,
+      "path": "data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+      "sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53"
+    },
+    "data_role_manifest": {
+      "bytes": 44495,
+      "path": "runs/grpo-run2-data-role-manifest.json",
+      "sha256": "d67c617dddded099b2e6850012592cf1b0a4e6dcd9c5b17f681b35cfaef5ac26"
+    },
+    "eval_candidates": {
+      "bytes": 679448,
+      "path": "data/eval_candidates.jsonl",
+      "sha256": "4487f0c1fa27543ca85b8962449193d9bd6cc62bbd803ec45b07c85cf7dc3dcf"
+    },
+    "frozen_eval": {
+      "bytes": 903541,
+      "path": "data/eval_300/eval.jsonl",
+      "sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c"
+    },
+    "probe": {
+      "bytes": 220245,
+      "path": "data/probe_100.jsonl",
+      "sha256": "0562dc78a2bcf4fe1789d5ad0cd256d78f90e77b770e00cc1f983c6b5ea4f804"
+    },
+    "raw_feed": {
+      "bytes": 3595575,
+      "path": "data/raw/feed.jsonl",
+      "sha256": "1a170df082232b213da2cea84c86caed0918e21278b8cd4f4f34ead0c4bdf60e"
+    },
+    "raw_labeled": {
+      "bytes": 8723787,
+      "path": "data/raw/labeled.jsonl",
+      "sha256": "c6a60f2f5eae01c6bf724c3f0d8718610ac4a39057ad4fd10821b2c020cdbac0"
+    },
+    "sft": {
+      "bytes": 7890715,
+      "path": "data/train_weak.jsonl",
+      "sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b"
+    }
+  },
+  "labeled_universe_partition": {
+    "allocated_partition_is_pairwise_disjoint": true,
+    "allocated_rows": 4000,
+    "components": {
+      "eval_candidates": 300,
+      "probe": 100,
+      "sft": 3600
+    },
+    "eval_candidates_equal_burned_frozen_eval": true,
+    "labeled_rows": 4000,
+    "partition_covers_labeled_universe": true,
+    "raw_feed_equals_labeled_universe": true,
+    "unallocated_labeled_rows": 0,
+    "unallocated_labeled_skus": []
+  },
+  "role": "read_only_local_confirmation_source_audit",
+  "status": "new_confirmation_collection_required",
+  "version": "grpo-run2-confirmation-source-audit-v1"
+}

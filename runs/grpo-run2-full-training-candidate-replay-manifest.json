@@ -1,0 +1,293 @@
+{
+  "cb_diagnostic_extension": {
+    "affected_active_products": 0,
+    "affected_training_products": 50,
+    "base_artifact_sha256": "7b53323a7f1c170fa68c6b1a0d1356c67fd827f70f466ba2972b857418f4ab37",
+    "candidate_aggregates_calculated": false,
+    "candidate_completion_rewards_calculated": false,
+    "entries": [
+      {
+        "active_pool_support": 0,
+        "affected_products": 3,
+        "class_name": "buckle",
+        "field_name": "closure",
+        "full_training_observations": 3,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 1,
+        "class_name": "metallic",
+        "field_name": "colour_primary",
+        "full_training_observations": 1,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 10,
+        "class_name": "orange",
+        "field_name": "colour_primary",
+        "full_training_observations": 10,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 4,
+        "class_name": "__not_applicable__",
+        "field_name": "details",
+        "full_training_observations": 4,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 12,
+        "class_name": "gathered",
+        "field_name": "details",
+        "full_training_observations": 12,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 5,
+        "class_name": "tiered",
+        "field_name": "details",
+        "full_training_observations": 5,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 2,
+        "class_name": "jumpsuit",
+        "field_name": "garment_category",
+        "full_training_observations": 2,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 1,
+        "class_name": "collarless",
+        "field_name": "neckline",
+        "full_training_observations": 1,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 3,
+        "class_name": "__not_applicable__",
+        "field_name": "occasion",
+        "full_training_observations": 3,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 1,
+        "class_name": "fair_isle",
+        "field_name": "pattern",
+        "full_training_observations": 1,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 6,
+        "class_name": "fit_and_flare",
+        "field_name": "silhouette",
+        "full_training_observations": 6,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 4,
+        "class_name": "shift",
+        "field_name": "silhouette",
+        "full_training_observations": 4,
+        "weight": 2.0
+      },
+      {
+        "active_pool_support": 0,
+        "affected_products": 1,
+        "class_name": "low",
+        "field_name": "waistline",
+        "full_training_observations": 1,
+        "weight": 2.0
+      }
+    ],
+    "missing_attribute_class_pairs": 13,
+    "missing_class_observations": 53,
+    "ordered_entry_ledger_sha256": "aeb089a1081d7efd1a99ccb2124e7b7412ec71f2362509f3df20dc2aa5837416",
+    "policy": {
+      "active_weights_changed": false,
+      "full_training_support_used_to_retune_weights": false,
+      "rationale": "limit of the existing rare-class formula after clipping",
+      "trigger": "valid gold class has zero support in the active-pool map",
+      "weight": 2.0
+    },
+    "role": "gold-only full-training diagnostic extension to active CB lookup",
+    "version": "grpo-run2-cb-full-training-zero-active-support-extension-v1"
+  },
+  "code": {
+    "candidate_reward_version": "grpo-run2-candidate-rewards-v12",
+    "cb_class_weight_artifact_sha256": "7b53323a7f1c170fa68c6b1a0d1356c67fd827f70f466ba2972b857418f4ab37",
+    "implementation": {
+      "bytes": 31462,
+      "path": "training/replay_run2_full_training_candidates.py",
+      "sha256": "eb16e7d779e03a0a9b8ee8afcc7e2b2880c62441d15e814905e4e235faff0323"
+    },
+    "shared_group_builder": {
+      "bytes": 16893,
+      "path": "training/replay_run2_candidates.py",
+      "sha256": "da3bead0fdd5bebff68a010c8c362146d23389429e55dfea7a174674bb1d38b6"
+    }
+  },
+  "cuda_imports_performed": false,
+  "inputs": {
+    "difficulty_generation": {
+      "backend": "vllm",
+      "batch_size": 32,
+      "gpu_memory_utilization": 0.65,
+      "max_new_tokens": 170,
+      "rollouts_per_product": 8,
+      "sampler_backend": "native",
+      "seed": 20260802,
+      "structured_outputs": false,
+      "temperature": 0.7,
+      "top_p": 0.95
+    },
+    "difficulty_manifest": {
+      "bytes": 11042,
+      "path": "runs/sft-difficulty-k8/manifest.json",
+      "sha256": "5c6fcc41bab65b36904cef256c56e747a19302b30b6da3c7208382e4dfdd3e5b"
+    },
+    "difficulty_manifest_version": "sft-difficulty-v2",
+    "physical_rollout_groups": 3600,
+    "physical_rollout_records": 28800,
+    "rollouts": {
+      "bytes": 509163,
+      "path": "runs/sft-difficulty-k8/rollouts.jsonl.gz",
+      "sha256": "f17360b157287caaea8d0f8e907f0a4bf4fd107977452442e2e447628e95bf8b"
+    },
+    "run2_pool_dataset": {
+      "bytes": 3191282,
+      "path": "data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+      "sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53"
+    },
+    "run2_pool_manifest": {
+      "bytes": 82235,
+      "path": "runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json",
+      "sha256": "42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a"
+    },
+    "run2_pool_preflight": {
+      "cuda_imports_performed": false,
+      "manifest_invariants": {
+        "active_and_capped_are_disjoint": true,
+        "active_and_capped_cover_eligible": true,
+        "active_and_sft_validation_families_are_disjoint": true,
+        "active_and_sft_validation_skus_are_disjoint": true,
+        "all_active_rows_are_authoritative_sft_train": true,
+        "all_active_rows_are_eligible": true,
+        "all_eligible_families_represented": true,
+        "family_cap_respected": true
+      },
+      "pool": {
+        "active_sku_set_sha256": "dd5fafa64c09d231d0db1fb321518650524ccf7ef3d1a899c439e2f038232d1c",
+        "data_bytes": 3191282,
+        "data_path": "data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+        "data_sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53",
+        "families": 1051,
+        "manifest_path": "runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json",
+        "manifest_sha256": "42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a",
+        "manifest_version": "grpo-pool-cap4-sft-train-v1",
+        "maximum_family_size": 4,
+        "rows": 1438
+      },
+      "split_authority": {
+        "active_validation_family_overlap": 0,
+        "active_validation_sku_overlap": 0,
+        "manifest_path": "data/splits/sft-v1.json",
+        "manifest_sha256": "4d14d46fa4f7df95a24658c741940db64093e7798b5ccd1558f4faa29bbe9a3b",
+        "manifest_version": "sft-v1",
+        "source_path": "data/train_weak.jsonl",
+        "source_sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b",
+        "training_skus": 3240,
+        "validation_skus": 360
+      },
+      "status": "passed",
+      "version": "grpo-run2-pool-preflight-v1"
+    },
+    "sft_split_manifest": {
+      "bytes": 172056,
+      "path": "data/splits/sft-v1.json",
+      "sha256": "4d14d46fa4f7df95a24658c741940db64093e7798b5ccd1558f4faa29bbe9a3b"
+    },
+    "sft_split_manifest_version": "sft-v1",
+    "source_dataset": {
+      "bytes": 7890715,
+      "path": "data/train_weak.jsonl",
+      "sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b"
+    }
+  },
+  "integrity": {
+    "active_groups_included": 1438,
+    "additional_training_groups": 1802,
+    "all_groups_have_exactly_eight_ordered_completions": true,
+    "candidate_aggregates_calculated": false,
+    "cb_active_weights_changed": false,
+    "cb_extension_ledger_sha256": "aeb089a1081d7efd1a99ccb2124e7b7412ec71f2362509f3df20dc2aa5837416",
+    "completion_records": 25920,
+    "model_generation_performed": false,
+    "ordered_rollout_key_sha256": "a6acc3446db2102b95fdec7fc798f731969a473b053bc23fe0e5a7a1d9851d59",
+    "ordered_sku_sha256": "05e22c09120a63f9936473fd1adf8bf7639545cbe2a22bdbb28b8ab2d74906ee",
+    "role": "full_authoritative_training_identical_group_candidate_replay_records",
+    "same_source_completion_scored_by_all_candidates": true,
+    "training_groups": 3240,
+    "training_validation_family_overlap": 0,
+    "training_validation_sku_overlap": 0,
+    "unique_rollout_keys": 25920,
+    "validation_groups_excluded": 360,
+    "version": "grpo-run2-full-training-replay-builder-v1"
+  },
+  "interpretation_guardrails": {
+    "candidate_superiority_claim_allowed": false,
+    "completion_independence_assumed": false,
+    "gate_g10_result_available": false,
+    "next_step": "analyze only after both replay scopes are published and verified",
+    "off_policy_return_estimate": false
+  },
+  "output": {
+    "bytes": 4168170,
+    "completion_records": 25920,
+    "jsonl_group_records": 3240,
+    "ordered_rollout_key_sha256": "a6acc3446db2102b95fdec7fc798f731969a473b053bc23fe0e5a7a1d9851d59",
+    "ordered_sku_sha256": "05e22c09120a63f9936473fd1adf8bf7639545cbe2a22bdbb28b8ab2d74906ee",
+    "path": "runs/grpo-run2-full-training-candidate-replay-records.jsonl.gz",
+    "sha256": "9b4a110910977b54e181c8f3d3452c555bdbb6c826e22bfec1c475045517fcf9"
+  },
+  "record_contract": {
+    "candidate_component_ledgers_included": true,
+    "candidate_order": [
+      "U",
+      "UA",
+      "CB"
+    ],
+    "cb_diagnostic_extension_included": true,
+    "grain": "one JSONL line per product group; eight ordered completions",
+    "group_size": 8,
+    "original_reward_included": true,
+    "raw_completion_text_included": true
+  },
+  "role": "full_authoritative_training_identical_group_candidate_replay_records",
+  "selection_boundary": {
+    "acceptance_thresholds_applied": false,
+    "aggregate_candidate_comparison_calculated": false,
+    "allowed": "all authoritative SFT-training products and locked k=8 rollouts",
+    "candidate_rankings_calculated": false,
+    "candidate_rewards_calculated": true,
+    "excluded": "all 360 SFT-validation SKUs",
+    "legacy_frozen_300_used": false,
+    "model_generation_performed": false,
+    "probe_100_used": false,
+    "validation_data_used": false,
+    "winner_selected": false
+  },
+  "status": "raw_evidence_published",
+  "version": "grpo-run2-full-training-candidate-replay-records-v1"
+}

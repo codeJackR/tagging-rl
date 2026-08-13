@@ -1,0 +1,301 @@
+{
+  "implementation": {
+    "bytes": 26250,
+    "path": "training/run2_comparison_contract.py",
+    "sha256": "dc82646c51d1ee9c4e8f7d20a207e2693fc0143135089c06e7b27358115b7b2a"
+  },
+  "inputs": {
+    "candidate_replay_manifest": {
+      "bytes": 6435,
+      "path": "runs/grpo-run2-candidate-replay-manifest.json",
+      "sha256": "e10c3c47bb54fe0ad4bd07e68966401be71771d2bf134aa2b29dbb9c1683163e"
+    },
+    "candidate_replay_records_identity_from_manifest_only": {
+      "bytes": 1921202,
+      "opened_by_contract_builder": false,
+      "path": "runs/grpo-run2-candidate-replay-records.jsonl.gz",
+      "sha256": "30e3ea8681ca80de5737cc5928b8a755e8b14cd36f6c0a67e00385a8408be38a"
+    },
+    "comparison_document": {
+      "bytes": 8601,
+      "path": "W2_GRPO_RUN2_COMPARISON_CONTRACT.md",
+      "sha256": "36663c642bdae0ef41055b7c4543b19413b34099139458911ed5c3a23de0734a"
+    },
+    "numeric_scale_contract": {
+      "bytes": 9007,
+      "path": "W2_GRPO_RUN2_REWARD_SCALES.md",
+      "sha256": "7a0a3ad8233e347168c68f8d48e9e3397c16fbc8acd428cd64e059252d7a2c10"
+    },
+    "ordinal_payoff_contract": {
+      "bytes": 13526,
+      "path": "W2_GRPO_RUN2_REWARD_PAYOFFS.md",
+      "sha256": "ad50b23923992d8f888657de9ffff5be93d87a39b31d9cbe39c6fc0a86456db7"
+    },
+    "original_reward_replay": {
+      "bytes": 41092,
+      "path": "runs/grpo-run2-original-reward-training-replay.json",
+      "sha256": "48f0d8737f9fab231d594dcf178e335fcd5711f817c5158557a7aee839f789b8"
+    }
+  },
+  "lineage": {
+    "active_completions": 11504,
+    "active_groups": 1438,
+    "group_size": 8,
+    "ordered_rollout_key_sha256": "c1fe09c88fa4a09e2397d6a98b4cd400dfdb57a9ef71cf61190ae0b96aef5500",
+    "ordered_sku_sha256": "97a96e775f2644c35cd33a412113b9bb135fba5019c5803e58f05ebd954eb4c7",
+    "same_order_as_original_active_scope": true
+  },
+  "locked_original_baseline": {
+    "active_completions": 11504,
+    "active_groups": 1438,
+    "active_groups_with_at_least_three_levels": 76,
+    "active_groups_with_at_least_three_levels_share": 0.05285118219749652,
+    "active_groups_with_large_tie_at_least_six": 954,
+    "active_groups_with_large_tie_at_least_six_share": 0.6634214186369958,
+    "active_largest_tie_histogram": {
+      "3": 9,
+      "4": 168,
+      "5": 307,
+      "6": 385,
+      "7": 569
+    },
+    "active_unique_level_histogram": {
+      "2": 1362,
+      "3": 76
+    },
+    "active_zero_variance_share": 0.0,
+    "full_training_groups": 3240,
+    "full_training_zero_variance_groups": 1571,
+    "full_training_zero_variance_share": 0.48487654320987655
+  },
+  "metric_contract": {
+    "candidate_order": [
+      "U",
+      "UA",
+      "CB"
+    ],
+    "canonicalization": {
+      "applies_to": "reward ties, target ties and pairwise directions",
+      "decimal_places": 12,
+      "method": "round each finite value to 12 decimal places; canonicalize negative zero"
+    },
+    "contribution_accounting": {
+      "class_share": "for CB, allocate a field's absolute contribution across its gold class keys in proportion to their locked class weights; details unknown is excluded",
+      "field_share": "sum absolute post-normalization semantic contribution by field, divided by the sum across fields; exclude malformed floors and rule adjustment",
+      "rule_share_reported_separately": true
+    },
+    "descriptive_reporting": {
+      "completion_reward": [
+        "count",
+        "minimum",
+        "p05",
+        "p25",
+        "median",
+        "mean",
+        "p75",
+        "p95",
+        "maximum",
+        "population_std"
+      ],
+      "group_reward": [
+        "mean",
+        "median",
+        "population_variance_own_scale",
+        "unique_reward_levels",
+        "largest_tie_size",
+        "pairwise_discrimination_rate"
+      ],
+      "warning": "raw variance is descriptive within a reward only; do not compare its magnitude across the original [0,4] and dense [-1.25,1] scales"
+    },
+    "group_aggregation": "calculate each rate/alignment inside each eligible group, then report mean and median across groups; also report contributing group and pair counts",
+    "group_size": 8,
+    "primary_group_metrics": {
+      "directional_net_alignment": "(concordant - discordant) / target-different pairs; reward ties stay in denominator",
+      "harmful_coverage_preference_score": "on higher-coverage/lower-known-utility pairs: harmful=1, tie=0.5, safe=0",
+      "pairwise_discrimination_rate": "non-tied unordered reward pairs divided by 28; average product groups equally"
+    },
+    "segments": {
+      "minimum_groups_for_interpretation": 30,
+      "required": [
+        "product category",
+        "difficulty pass-rate band",
+        "gold-known field count",
+        "attribute",
+        "gold class support band"
+      ],
+      "smaller_segments": "report support only; do not make directional claims"
+    },
+    "sensitivity": {
+      "required": [
+        "CB replay with class weights replaced by 1.0",
+        "CB replay with cap changed from [0.5,2.0] to [0.75,1.5]",
+        "metrics stratified by gold-known field count"
+      ],
+      "selection_use": "diagnostic only except the locked dominance gates"
+    },
+    "targets": {
+      "canonical_known_utility": "Candidate U's per-record normalized known-field utility before rule adjustment; the shared correct/partial/abstain/wrong policy target",
+      "class_balanced_known_utility": "Candidate CB's weighted known semantic score before unknown/rule composition",
+      "known_coverage": "(scorable_labels - count(false_abstention_labels)) / scorable_labels",
+      "known_exact_rate": "source_rollout.correct_labels / source_rollout.scorable_labels",
+      "rule_quality": "negative count(rule_violations), so fewer violations is higher",
+      "selective_correctness": "correct_labels / (scorable_labels - count(false_abstention_labels)); null if denominator zero",
+      "unknown_abstention_rate": "count(correct_abstention_labels) / count(excluded_gold_unknown_labels); null if no unknown gold"
+    },
+    "unit_of_analysis": "one product/SKU rollout group",
+    "unordered_pairs_per_group": 28
+  },
+  "next_step": "implement the D3 aggregator against these locked definitions, then open the raw candidate replay records once and publish all candidate results together",
+  "role": "predeclared D3 metrics, D4 gates and candidate selection hierarchy",
+  "selection_boundary": {
+    "acceptance_gates_applied": false,
+    "allowed": "locked training-only original baseline and raw candidate replay manifest metadata",
+    "candidate_aggregate_metrics_calculated": false,
+    "candidate_rankings_calculated": false,
+    "candidate_replay_records_opened": false,
+    "cuda_imports_performed": false,
+    "prohibited": [
+      "candidate replay record contents or aggregate candidate outcomes",
+      "SFT validation",
+      "legacy frozen 300",
+      "probe 100",
+      "future confirmation data"
+    ],
+    "winner_selected": false
+  },
+  "selection_hierarchy": {
+    "no_passing_candidate": "stop Phase D; do not dispatch GPU training",
+    "principle": "choose the simplest passing policy unless extra semantics earn their complexity",
+    "steps": [
+      {
+        "action": "discard every candidate that fails any applicable universal gate",
+        "order": 1
+      },
+      {
+        "choose_more_complex_if": {
+          "harmful_coverage_ci_upper_noninferiority": 0.02,
+          "known_utility_alignment_ci_lower_noninferiority": -0.02,
+          "pairwise_discrimination_ci_lower_noninferiority": -0.02,
+          "unknown_abstention_net_alignment_ci_lower_minimum": 0.0,
+          "unknown_abstention_net_alignment_point_delta_minimum": 0.1
+        },
+        "comparison": "UA versus U",
+        "order": 2,
+        "otherwise": "prefer U"
+      },
+      {
+        "choose_more_complex_if": {
+          "canonical_known_utility_alignment_ci_lower_noninferiority": -0.02,
+          "class_balanced_known_utility_alignment_ci_lower_minimum": 0.0,
+          "class_balanced_known_utility_alignment_point_delta_minimum": 0.03,
+          "field_and_class_dominance_gates_pass": true,
+          "harmful_coverage_ci_upper_noninferiority": 0.02,
+          "pairwise_discrimination_ci_lower_noninferiority": -0.02
+        },
+        "comparison": "CB versus the surviving uniform candidate",
+        "order": 3,
+        "otherwise": "prefer the simpler surviving uniform candidate"
+      }
+    ],
+    "unresolved_tie": "prefer U over UA over CB",
+    "winner_claim": "offline reward-design selection only, not evidence of policy improvement"
+  },
+  "status": "locked_before_candidate_aggregation",
+  "uncertainty_contract": {
+    "completion_level_resampling": false,
+    "confidence_level": 0.95,
+    "interval_quantiles": [
+      0.025,
+      0.975
+    ],
+    "method": "paired product-group nonparametric percentile bootstrap",
+    "multiple_candidates": "all three candidates and the selection hierarchy are predeclared; report every comparison",
+    "p_values": "not used for selection",
+    "paired_deltas": "resample one shared group-index vector and recompute candidate-minus-comparator",
+    "primary_minimum_group_support": 200,
+    "replicates": 10000,
+    "resampling_unit": "entire k=8 product group",
+    "seed": 20260812
+  },
+  "universal_acceptance_gates": [
+    {
+      "id": "G1_integrity_and_tests",
+      "metric": "all lineage checks, deterministic rebuilds and CPU tests",
+      "operator": "all_true",
+      "threshold": true
+    },
+    {
+      "baseline": 0.0,
+      "id": "G2_active_variation",
+      "metric": "active zero-variance group share",
+      "operator": "equals",
+      "threshold": 0.0
+    },
+    {
+      "baseline": 0.05285118219749652,
+      "id": "G3_distinct_levels",
+      "metric": "active groups with at least 3 distinct reward levels share",
+      "operator": "greater_than_or_equal",
+      "rationale": "move from a rare 5.3% exception to at least half of groups",
+      "threshold": 0.5
+    },
+    {
+      "baseline": 0.6634214186369958,
+      "id": "G4_large_ties",
+      "metric": "active groups whose largest reward tie contains at least 6 of 8 completions",
+      "operator": "less_than_or_equal",
+      "rationale": "reduce the original roughly two-thirds large-tie rate below one-half",
+      "threshold": 0.5
+    },
+    {
+      "ci_lower_threshold": 0.0,
+      "id": "G5_pairwise_resolution",
+      "metric": "mean group pairwise discrimination candidate-minus-original",
+      "minimum_groups": 200,
+      "operator": "point_at_least_and_ci_lower_above",
+      "point_threshold": 0.1
+    },
+    {
+      "ci_lower_threshold": -0.02,
+      "id": "G6_known_utility_alignment",
+      "metric": "mean group canonical-known-utility net alignment candidate-minus-original",
+      "minimum_groups": 200,
+      "operator": "point_nonnegative_and_ci_lower_noninferior",
+      "point_threshold": 0.0
+    },
+    {
+      "ci_upper_threshold": 0.05,
+      "id": "G7_harmful_coverage",
+      "metric": "mean group harmful-coverage preference candidate-minus-original",
+      "minimum_groups": 200,
+      "operator": "point_and_ci_upper_at_most",
+      "point_threshold": 0.02
+    },
+    {
+      "id": "G8_field_dominance",
+      "metric": "largest field share of absolute semantic contribution",
+      "operator": "less_than_or_equal",
+      "rationale": "no field may contribute more than three times the uniform 1/15 share",
+      "threshold": 0.2
+    },
+    {
+      "applies_to": [
+        "CB"
+      ],
+      "id": "G9_cb_class_dominance",
+      "metric": "largest gold-class share of absolute known semantic contribution",
+      "operator": "less_than_or_equal",
+      "threshold": 0.15
+    },
+    {
+      "baseline": 0.48487654320987655,
+      "id": "G10_full_training_variation",
+      "metric": "full authoritative-training zero-variance group share",
+      "operator": "less_than_or_equal",
+      "rationale": "require an 8.5-point practical reduction from the locked 48.5% baseline",
+      "requires_separate_full_scope_raw_replay": true,
+      "threshold": 0.4
+    }
+  ],
+  "version": "grpo-run2-comparison-acceptance-contract-v1"
+}

@@ -1,0 +1,124 @@
+{
+  "candidate_order": [
+    "U",
+    "UA",
+    "CB"
+  ],
+  "candidate_results": {
+    "CB": {
+      "all_ten_universal_gates_passed": true,
+      "failed_gate_ids": [],
+      "gate_g10": {
+        "full_scope_completions": 25920,
+        "full_scope_groups": 3240,
+        "maximum_allowed_zero_variance_groups": 1296,
+        "passed": true,
+        "threshold": 0.4,
+        "zero_variance_groups": 438,
+        "zero_variance_share": 0.13518518518518519
+      },
+      "gates_g1_g9": {
+        "active_scope_completions": 11504,
+        "active_scope_groups": 1438,
+        "passed": true
+      }
+    },
+    "U": {
+      "all_ten_universal_gates_passed": false,
+      "failed_gate_ids": [
+        "G3_distinct_levels"
+      ],
+      "gate_g10": {
+        "full_scope_completions": 25920,
+        "full_scope_groups": 3240,
+        "maximum_allowed_zero_variance_groups": 1296,
+        "passed": true,
+        "threshold": 0.4,
+        "zero_variance_groups": 860,
+        "zero_variance_share": 0.2654320987654321
+      },
+      "gates_g1_g9": {
+        "active_scope_completions": 11504,
+        "active_scope_groups": 1438,
+        "passed": false
+      }
+    },
+    "UA": {
+      "all_ten_universal_gates_passed": true,
+      "failed_gate_ids": [],
+      "gate_g10": {
+        "full_scope_completions": 25920,
+        "full_scope_groups": 3240,
+        "maximum_allowed_zero_variance_groups": 1296,
+        "passed": true,
+        "threshold": 0.4,
+        "zero_variance_groups": 439,
+        "zero_variance_share": 0.13549382716049382
+      },
+      "gates_g1_g9": {
+        "active_scope_completions": 11504,
+        "active_scope_groups": 1438,
+        "passed": true
+      }
+    }
+  },
+  "inputs": {
+    "all_verified": true,
+    "sources": {
+      "comparison_contract": {
+        "bytes": 12079,
+        "path": "runs/grpo-run2-comparison-contract.json",
+        "sha256": "8692291af2319c33a9a6548c1a6530f8c61da0c04e27e69eaa048584245e1142"
+      },
+      "gate_g10": {
+        "bytes": 8126,
+        "path": "runs/grpo-run2-gate-g10-result.json",
+        "sha256": "6a602e629a58e6a7c006fb9a86ff7fcee5c1821ed7505f0b88fdfdc89b661e0d"
+      },
+      "gates_g1_g9": {
+        "bytes": 16439,
+        "path": "runs/grpo-run2-d4-gates-g1-g9.json",
+        "sha256": "5ccdb6b440d6621e4fac72f926255f62c2963e9bd9745dab877304f466f45ce2"
+      }
+    }
+  },
+  "role": "training_only_offline_reward_universal_eligibility",
+  "scope_guardrail": {
+    "active_and_full_scope_denominators_combined": false,
+    "active_scope": {
+      "completions": 11504,
+      "groups": 1438
+    },
+    "full_training_scope": {
+      "completions": 25920,
+      "groups": 3240
+    },
+    "join_key": "candidate_id",
+    "one_to_one_candidate_join": true
+  },
+  "selection_boundary": {
+    "all_universal_gates_merged": true,
+    "candidate_rankings_calculated": false,
+    "complexity_aware_selection_applied": false,
+    "gpu_training_authorized": false,
+    "winner_selected": false
+  },
+  "status": "all_universal_gates_merged_pending_complexity_selection",
+  "summary": {
+    "CB": {
+      "all_ten_universal_gates_passed": true,
+      "failed_gate_ids": []
+    },
+    "U": {
+      "all_ten_universal_gates_passed": false,
+      "failed_gate_ids": [
+        "G3_distinct_levels"
+      ]
+    },
+    "UA": {
+      "all_ten_universal_gates_passed": true,
+      "failed_gate_ids": []
+    }
+  },
+  "version": "grpo-run2-universal-gate-merge-v1"
+}

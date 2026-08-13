@@ -1,0 +1,237 @@
+{
+  "candidate_order": [
+    "U",
+    "UA",
+    "CB"
+  ],
+  "candidate_results": {
+    "CB": {
+      "boundary": {
+        "candidate_rankings_calculated": false,
+        "file_io_performed": false,
+        "input_kind": "already-materialized in-memory candidate reward groups",
+        "real_full_training_replay_opened_by_calculator": false,
+        "winner_selected": false
+      },
+      "candidate": "CB",
+      "comparison": {
+        "canonical_decimal_places": 12,
+        "margin_groups": 858,
+        "margin_share": 0.26481481481481484,
+        "maximum_allowed_zero_variance_groups": 1296,
+        "operator": "less_than_or_equal",
+        "passes": true,
+        "threshold": 0.4,
+        "threshold_exact_fraction": "2/5"
+      },
+      "completions": 25920,
+      "gate_id": "G10_full_training_variation",
+      "groups": 3240,
+      "locked_original_baseline": {
+        "completions": 25920,
+        "groups": 3240,
+        "zero_variance_groups": 1571,
+        "zero_variance_share": 0.48487654320987655
+      },
+      "metric": "full authoritative-training zero-variance group share",
+      "ordered_group_id_sha256": "05e22c09120a63f9936473fd1adf8bf7639545cbe2a22bdbb28b8ab2d74906ee",
+      "unique_reward_levels_per_group_histogram": {
+        "1": 438,
+        "2": 804,
+        "3": 815,
+        "4": 566,
+        "5": 371,
+        "6": 161,
+        "7": 69,
+        "8": 16
+      },
+      "unit": "product group",
+      "varying_groups": 2802,
+      "version": "grpo-run2-gate-g10-core-v1",
+      "zero_variance_groups": 438,
+      "zero_variance_share": 0.13518518518518519
+    },
+    "U": {
+      "boundary": {
+        "candidate_rankings_calculated": false,
+        "file_io_performed": false,
+        "input_kind": "already-materialized in-memory candidate reward groups",
+        "real_full_training_replay_opened_by_calculator": false,
+        "winner_selected": false
+      },
+      "candidate": "U",
+      "comparison": {
+        "canonical_decimal_places": 12,
+        "margin_groups": 436,
+        "margin_share": 0.1345679012345679,
+        "maximum_allowed_zero_variance_groups": 1296,
+        "operator": "less_than_or_equal",
+        "passes": true,
+        "threshold": 0.4,
+        "threshold_exact_fraction": "2/5"
+      },
+      "completions": 25920,
+      "gate_id": "G10_full_training_variation",
+      "groups": 3240,
+      "locked_original_baseline": {
+        "completions": 25920,
+        "groups": 3240,
+        "zero_variance_groups": 1571,
+        "zero_variance_share": 0.48487654320987655
+      },
+      "metric": "full authoritative-training zero-variance group share",
+      "ordered_group_id_sha256": "05e22c09120a63f9936473fd1adf8bf7639545cbe2a22bdbb28b8ab2d74906ee",
+      "unique_reward_levels_per_group_histogram": {
+        "1": 860,
+        "2": 1111,
+        "3": 811,
+        "4": 362,
+        "5": 79,
+        "6": 16,
+        "7": 1
+      },
+      "unit": "product group",
+      "varying_groups": 2380,
+      "version": "grpo-run2-gate-g10-core-v1",
+      "zero_variance_groups": 860,
+      "zero_variance_share": 0.2654320987654321
+    },
+    "UA": {
+      "boundary": {
+        "candidate_rankings_calculated": false,
+        "file_io_performed": false,
+        "input_kind": "already-materialized in-memory candidate reward groups",
+        "real_full_training_replay_opened_by_calculator": false,
+        "winner_selected": false
+      },
+      "candidate": "UA",
+      "comparison": {
+        "canonical_decimal_places": 12,
+        "margin_groups": 857,
+        "margin_share": 0.26450617283950617,
+        "maximum_allowed_zero_variance_groups": 1296,
+        "operator": "less_than_or_equal",
+        "passes": true,
+        "threshold": 0.4,
+        "threshold_exact_fraction": "2/5"
+      },
+      "completions": 25920,
+      "gate_id": "G10_full_training_variation",
+      "groups": 3240,
+      "locked_original_baseline": {
+        "completions": 25920,
+        "groups": 3240,
+        "zero_variance_groups": 1571,
+        "zero_variance_share": 0.48487654320987655
+      },
+      "metric": "full authoritative-training zero-variance group share",
+      "ordered_group_id_sha256": "05e22c09120a63f9936473fd1adf8bf7639545cbe2a22bdbb28b8ab2d74906ee",
+      "unique_reward_levels_per_group_histogram": {
+        "1": 439,
+        "2": 844,
+        "3": 871,
+        "4": 588,
+        "5": 338,
+        "6": 119,
+        "7": 36,
+        "8": 5
+      },
+      "unit": "product group",
+      "varying_groups": 2801,
+      "version": "grpo-run2-gate-g10-core-v1",
+      "zero_variance_groups": 439,
+      "zero_variance_share": 0.13549382716049382
+    }
+  },
+  "gate_contract": {
+    "gate_id": "G10_full_training_variation",
+    "locked_original_zero_variance_groups": 1571,
+    "locked_original_zero_variance_share": 0.48487654320987655,
+    "maximum_allowed_zero_variance_groups": 1296,
+    "metric": "full authoritative-training zero-variance group share",
+    "operator": "less_than_or_equal",
+    "threshold": 0.4,
+    "threshold_exact_fraction": "2/5"
+  },
+  "gate_summary": {
+    "CB": {
+      "margin_groups": 858,
+      "passes": true,
+      "zero_variance_groups": 438,
+      "zero_variance_share": 0.13518518518518519
+    },
+    "U": {
+      "margin_groups": 436,
+      "passes": true,
+      "zero_variance_groups": 860,
+      "zero_variance_share": 0.2654320987654321
+    },
+    "UA": {
+      "margin_groups": 857,
+      "passes": true,
+      "zero_variance_groups": 439,
+      "zero_variance_share": 0.13549382716049382
+    }
+  },
+  "interpretation_guardrails": {
+    "candidate_superiority_claim_allowed": false,
+    "gate_g10_alone_can_select_candidate": false,
+    "next_step": "analyze the active replay under locked D3 metrics and Gates G1-G9 before any candidate selection"
+  },
+  "lineage": {
+    "all_candidates_share_ordered_denominator": true,
+    "completions": 25920,
+    "groups": 3240,
+    "manifest_lineage_matches_stream": true,
+    "ordered_rollout_key_sha256": "a6acc3446db2102b95fdec7fc798f731969a473b053bc23fe0e5a7a1d9851d59",
+    "ordered_sku_sha256": "05e22c09120a63f9936473fd1adf8bf7639545cbe2a22bdbb28b8ab2d74906ee"
+  },
+  "role": "full_authoritative_training_candidate_zero_variance_gate_result",
+  "selection_boundary": {
+    "active_candidate_aggregates_calculated": false,
+    "candidate_rankings_calculated": false,
+    "gate_g10_calculated": true,
+    "gate_g10_threshold_applied": true,
+    "gates_g1_through_g9_applied": false,
+    "gpu_training_authorized": false,
+    "real_full_training_replay_used": true,
+    "winner_selected": false
+  },
+  "sources": {
+    "active_manifest": {
+      "bytes": 6435,
+      "path": "runs/grpo-run2-candidate-replay-manifest.json",
+      "sha256": "e10c3c47bb54fe0ad4bd07e68966401be71771d2bf134aa2b29dbb9c1683163e"
+    },
+    "active_records": {
+      "bytes": 1921202,
+      "path": "runs/grpo-run2-candidate-replay-records.jsonl.gz",
+      "sha256": "30e3ea8681ca80de5737cc5928b8a755e8b14cd36f6c0a67e00385a8408be38a"
+    },
+    "all_identities_verified_before_full_gzip_open": true,
+    "cb_extension_ledger_sha256": "aeb089a1081d7efd1a99ccb2124e7b7412ec71f2362509f3df20dc2aa5837416",
+    "class_weights": {
+      "bytes": 27446,
+      "path": "runs/grpo-run2-cb-class-weights.json",
+      "sha256": "7b53323a7f1c170fa68c6b1a0d1356c67fd827f70f466ba2972b857418f4ab37"
+    },
+    "comparison_contract": {
+      "bytes": 12079,
+      "path": "runs/grpo-run2-comparison-contract.json",
+      "sha256": "8692291af2319c33a9a6548c1a6530f8c61da0c04e27e69eaa048584245e1142"
+    },
+    "full_manifest": {
+      "bytes": 10709,
+      "path": "runs/grpo-run2-full-training-candidate-replay-manifest.json",
+      "sha256": "ad7f4b8b3749062b73b7b35f25c206cad8ef17ca55b248fbeff228e35a2bc9a0"
+    },
+    "full_records": {
+      "bytes": 4168170,
+      "path": "runs/grpo-run2-full-training-candidate-replay-records.jsonl.gz",
+      "sha256": "9b4a110910977b54e181c8f3d3452c555bdbb6c826e22bfec1c475045517fcf9"
+    },
+    "preflight_version": "grpo-run2-analysis-orchestrator-v1"
+  },
+  "status": "production_gate_g10_completed",
+  "version": "grpo-run2-gate-g10-production-result-v1"
+}

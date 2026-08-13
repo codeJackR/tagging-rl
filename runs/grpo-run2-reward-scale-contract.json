@@ -1,0 +1,635 @@
+{
+  "implementation": {
+    "bytes": 18284,
+    "path": "/Users/rp7/Documents/Study/tagging-rl/training/reward_scale_contract.py",
+    "sha256": "cd8761357573b719fc32f42c2b5e671a150724795b60d2ff52c275d734802682"
+  },
+  "inputs": {
+    "active_pool": {
+      "bytes": 3191282,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+      "sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53"
+    },
+    "active_pool_manifest": {
+      "bytes": 82235,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json",
+      "sha256": "42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a"
+    },
+    "locked_rollouts": {
+      "bytes": 509163,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/runs/sft-difficulty-k8/rollouts.jsonl.gz",
+      "sha256": "f17360b157287caaea8d0f8e907f0a4bf4fd107977452442e2e447628e95bf8b"
+    },
+    "original_reward_replay": {
+      "bytes": 41092,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/runs/grpo-run2-original-reward-training-replay.json",
+      "sha256": "48f0d8737f9fab231d594dcf178e335fcd5711f817c5158557a7aee839f789b8"
+    },
+    "payoff_contract": {
+      "bytes": 13526,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/W2_GRPO_RUN2_REWARD_PAYOFFS.md",
+      "sha256": "ad50b23923992d8f888657de9ffff5be93d87a39b31d9cbe39c6fc0a86456db7"
+    }
+  },
+  "numeric_contract": {
+    "all_output_total_range": [
+      -1.25,
+      1.0
+    ],
+    "class_balancing": {
+      "formula": "clip(sqrt(attribute_median_positive_support / class_support), 0.5, 2.0)",
+      "maximum_weight": 2.0,
+      "minimum_weight": 0.5,
+      "multi_label_field_weight": "mean weight of its gold labels",
+      "normalization": "divide weighted utility sum by observed field-weight sum"
+    },
+    "details": {
+      "abstention_crossover_set_f1": 0.5,
+      "formula": "P(q) = 2*q - 1",
+      "quality": "order-insensitive set-F1"
+    },
+    "field_payoffs": {
+      "abstain": 0.0,
+      "correct": 1.0,
+      "unknown_abstain": 1.0,
+      "unknown_commit": -1.0,
+      "wrong": -1.0
+    },
+    "known_unknown_combination": {
+      "absent_unknown_component": "renormalize to the known score",
+      "known_weight": 0.5810384793694947,
+      "known_weight_exact": "12533/21570",
+      "unknown_weight": 0.41896152063050535,
+      "unknown_weight_exact": "9037/21570"
+    },
+    "malformed_floor": -1.25,
+    "rule_adjustment": {
+      "formula": "-0.15 * min(violation_count, 3) / 3",
+      "maximum_cost": 0.15,
+      "per_violation_cost_until_cap": 0.049999999999999996,
+      "violation_cap": 3
+    },
+    "semantic_component_range": [
+      -1.0,
+      1.0
+    ],
+    "valid_total_range": [
+      -1.15,
+      1.0
+    ]
+  },
+  "proofs": {
+    "class_balanced_correct_for_abstain_up_and_wrong_for_abstain_down": true,
+    "correct_abstain_wrong_floor_order": true,
+    "details_endpoints_crossover_and_monotonicity": true,
+    "each_rule_violation_lowers_reward_until_cap": true,
+    "known_and_unknown_mix_weights_sum_to_one": true,
+    "uniform_correct_for_abstain_up_and_wrong_for_abstain_down": true,
+    "unknown_abstention_ranks_above_unsupported_commitment": true,
+    "worst_valid_record_remains_above_malformed_floor": true
+  },
+  "role": "numeric scale selection before candidate reward implementation or replay",
+  "selection_boundary": {
+    "allowed": "authoritative SFT-training labels and locked starting-policy rule-count structure",
+    "candidate_completion_rewards_calculated": false,
+    "hypothesis_tests_performed": false,
+    "prohibited": [
+      "legacy frozen 300",
+      "SFT validation",
+      "probe 100",
+      "future confirmation data",
+      "candidate reward replay outcomes"
+    ]
+  },
+  "status": "passed",
+  "training_structure": {
+    "active_products": 1438,
+    "class_support": {
+      "classes_below_five": 17,
+      "classes_below_ten": 30,
+      "distribution": {
+        "count": 116,
+        "maximum": 1151.0,
+        "mean": 108.37068965517241,
+        "median": 43.0,
+        "minimum": 1.0,
+        "p05": 1.75,
+        "p25": 9.0,
+        "p75": 107.75,
+        "p95": 503.5
+      },
+      "observed_attribute_class_pairs": 116,
+      "per_attribute": {
+        "closure": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 26,
+          "observed_classes": 7,
+          "support": {
+            "__not_applicable__": 327,
+            "drawstring": 18,
+            "fly": 4,
+            "lace_up": 26,
+            "pullover": 215,
+            "wrap": 1,
+            "zip": 94
+          },
+          "support_distribution": {
+            "count": 7,
+            "maximum": 327.0,
+            "mean": 97.85714285714286,
+            "median": 26.0,
+            "minimum": 1.0,
+            "p05": 1.9000000000000001,
+            "p25": 11.0,
+            "p75": 154.5,
+            "p95": 293.3999999999999
+          }
+        },
+        "collar_type": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 31.5,
+          "observed_classes": 8,
+          "support": {
+            "__not_applicable__": 529,
+            "band": 11,
+            "hooded": 45,
+            "none": 251,
+            "notched_lapel": 1,
+            "polo": 18,
+            "shawl_lapel": 4,
+            "shirt": 232
+          },
+          "support_distribution": {
+            "count": 8,
+            "maximum": 529.0,
+            "mean": 136.375,
+            "median": 31.5,
+            "minimum": 1.0,
+            "p05": 2.05,
+            "p25": 9.25,
+            "p75": 236.75,
+            "p95": 431.6999999999999
+          }
+        },
+        "colour_primary": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.6267831705280087,
+          "median_positive_support": 66,
+          "observed_classes": 13,
+          "support": {
+            "beige": 76,
+            "black": 168,
+            "blue": 158,
+            "brown": 113,
+            "green": 66,
+            "grey": 64,
+            "multicolour": 85,
+            "navy": 63,
+            "pink": 17,
+            "purple": 7,
+            "red": 58,
+            "white": 105,
+            "yellow": 12
+          },
+          "support_distribution": {
+            "count": 13,
+            "maximum": 168.0,
+            "mean": 76.3076923076923,
+            "median": 66.0,
+            "minimum": 7.0,
+            "p05": 10.0,
+            "p25": 58.0,
+            "p75": 105.0,
+            "p95": 162.0
+          }
+        },
+        "details": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 22,
+          "observed_classes": 9,
+          "support": {
+            "cutout": 2,
+            "embroidered": 22,
+            "lined": 201,
+            "none": 529,
+            "pleated": 34,
+            "quilted": 8,
+            "slit": 2,
+            "studded": 16,
+            "washed": 179
+          },
+          "support_distribution": {
+            "count": 9,
+            "maximum": 529.0,
+            "mean": 110.33333333333333,
+            "median": 22.0,
+            "minimum": 2.0,
+            "p05": 2.0,
+            "p25": 8.0,
+            "p75": 179.0,
+            "p95": 397.7999999999999
+          }
+        },
+        "fit": {
+          "derived_weight_maximum": 1.5118578920369088,
+          "derived_weight_minimum": 0.5321520841901914,
+          "median_positive_support": 96,
+          "observed_classes": 5,
+          "support": {
+            "__not_applicable__": 339,
+            "loose": 199,
+            "oversized": 42,
+            "regular": 96,
+            "tight": 89
+          },
+          "support_distribution": {
+            "count": 5,
+            "maximum": 339.0,
+            "mean": 153.0,
+            "median": 96.0,
+            "minimum": 42.0,
+            "p05": 51.400000000000006,
+            "p25": 89.0,
+            "p75": 199.0,
+            "p95": 310.99999999999994
+          }
+        },
+        "garment_category": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 60.5,
+          "observed_classes": 14,
+          "support": {
+            "bag": 78,
+            "cardigan": 40,
+            "coat": 3,
+            "dress": 86,
+            "jacket": 106,
+            "other": 1,
+            "pants": 43,
+            "shirt_blouse": 309,
+            "shoe": 260,
+            "shorts": 37,
+            "skirt": 12,
+            "sweater": 206,
+            "top": 246,
+            "vest": 11
+          },
+          "support_distribution": {
+            "count": 14,
+            "maximum": 309.0,
+            "mean": 102.71428571428571,
+            "median": 60.5,
+            "minimum": 1.0,
+            "p05": 2.3000000000000003,
+            "p25": 18.25,
+            "p75": 181.0,
+            "p95": 277.15
+          }
+        },
+        "garment_length": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 24,
+          "observed_classes": 7,
+          "support": {
+            "__not_applicable__": 339,
+            "above_knee": 6,
+            "cropped": 43,
+            "hip": 12,
+            "maxi": 16,
+            "midi": 24,
+            "mini": 29
+          },
+          "support_distribution": {
+            "count": 7,
+            "maximum": 339.0,
+            "mean": 67.0,
+            "median": 24.0,
+            "minimum": 6.0,
+            "p05": 7.8,
+            "p25": 14.0,
+            "p75": 36.0,
+            "p95": 250.1999999999998
+          }
+        },
+        "material": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 59.0,
+          "observed_classes": 10,
+          "support": {
+            "cashmere": 95,
+            "cotton": 540,
+            "denim": 35,
+            "knit": 51,
+            "leather": 156,
+            "linen": 66,
+            "silk": 3,
+            "suede": 48,
+            "synthetic": 70,
+            "wool": 52
+          },
+          "support_distribution": {
+            "count": 10,
+            "maximum": 540.0,
+            "mean": 111.6,
+            "median": 59.0,
+            "minimum": 3.0,
+            "p05": 17.4,
+            "p25": 48.75,
+            "p75": 88.75,
+            "p95": 367.1999999999996
+          }
+        },
+        "neckline": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 8.5,
+          "observed_classes": 10,
+          "support": {
+            "__not_applicable__": 501,
+            "boat": 8,
+            "cowl": 1,
+            "crew": 200,
+            "mock": 5,
+            "one_shoulder": 2,
+            "scoop": 9,
+            "square": 8,
+            "turtle": 18,
+            "v_neck": 59
+          },
+          "support_distribution": {
+            "count": 10,
+            "maximum": 501.0,
+            "mean": 81.1,
+            "median": 8.5,
+            "minimum": 1.0,
+            "p05": 1.4500000000000002,
+            "p25": 5.75,
+            "p75": 48.75,
+            "p95": 365.54999999999967
+          }
+        },
+        "occasion": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 33.0,
+          "observed_classes": 6,
+          "support": {
+            "athletic": 35,
+            "beach": 47,
+            "casual": 646,
+            "formal": 2,
+            "lounge": 20,
+            "work": 31
+          },
+          "support_distribution": {
+            "count": 6,
+            "maximum": 646.0,
+            "mean": 130.16666666666666,
+            "median": 33.0,
+            "minimum": 2.0,
+            "p05": 6.5,
+            "p25": 22.75,
+            "p75": 44.0,
+            "p95": 496.25
+          }
+        },
+        "pattern": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 16,
+          "observed_classes": 9,
+          "support": {
+            "animal": 3,
+            "camouflage": 1,
+            "check": 56,
+            "floral": 16,
+            "geometric": 7,
+            "graphic": 66,
+            "herringbone": 9,
+            "solid": 86,
+            "stripe": 80
+          },
+          "support_distribution": {
+            "count": 9,
+            "maximum": 86.0,
+            "mean": 36.0,
+            "median": 16.0,
+            "minimum": 1.0,
+            "p05": 1.8000000000000003,
+            "p25": 7.0,
+            "p75": 66.0,
+            "p95": 83.6
+          }
+        },
+        "silhouette": {
+          "derived_weight_maximum": 1.5,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 9.0,
+          "observed_classes": 6,
+          "support": {
+            "__not_applicable__": 339,
+            "a_line": 4,
+            "bodycon": 10,
+            "flare": 5,
+            "straight": 54,
+            "wide_leg": 8
+          },
+          "support_distribution": {
+            "count": 6,
+            "maximum": 339.0,
+            "mean": 70.0,
+            "median": 9.0,
+            "minimum": 4.0,
+            "p05": 4.25,
+            "p25": 5.75,
+            "p75": 43.0,
+            "p95": 267.75
+          }
+        },
+        "sleeve_length": {
+          "derived_weight_maximum": 1.7017943166269818,
+          "derived_weight_minimum": 0.6993104373018454,
+          "median_positive_support": 223.0,
+          "observed_classes": 4,
+          "support": {
+            "__not_applicable__": 456,
+            "long": 184,
+            "short": 262,
+            "sleeveless": 77
+          },
+          "support_distribution": {
+            "count": 4,
+            "maximum": 456.0,
+            "mean": 244.75,
+            "median": 223.0,
+            "minimum": 77.0,
+            "p05": 93.05000000000001,
+            "p25": 157.25,
+            "p75": 310.5,
+            "p95": 426.9
+          }
+        },
+        "sleeve_style": {
+          "derived_weight_maximum": 2.0,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 11,
+          "observed_classes": 5,
+          "support": {
+            "__not_applicable__": 511,
+            "cap": 2,
+            "dropped_shoulder": 17,
+            "puff": 1,
+            "raglan": 11
+          },
+          "support_distribution": {
+            "count": 5,
+            "maximum": 511.0,
+            "mean": 108.4,
+            "median": 11.0,
+            "minimum": 1.0,
+            "p05": 1.2000000000000002,
+            "p25": 2.0,
+            "p75": 17.0,
+            "p95": 412.1999999999999
+          }
+        },
+        "waistline": {
+          "derived_weight_maximum": 1.1547005383792515,
+          "derived_weight_minimum": 0.5,
+          "median_positive_support": 8,
+          "observed_classes": 3,
+          "support": {
+            "__not_applicable__": 1151,
+            "high": 8,
+            "normal": 6
+          },
+          "support_distribution": {
+            "count": 3,
+            "maximum": 1151.0,
+            "mean": 388.3333333333333,
+            "median": 8.0,
+            "minimum": 6.0,
+            "p05": 6.2,
+            "p25": 7.0,
+            "p75": 579.5,
+            "p95": 1036.6999999999998
+          }
+        }
+      }
+    },
+    "details_labeled_set_sizes": {
+      "distribution": {
+        "count": 955,
+        "maximum": 2.0,
+        "mean": 1.0397905759162305,
+        "median": 1.0,
+        "minimum": 1.0,
+        "p05": 1.0,
+        "p25": 1.0,
+        "p75": 1.0,
+        "p95": 1.0
+      },
+      "histogram": {
+        "1": 917,
+        "2": 38
+      }
+    },
+    "fields_per_product": 15,
+    "known_cells": 12533,
+    "known_fields_per_product": {
+      "count": 1438,
+      "maximum": 15.0,
+      "mean": 8.71557719054242,
+      "median": 9.0,
+      "minimum": 2.0,
+      "p05": 4.0,
+      "p25": 7.0,
+      "p75": 11.0,
+      "p95": 13.0
+    },
+    "known_share": 0.5810384793694947,
+    "known_share_exact": "12533/21570",
+    "starting_policy_rule_violations": {
+      "distribution": {
+        "count": 11504,
+        "maximum": 3.0,
+        "mean": 0.008257997218358832,
+        "median": 0.0,
+        "minimum": 0.0,
+        "p05": 0.0,
+        "p25": 0.0,
+        "p75": 0.0,
+        "p95": 0.0
+      },
+      "histogram": {
+        "0": 11418,
+        "1": 81,
+        "2": 1,
+        "3": 4
+      },
+      "rollouts": 11504,
+      "rule_inventory": {
+        "derived": [
+          "auto:applies_to:silhouette",
+          "auto:applies_to:fit",
+          "auto:applies_to:garment_length",
+          "auto:applies_to:sleeve_length",
+          "auto:applies_to:sleeve_style",
+          "auto:applies_to:neckline",
+          "auto:applies_to:collar_type",
+          "auto:applies_to:waistline",
+          "auto:applies_to:closure"
+        ],
+        "total": 34,
+        "written": [
+          "dress_needs_length_and_neckline",
+          "outerwear_needs_closure",
+          "peplum_needs_waistline",
+          "sleeveless_has_no_sleeve_style",
+          "cap_sleeve_is_short",
+          "pants_length_subset",
+          "shorts_length_subset",
+          "bodycon_is_tight",
+          "leg_silhouettes_are_for_bottoms",
+          "empire_waist_garments",
+          "turtleneck_has_no_collar",
+          "off_shoulder_has_no_structured_collar",
+          "lapels_are_tailored_only",
+          "fly_is_for_bottoms",
+          "breasted_closures_are_tailored",
+          "solid_is_not_multicolour",
+          "fair_isle_is_knitwear",
+          "denim_excludes_delicate_patterns",
+          "quilting_is_outerwear",
+          "slits_need_a_hem",
+          "distressing_is_for_hard_materials",
+          "athletic_material_subset",
+          "beach_excludes_cold_materials",
+          "formal_excludes_denim",
+          "other_category_claims_nothing"
+        ]
+      }
+    },
+    "unknown_cells": 9037,
+    "unknown_fields_per_product": {
+      "count": 1438,
+      "maximum": 13.0,
+      "mean": 6.28442280945758,
+      "median": 6.0,
+      "minimum": 0.0,
+      "p05": 2.0,
+      "p25": 4.0,
+      "p75": 8.0,
+      "p95": 11.0
+    },
+    "unknown_share": 0.41896152063050535,
+    "unknown_share_exact": "9037/21570"
+  },
+  "version": "grpo-run2-reward-scale-contract-v1"
+}

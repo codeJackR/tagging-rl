@@ -1,0 +1,498 @@
+{
+  "candidate_order": [
+    "U",
+    "UA",
+    "CB"
+  ],
+  "candidate_results": {
+    "CB": {
+      "all_applicable_gates_passed": true,
+      "applicable_gate_count": 9,
+      "failed_gate_ids": [],
+      "gate_results": {
+        "G1_integrity_and_tests": {
+          "applicable": true,
+          "checks": {
+            "cpu_tests_passed": true,
+            "independent_rebuild_passed": true,
+            "input_identities_verified": true
+          },
+          "gate_id": "G1_integrity_and_tests",
+          "metric": "all lineage checks, deterministic rebuilds and CPU tests",
+          "observed": {
+            "cpu_tests_passed": true,
+            "independent_rebuild_passed": true,
+            "input_identities_verified": true
+          },
+          "operator": "all_true",
+          "passed": true,
+          "threshold": true
+        },
+        "G2_active_variation": {
+          "applicable": true,
+          "gate_id": "G2_active_variation",
+          "metric": "active zero-variance group share",
+          "observed": 0.0,
+          "operator": "equals",
+          "passed": true,
+          "threshold": 0.0
+        },
+        "G3_distinct_levels": {
+          "applicable": true,
+          "gate_id": "G3_distinct_levels",
+          "metric": "active groups with at least 3 distinct reward levels share",
+          "observed": 0.7739916550764951,
+          "operator": "greater_than_or_equal",
+          "passed": true,
+          "threshold": 0.5
+        },
+        "G4_large_ties": {
+          "applicable": true,
+          "gate_id": "G4_large_ties",
+          "metric": "active groups whose largest reward tie contains at least 6 of 8 completions",
+          "observed": 0.2579972183588317,
+          "operator": "less_than_or_equal",
+          "passed": true,
+          "threshold": 0.5
+        },
+        "G5_pairwise_resolution": {
+          "applicable": true,
+          "checks": {
+            "ci_lower_strictly_above_threshold": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_lower_threshold": 0.0,
+          "gate_id": "G5_pairwise_resolution",
+          "metric": "mean group pairwise discrimination candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              0.23683625571229883,
+              0.257425988476058
+            ],
+            "groups": 1438,
+            "point": 0.24719352274985096
+          },
+          "operator": "point_at_least_and_ci_lower_above",
+          "passed": true,
+          "point_threshold": 0.1
+        },
+        "G6_known_utility_alignment": {
+          "applicable": true,
+          "checks": {
+            "ci_lower_noninferiority_met": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_lower_threshold": -0.02,
+          "gate_id": "G6_known_utility_alignment",
+          "metric": "mean group canonical-known-utility net alignment candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              0.019096989912248896,
+              0.056355061791198126
+            ],
+            "groups": 1419,
+            "point": 0.03764150045160397
+          },
+          "operator": "point_nonnegative_and_ci_lower_noninferior",
+          "passed": true,
+          "point_threshold": 0.0
+        },
+        "G7_harmful_coverage": {
+          "applicable": true,
+          "checks": {
+            "ci_upper_safety_met": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_upper_threshold": 0.05,
+          "gate_id": "G7_harmful_coverage",
+          "metric": "mean group harmful-coverage preference candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              -0.4138556308567604,
+              -0.3593448795180723
+            ],
+            "groups": 332,
+            "point": -0.38782630522088357
+          },
+          "operator": "point_and_ci_upper_at_most",
+          "passed": true,
+          "point_threshold": 0.02
+        },
+        "G8_field_dominance": {
+          "applicable": true,
+          "gate_id": "G8_field_dominance",
+          "metric": "largest field share of absolute semantic contribution",
+          "observed": {
+            "largest_field": "pattern",
+            "share": 0.08916910153426187
+          },
+          "operator": "less_than_or_equal",
+          "passed": true,
+          "threshold": 0.2
+        },
+        "G9_cb_class_dominance": {
+          "applicable": true,
+          "gate_id": "G9_cb_class_dominance",
+          "metric": "largest gold-class share of absolute known semantic contribution",
+          "observed": {
+            "largest_class": "waistline::__not_applicable__",
+            "share": 0.08391724504655249
+          },
+          "operator": "less_than_or_equal",
+          "passed": true,
+          "threshold": 0.15
+        }
+      }
+    },
+    "U": {
+      "all_applicable_gates_passed": false,
+      "applicable_gate_count": 8,
+      "failed_gate_ids": [
+        "G3_distinct_levels"
+      ],
+      "gate_results": {
+        "G1_integrity_and_tests": {
+          "applicable": true,
+          "checks": {
+            "cpu_tests_passed": true,
+            "independent_rebuild_passed": true,
+            "input_identities_verified": true
+          },
+          "gate_id": "G1_integrity_and_tests",
+          "metric": "all lineage checks, deterministic rebuilds and CPU tests",
+          "observed": {
+            "cpu_tests_passed": true,
+            "independent_rebuild_passed": true,
+            "input_identities_verified": true
+          },
+          "operator": "all_true",
+          "passed": true,
+          "threshold": true
+        },
+        "G2_active_variation": {
+          "applicable": true,
+          "gate_id": "G2_active_variation",
+          "metric": "active zero-variance group share",
+          "observed": 0.0,
+          "operator": "equals",
+          "passed": true,
+          "threshold": 0.0
+        },
+        "G3_distinct_levels": {
+          "applicable": true,
+          "gate_id": "G3_distinct_levels",
+          "metric": "active groups with at least 3 distinct reward levels share",
+          "observed": 0.4937413073713491,
+          "operator": "greater_than_or_equal",
+          "passed": false,
+          "threshold": 0.5
+        },
+        "G4_large_ties": {
+          "applicable": true,
+          "gate_id": "G4_large_ties",
+          "metric": "active groups whose largest reward tie contains at least 6 of 8 completions",
+          "observed": 0.4339360222531293,
+          "operator": "less_than_or_equal",
+          "passed": true,
+          "threshold": 0.5
+        },
+        "G5_pairwise_resolution": {
+          "applicable": true,
+          "checks": {
+            "ci_lower_strictly_above_threshold": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_lower_threshold": 0.0,
+          "gate_id": "G5_pairwise_resolution",
+          "metric": "mean group pairwise discrimination candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              0.11514007550168881,
+              0.13232726505066564
+            ],
+            "groups": 1438,
+            "point": 0.12380786807073318
+          },
+          "operator": "point_at_least_and_ci_lower_above",
+          "passed": true,
+          "point_threshold": 0.1
+        },
+        "G6_known_utility_alignment": {
+          "applicable": true,
+          "checks": {
+            "ci_lower_noninferiority_met": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_lower_threshold": -0.02,
+          "gate_id": "G6_known_utility_alignment",
+          "metric": "mean group canonical-known-utility net alignment candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              0.1697226659774417,
+              0.19484140782045453
+            ],
+            "groups": 1419,
+            "point": 0.18237944084546187
+          },
+          "operator": "point_nonnegative_and_ci_lower_noninferior",
+          "passed": true,
+          "point_threshold": 0.0
+        },
+        "G7_harmful_coverage": {
+          "applicable": true,
+          "checks": {
+            "ci_upper_safety_met": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_upper_threshold": 0.05,
+          "gate_id": "G7_harmful_coverage",
+          "metric": "mean group harmful-coverage preference candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              -0.49304718875502007,
+              -0.47587851405622494
+            ],
+            "groups": 332,
+            "point": -0.485140562248996
+          },
+          "operator": "point_and_ci_upper_at_most",
+          "passed": true,
+          "point_threshold": 0.02
+        },
+        "G8_field_dominance": {
+          "applicable": true,
+          "gate_id": "G8_field_dominance",
+          "metric": "largest field share of absolute semantic contribution",
+          "observed": {
+            "largest_field": "garment_category",
+            "share": 0.13968019829424994
+          },
+          "operator": "less_than_or_equal",
+          "passed": true,
+          "threshold": 0.2
+        },
+        "G9_cb_class_dominance": {
+          "applicable": false,
+          "gate_id": "G9_cb_class_dominance",
+          "metric": "largest gold-class share of absolute known semantic contribution",
+          "observed": null,
+          "operator": "less_than_or_equal",
+          "passed": null,
+          "threshold": 0.15
+        }
+      }
+    },
+    "UA": {
+      "all_applicable_gates_passed": true,
+      "applicable_gate_count": 8,
+      "failed_gate_ids": [],
+      "gate_results": {
+        "G1_integrity_and_tests": {
+          "applicable": true,
+          "checks": {
+            "cpu_tests_passed": true,
+            "independent_rebuild_passed": true,
+            "input_identities_verified": true
+          },
+          "gate_id": "G1_integrity_and_tests",
+          "metric": "all lineage checks, deterministic rebuilds and CPU tests",
+          "observed": {
+            "cpu_tests_passed": true,
+            "independent_rebuild_passed": true,
+            "input_identities_verified": true
+          },
+          "operator": "all_true",
+          "passed": true,
+          "threshold": true
+        },
+        "G2_active_variation": {
+          "applicable": true,
+          "gate_id": "G2_active_variation",
+          "metric": "active zero-variance group share",
+          "observed": 0.0,
+          "operator": "equals",
+          "passed": true,
+          "threshold": 0.0
+        },
+        "G3_distinct_levels": {
+          "applicable": true,
+          "gate_id": "G3_distinct_levels",
+          "metric": "active groups with at least 3 distinct reward levels share",
+          "observed": 0.7621696801112656,
+          "operator": "greater_than_or_equal",
+          "passed": true,
+          "threshold": 0.5
+        },
+        "G4_large_ties": {
+          "applicable": true,
+          "gate_id": "G4_large_ties",
+          "metric": "active groups whose largest reward tie contains at least 6 of 8 completions",
+          "observed": 0.2614742698191933,
+          "operator": "less_than_or_equal",
+          "passed": true,
+          "threshold": 0.5
+        },
+        "G5_pairwise_resolution": {
+          "applicable": true,
+          "checks": {
+            "ci_lower_strictly_above_threshold": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_lower_threshold": 0.0,
+          "gate_id": "G5_pairwise_resolution",
+          "metric": "mean group pairwise discrimination candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              0.22864034869858926,
+              0.24853529207232275
+            ],
+            "groups": 1438,
+            "point": 0.23862507450824566
+          },
+          "operator": "point_at_least_and_ci_lower_above",
+          "passed": true,
+          "point_threshold": 0.1
+        },
+        "G6_known_utility_alignment": {
+          "applicable": true,
+          "checks": {
+            "ci_lower_noninferiority_met": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_lower_threshold": -0.02,
+          "gate_id": "G6_known_utility_alignment",
+          "metric": "mean group canonical-known-utility net alignment candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              0.028762891611064694,
+              0.06605214421233141
+            ],
+            "groups": 1419,
+            "point": 0.04735205984772928
+          },
+          "operator": "point_nonnegative_and_ci_lower_noninferior",
+          "passed": true,
+          "point_threshold": 0.0
+        },
+        "G7_harmful_coverage": {
+          "applicable": true,
+          "checks": {
+            "ci_upper_safety_met": true,
+            "minimum_groups_met": true,
+            "point_threshold_met": true
+          },
+          "ci_upper_threshold": 0.05,
+          "gate_id": "G7_harmful_coverage",
+          "metric": "mean group harmful-coverage preference candidate-minus-original",
+          "minimum_groups": 200,
+          "observed": {
+            "ci": [
+              -0.4333333333333333,
+              -0.3855672690763053
+            ],
+            "groups": 332,
+            "point": -0.41034973226238286
+          },
+          "operator": "point_and_ci_upper_at_most",
+          "passed": true,
+          "point_threshold": 0.02
+        },
+        "G8_field_dominance": {
+          "applicable": true,
+          "gate_id": "G8_field_dominance",
+          "metric": "largest field share of absolute semantic contribution",
+          "observed": {
+            "largest_field": "pattern",
+            "share": 0.0902009544646012
+          },
+          "operator": "less_than_or_equal",
+          "passed": true,
+          "threshold": 0.2
+        },
+        "G9_cb_class_dominance": {
+          "applicable": false,
+          "gate_id": "G9_cb_class_dominance",
+          "metric": "largest gold-class share of absolute known semantic contribution",
+          "observed": null,
+          "operator": "less_than_or_equal",
+          "passed": null,
+          "threshold": 0.15
+        }
+      }
+    }
+  },
+  "cpu_test_evidence": {
+    "command": ".venv/bin/python -m pytest -q",
+    "exit_code": 0,
+    "passed": true,
+    "passed_tests": 756,
+    "result": "756 passed in 36.43s"
+  },
+  "inputs": {
+    "all_verified": true,
+    "sources": {
+      "comparison_contract": {
+        "bytes": 12079,
+        "path": "runs/grpo-run2-comparison-contract.json",
+        "sha256": "8692291af2319c33a9a6548c1a6530f8c61da0c04e27e69eaa048584245e1142"
+      },
+      "d3_analysis": {
+        "bytes": 16079523,
+        "path": "runs/grpo-run2-d3-candidate-analysis.json",
+        "sha256": "5812b23c1aae07cbfda923a7715db76f665bb072f39ec37a20592a41d9cbc7fb"
+      },
+      "independent_verification": {
+        "bytes": 2870,
+        "path": "runs/grpo-run2-d3-independent-verification.json",
+        "sha256": "4e1401ac925233863523fef133f0e9d8ccfdd7913bba4ddfa3b6ccb9c710ced5"
+      }
+    }
+  },
+  "lineage": {
+    "completions": 11504,
+    "groups": 1438
+  },
+  "role": "training_only_offline_reward_gate_decision",
+  "selection_boundary": {
+    "candidate_rankings_calculated": false,
+    "complexity_aware_selection_applied": false,
+    "gate_g10_merged": false,
+    "gates_g1_through_g9_applied": true,
+    "gpu_training_authorized": false,
+    "winner_selected": false
+  },
+  "status": "gates_g1_g9_applied_pending_g10_merge_and_selection",
+  "summary": {
+    "CB": {
+      "all_applicable_gates_passed": true,
+      "failed_gate_ids": []
+    },
+    "U": {
+      "all_applicable_gates_passed": false,
+      "failed_gate_ids": [
+        "G3_distinct_levels"
+      ]
+    },
+    "UA": {
+      "all_applicable_gates_passed": true,
+      "failed_gate_ids": []
+    }
+  },
+  "version": "grpo-run2-gates-g1-g9-decision-v1"
+}

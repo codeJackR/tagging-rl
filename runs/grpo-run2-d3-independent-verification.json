@@ -1,0 +1,81 @@
+{
+  "findings": {
+    "CB": {
+      "groups_with_at_least_three_levels": 1113,
+      "groups_with_largest_tie_at_least_six": 371,
+      "mean_pairwise_discrimination": 0.6501092787601828,
+      "zero_variance_groups": 0
+    },
+    "U": {
+      "groups_with_at_least_three_levels": 710,
+      "groups_with_largest_tie_at_least_six": 624,
+      "mean_pairwise_discrimination": 0.526723624081065,
+      "zero_variance_groups": 0
+    },
+    "UA": {
+      "groups_with_at_least_three_levels": 1096,
+      "groups_with_largest_tie_at_least_six": 376,
+      "mean_pairwise_discrimination": 0.6415408305185775,
+      "zero_variance_groups": 0
+    },
+    "original": {
+      "groups_with_at_least_three_levels": 76,
+      "groups_with_largest_tie_at_least_six": 954,
+      "mean_pairwise_discrimination": 0.4029157560103318,
+      "zero_variance_groups": 0
+    }
+  },
+  "inputs": {
+    "class_weights": {
+      "bytes": 27446,
+      "path": "runs/grpo-run2-cb-class-weights.json",
+      "sha256": "7b53323a7f1c170fa68c6b1a0d1356c67fd827f70f466ba2972b857418f4ab37"
+    },
+    "comparison_contract": {
+      "bytes": 12079,
+      "path": "runs/grpo-run2-comparison-contract.json",
+      "sha256": "8692291af2319c33a9a6548c1a6530f8c61da0c04e27e69eaa048584245e1142"
+    },
+    "manifest": {
+      "bytes": 6435,
+      "path": "runs/grpo-run2-candidate-replay-manifest.json",
+      "sha256": "e10c3c47bb54fe0ad4bd07e68966401be71771d2bf134aa2b29dbb9c1683163e"
+    },
+    "records": {
+      "bytes": 1921202,
+      "path": "runs/grpo-run2-candidate-replay-records.jsonl.gz",
+      "sha256": "30e3ea8681ca80de5737cc5928b8a755e8b14cd36f6c0a67e00385a8408be38a"
+    },
+    "result": {
+      "bytes": 16079523,
+      "path": "runs/grpo-run2-d3-candidate-analysis.json",
+      "sha256": "5812b23c1aae07cbfda923a7715db76f665bb072f39ec37a20592a41d9cbc7fb"
+    }
+  },
+  "lineage": {
+    "completions": 11504,
+    "groups": 1438,
+    "ordered_rollout_key_sha256": "c1fe09c88fa4a09e2397d6a98b4cd400dfdb57a9ef71cf61190ae0b96aef5500",
+    "ordered_sku_sha256": "97a96e775f2644c35cd33a412113b9bb135fba5019c5803e58f05ebd954eb4c7"
+  },
+  "method": "Python standard library only; no production analysis imports",
+  "selection_boundary": {
+    "candidate_rankings_calculated": false,
+    "gates_g1_through_g9_applied": false,
+    "gpu_training_authorized": false,
+    "winner_selected": false
+  },
+  "status": "independent_d3_verification_passed",
+  "verified": {
+    "all_directional_alignments": true,
+    "all_paired_bootstraps": true,
+    "all_segment_memberships_and_summaries": true,
+    "field_and_class_contribution_dominance": true,
+    "group_and_completion_denominators": true,
+    "harmful_coverage_preferences": true,
+    "no_selection_boundary": true,
+    "reward_shapes_and_distributions": true,
+    "source_identities": true
+  },
+  "version": "grpo-run2-d3-independent-verification-v1"
+}

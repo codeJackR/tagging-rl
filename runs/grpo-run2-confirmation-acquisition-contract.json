@@ -1,0 +1,139 @@
+{
+  "acquisition": {
+    "apparel_filter": "locked pack garment-category aliases",
+    "hard_stop_http_statuses": [
+      403,
+      429
+    ],
+    "minimum_delay_seconds": 1.0,
+    "minimum_family_clean_candidate_rows": 800,
+    "network_requests_performed_by_contract": false,
+    "source": "public Shopify products.json endpoints after terms and endpoint probe",
+    "working_domains_must_be_reprobed": true
+  },
+  "decision_use": {
+    "allowed": "one final confirmatory comparison after recipe and checkpoint selection",
+    "prohibited": [
+      "reward selection",
+      "beta selection",
+      "training-arm selection",
+      "checkpoint selection",
+      "decoding or stopping-rule selection"
+    ]
+  },
+  "exclusions": {
+    "apply_before_selection_and_labeling": true,
+    "exact_sku_overlap_allowed": 0,
+    "family_key": "training.split_sft.group_key",
+    "normalized_family_overlap_allowed": 0,
+    "universe": "all 4,000 previously labeled products"
+  },
+  "execution_boundary": {
+    "confirmation_dataset_created": false,
+    "frontier_labeling_performed": false,
+    "gpu_training_authorized": false,
+    "human_review_performed": false,
+    "model_inference_performed": false,
+    "network_requests_performed": false
+  },
+  "failure_rules": {
+    "failed_attempts_retained": true,
+    "requirements_may_be_weakened_after_collection": false,
+    "stop_if_candidate_buffer_below_minimum": true,
+    "stop_if_review_incomplete": true,
+    "stop_on_overlap_or_lineage_failure": true
+  },
+  "freeze": {
+    "aggregate_metrics_allowed_before_final_recipe_lock": false,
+    "collision_protected": true,
+    "expected_dataset": "data/confirmation_run2_v1/eval.jsonl",
+    "expected_manifest": "data/confirmation_run2_v1/manifest.json",
+    "model_outputs_allowed_before_final_recipe_lock": false,
+    "update_data_role_manifest": true
+  },
+  "frontier_labeling": {
+    "consensus": "labeling.consensus.consensus_labels",
+    "diversity": "five existing user-turn prompt perturbations",
+    "malformed_or_failed_request": "retry same SKU; never replace membership",
+    "model": "gpt-5.6-luna",
+    "prompt_version": "prelabel-v1",
+    "provider": "openai",
+    "structured_outputs": true,
+    "usable_samples_per_product": 5
+  },
+  "human_review": {
+    "all_cells_reviewed": true,
+    "attributes_per_product": 15,
+    "cells_required": 6000,
+    "independent_second_review": {
+      "rows": 40,
+      "selector": "SHA-256 of '20260813-review\\0<sku_id>', ascending",
+      "share": 0.1
+    },
+    "products": 400,
+    "review_blinded_to_sft_and_grpo_outputs": true,
+    "unresolved_cells_allowed": 0
+  },
+  "inputs": {
+    "candidate_domains": {
+      "bytes": 957,
+      "path": "tools/shopify_candidates.txt",
+      "sha256": "0c97224f9693f8346e9b1900aa4fbe2639f47dce1ae3b9c087d74b450a5eed0b"
+    },
+    "data_role_manifest": {
+      "bytes": 44495,
+      "path": "runs/grpo-run2-data-role-manifest.json",
+      "sha256": "d67c617dddded099b2e6850012592cf1b0a4e6dcd9c5b17f681b35cfaef5ac26"
+    },
+    "local_source_audit": {
+      "bytes": 7529,
+      "path": "runs/grpo-run2-confirmation-source-audit.json",
+      "sha256": "f39a6a5b168569dcac9e4799ef1b1981e2180c571e8b788412a914018e63372c"
+    },
+    "pack_rules": {
+      "bytes": 6929,
+      "path": "packs/vastraa_taste_v1/rules.yaml",
+      "sha256": "2d5e186fb5157bd1f371aa2009a02052457d49b94e7c3ef0343ec43632157c56"
+    },
+    "pack_vocab": {
+      "bytes": 48449,
+      "path": "packs/vastraa_taste_v1/vocab.yaml",
+      "sha256": "f98eba2177343867ce7f010b0ef4ec8d745b1154219a7137d29ad1807925c17d"
+    },
+    "working_domains_point_in_time": {
+      "bytes": 455,
+      "path": "tools/shopify_stores.txt",
+      "sha256": "8818eff765aa0ad8d34118f4842d87ce3a572d871bb3d2d2fe00f801c30d695f"
+    }
+  },
+  "next_step": "implement and synthetically test exclusion plus metadata-only deterministic selection before any network fetch",
+  "role": "predeclared_final_confirmation_acquisition_and_labeling_protocol",
+  "selection": {
+    "maximum_rows_per_family": 4,
+    "maximum_rows_per_store": 60,
+    "maximum_store_share": 0.15,
+    "membership_locked_before_labeling": true,
+    "minimum_stores": 8,
+    "seed": 20260813,
+    "strata": "store plus provisional garment category from product type/title metadata",
+    "target_rows": 400,
+    "tie_break": "SHA-256 of '20260813\\0<sku_id>', ascending",
+    "uses_frontier_labels": false,
+    "uses_sft_or_grpo_outputs": false
+  },
+  "size_rationale": {
+    "approximate_interval_narrowing_vs_prior": 0.1339745962155614,
+    "approximate_uncertainty_scale_vs_prior": 0.8660254037844386,
+    "claim": "design approximation only; not a promised interval width",
+    "prior_rows": 300,
+    "target_rows": 400
+  },
+  "status": "locked_before_confirmation_collection",
+  "support_policy": {
+    "membership_may_change_after_labels": false,
+    "minimum_support_target_per_attribute_status_or_value": 8,
+    "shortfalls": "retain, disclose, and mark high-variance; do not replace rows",
+    "support_report_required": true
+  },
+  "version": "grpo-run2-confirmation-acquisition-contract-v1"
+}

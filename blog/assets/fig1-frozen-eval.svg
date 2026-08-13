@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="320" viewBox="0 0 880 320" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+<rect width="880" height="320" rx="12" fill="#fcfcfb"/>
+<rect x="0.5" y="0.5" width="879" height="319" rx="12" fill="none" stroke="rgba(11,11,11,0.10)"/>
+<text x="28" y="34" font-size="15" fill="#0b0b0b" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">Zero-shot → locked SFT on the frozen 300-row eval</text>
+<text x="28" y="54" font-size="12" fill="#52514e" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">Same verifier, same greedy unconstrained decoding. Zero-shot macro-F1 is conditional on its 196 parsed outputs.</text>
+<circle cx="635" cy="30" r="5" fill="#eb6834"/>
+<text x="645" y="34" font-size="12" fill="#52514e" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">zero-shot</text>
+<circle cx="729.6" cy="30" r="5" fill="#2a78d6"/>
+<text x="739.6" y="34" font-size="12" fill="#52514e" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">SFT</text>
+<line x1="42.0" y1="246" x2="220.0" y2="246" stroke="#c3c2b7"/>
+<path d="M 102.0 246 L 102.0 220.465 Q 102.0 216.465 106.0 216.465 L 122.0 216.465 Q 126.0 216.465 126.0 220.465 L 126.0 246 Z" fill="#eb6834"/>
+<path d="M 136.0 246 L 136.0 153.82877768512185 Q 136.0 149.82877768512185 140.0 149.82877768512185 L 156.0 149.82877768512185 Q 160.0 149.82877768512185 160.0 153.82877768512185 L 160.0 246 Z" fill="#2a78d6"/>
+<text x="114.0" y="209.465" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">0.197</text>
+<text x="148.0" y="142.82877768512185" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">0.641</text>
+<text x="131.0" y="268" font-size="12.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">macro-F1</text>
+<line x1="248.0" y1="246" x2="426.0" y2="246" stroke="#c3c2b7"/>
+<path d="M 308.0 246 L 308.0 155.95 Q 308.0 151.95 312.0 151.95 L 328.0 151.95 Q 332.0 151.95 332.0 155.95 L 332.0 246 Z" fill="#eb6834"/>
+<path d="M 342.0 246 L 342.0 100.0 Q 342.0 96.0 346.0 96.0 L 362.0 96.0 Q 366.0 96.0 366.0 100.0 L 366.0 246 Z" fill="#2a78d6"/>
+<text x="320.0" y="144.95" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">62.7%</text>
+<text x="354.0" y="89.0" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">100%</text>
+<text x="337.0" y="268" font-size="12.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">schema-valid</text>
+<line x1="454.0" y1="246" x2="632.0" y2="246" stroke="#c3c2b7"/>
+<rect x="514.0" y="244" width="24" height="2" fill="#eb6834"/>
+<path d="M 548.0 246 L 548.0 117.0 Q 548.0 113.0 552.0 113.0 L 568.0 113.0 Q 572.0 113.0 572.0 117.0 L 572.0 246 Z" fill="#2a78d6"/>
+<text x="526.0" y="239.0" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">0%</text>
+<text x="560.0" y="106.0" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">88.7%</text>
+<text x="543.0" y="268" font-size="12.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">vocab-valid</text>
+<line x1="660.0" y1="246" x2="838.0" y2="246" stroke="#c3c2b7"/>
+<path d="M 720.0 246 L 720.0 100.0 Q 720.0 96.0 724.0 96.0 L 740.0 96.0 Q 744.0 96.0 744.0 100.0 L 744.0 246 Z" fill="#eb6834"/>
+<rect x="754.0" y="244" width="24" height="2" fill="#2a78d6"/>
+<text x="732.0" y="89.0" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">1,204</text>
+<text x="766.0" y="237.50498338870432" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">12</text>
+<text x="749.0" y="268" font-size="12.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">rule violations</text>
+<text x="28" y="298" font-size="11.5" fill="#898781" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">Every output parseable after SFT; the base model produced nothing scorable for 104 of 300 products.</text>
+</svg>

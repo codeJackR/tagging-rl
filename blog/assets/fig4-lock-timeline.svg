@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="250" viewBox="0 0 880 250" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+<rect width="880" height="250" rx="12" fill="#fcfcfb"/>
+<rect x="0.5" y="0.5" width="879" height="249" rx="12" fill="none" stroke="rgba(11,11,11,0.10)"/>
+<text x="28" y="34" font-size="15" fill="#0b0b0b" font-weight="600" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">The lock: selection is committed before the test set is touched</text>
+<rect x="28" y="109.0" width="128" height="46" rx="9" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="1.5"/>
+<text x="92.0" y="129" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">train both arms</text>
+<text x="92.0" y="146" font-size="10.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">2 epochs each</text>
+<line x1="160" y1="132" x2="169" y2="132" stroke="#898781" stroke-width="1.5"/>
+<path d="M 169 128 L 176 132 L 169 136 Z" fill="#898781"/>
+<rect x="176" y="109.0" width="168" height="46" rx="9" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="1.5"/>
+<text x="260.0" y="129" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">select on validation</text>
+<text x="260.0" y="146" font-size="10.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">generations, not loss</text>
+<line x1="348" y1="132" x2="357" y2="132" stroke="#898781" stroke-width="1.5"/>
+<path d="M 357 128 L 364 132 L 357 136 Z" fill="#898781"/>
+<rect x="364" y="109.0" width="178" height="46" rx="9" fill="#e9f0fb" stroke="#2a78d6" stroke-width="1.5"/>
+<text x="453.0" y="129" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">commit the lock</text>
+<text x="453.0" y="146" font-size="10.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">8bff4c6 · sha-pinned choice</text>
+<line x1="566" y1="80" x2="566" y2="184" stroke="#0b0b0b" stroke-width="2.5"/>
+<line x1="546" y1="132" x2="555" y2="132" stroke="#898781" stroke-width="1.5"/>
+<path d="M 555 128 L 562 132 L 555 136 Z" fill="#898781"/>
+<line x1="570" y1="132" x2="579" y2="132" stroke="#898781" stroke-width="1.5"/>
+<path d="M 579 128 L 586 132 L 579 136 Z" fill="#898781"/>
+<rect x="590" y="109.0" width="130" height="46" rx="9" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="1.5"/>
+<text x="655.0" y="129" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">one frozen run</text>
+<text x="655.0" y="146" font-size="10.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">300 rows, once</text>
+<line x1="724" y1="132" x2="733" y2="132" stroke="#898781" stroke-width="1.5"/>
+<path d="M 733 128 L 740 132 L 733 136 Z" fill="#898781"/>
+<rect x="744" y="109.0" width="112" height="46" rx="9" fill="#fcfcfb" stroke="#c3c2b7" stroke-width="1.5"/>
+<text x="800.0" y="129" font-size="12" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">record result</text>
+<text x="800.0" y="146" font-size="10.5" fill="#52514e" font-weight="400" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">4c3e986</text>
+<text x="297.0" y="194" font-size="12" fill="#52514e" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">iterate freely</text>
+<text x="711.0" y="194" font-size="12" fill="#52514e" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">happens once</text>
+<text x="566" y="70" font-size="11" fill="#0b0b0b" font-weight="600" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">the boundary</text>
+<text x="28" y="230" font-size="11.5" fill="#898781" font-weight="400" text-anchor="start" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">Both commits are in the repo; the lock manifest records the checkpoint SHA-256 and marks the frozen set not_run_as_of_lock.</text>
+</svg>

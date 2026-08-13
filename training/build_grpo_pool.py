@@ -15,10 +15,12 @@ from typing import Sequence
 from labeling.records import LabelStatus, read_jsonl, write_jsonl
 from training.audit_grpo_pool import (
     AUDIT_VERSION,
+    _sampling_policy_comparison,
     select_deterministic_family_cap,
 )
 from training.split_sft import group_key, row_category
 
+ROOT = Path(__file__).resolve().parent.parent
 POOL_VERSION = "grpo-pool-cap4-v1"
 DEFAULT_SCORED_DATA = "data/train_weak_sft_scored.jsonl"
 DEFAULT_AUDIT = "runs/sft-difficulty-k8/retained-pool-audit.json"
@@ -34,6 +36,80 @@ def _sha256_file(path: str | Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def filter_authoritative_training_rows(
+    rows,
+    *,
+    split_manifest_path: str | Path,
+):
+    """Select SFT-training rows using the external manifest, not ``row.split``.
+
+    The embedded split marks every member of the 3,600-row weak-training corpus
+    as ``train``. The later SFT manifest subdivides that corpus into 3,240 SFT
+    training and 360 validation rows, so it is the authoritative boundary for
+    GRPO eligibility.
+    """
+    split_manifest_path = Path(split_manifest_path)
+    if not split_manifest_path.is_absolute():
+        split_manifest_path = ROOT / split_manifest_path
+    manifest = json.loads(split_manifest_path.read_text(encoding="utf-8"))
+
+    source_path = Path(manifest["source"])
+    if not source_path.is_absolute():
+        source_path = ROOT / source_path
+    if _sha256_file(source_path) != manifest.get("source_sha256"):
+        raise ValueError("SFT split manifest source hash mismatch")
+
+    train_ids = manifest.get("train")
+    validation_ids = manifest.get("validation")
+    if not isinstance(train_ids, list) or not isinstance(validation_ids, list):
+        raise ValueError("SFT split manifest assignments must be lists")
+    if any(not isinstance(sku, str) or not sku for sku in train_ids + validation_ids):
+        raise ValueError("SFT split manifest contains an invalid SKU ID")
+    if len(set(train_ids)) != len(train_ids):
+        raise ValueError("SFT split manifest contains duplicate training SKUs")
+    if len(set(validation_ids)) != len(validation_ids):
+        raise ValueError("SFT split manifest contains duplicate validation SKUs")
+
+    train_set = set(train_ids)
+    validation_set = set(validation_ids)
+    if train_set & validation_set:
+        raise ValueError("SFT split manifest has train/validation overlap")
+
+    source_rows = read_jsonl(source_path)
+    source_ids = [row.sku_id for row in source_rows]
+    if len(set(source_ids)) != len(source_ids):
+        raise ValueError("SFT split source contains duplicate SKU IDs")
+    if train_set | validation_set != set(source_ids):
+        raise ValueError("SFT split manifest does not cover its source exactly")
+
+    source_by_sku = {row.sku_id: row for row in source_rows}
+    train_families = {group_key(source_by_sku[sku]) for sku in train_set}
+    validation_families = {
+        group_key(source_by_sku[sku]) for sku in validation_set
+    }
+    overlapping_families = sorted(train_families & validation_families)
+    if overlapping_families:
+        examples = ", ".join(
+            family.replace("\0", "::") for family in overlapping_families[:5]
+        )
+        raise ValueError(
+            "SFT split manifest has family overlap: "
+            f"{len(overlapping_families)} families ({examples})"
+        )
+
+    rows = list(rows)
+    row_ids = [row.sku_id for row in rows]
+    if len(set(row_ids)) != len(row_ids):
+        raise ValueError("candidate dataset contains duplicate SKU IDs")
+    if set(row_ids) != set(source_ids):
+        raise ValueError("candidate dataset does not match the SFT split source")
+
+    selected = [row for row in rows if row.sku_id in train_set]
+    if {row.sku_id for row in selected} != train_set:
+        raise RuntimeError("authoritative SFT training filter produced wrong SKU set")
+    return selected
 
 
 def _sku_set_sha256(rows) -> str:
@@ -160,6 +236,7 @@ def build_pool_manifest(
     cap: int,
     seed: int,
     created_at_utc: str,
+    split_manifest_path: str | Path | None = None,
 ) -> dict:
     output_rows = read_jsonl(output_data_path)
     if [row.sku_id for row in output_rows] != [row.sku_id for row in active]:
@@ -181,16 +258,81 @@ def build_pool_manifest(
         implementation_display = str(implementation_path.resolve().relative_to(Path.cwd()))
     except ValueError:
         implementation_display = str(implementation_path)
+    manifest_inputs = {
+        "scored_dataset": str(scored_path),
+        "scored_dataset_sha256": _sha256_file(scored_path),
+        "retained_pool_audit": str(audit_path),
+        "retained_pool_audit_sha256": _sha256_file(audit_path),
+        "retained_pool_audit_version": AUDIT_VERSION,
+    }
+    authoritative_train_ids = None
+    authoritative_validation_ids = None
+    authoritative_validation_families = None
+    if split_manifest_path is not None:
+        resolved_split_manifest = Path(split_manifest_path)
+        if not resolved_split_manifest.is_absolute():
+            resolved_split_manifest = ROOT / resolved_split_manifest
+        split_manifest = json.loads(
+            resolved_split_manifest.read_text(encoding="utf-8")
+        )
+        authoritative_train_ids = set(split_manifest["train"])
+        authoritative_validation_ids = set(split_manifest["validation"])
+        split_source = Path(split_manifest["source"])
+        if not split_source.is_absolute():
+            split_source = ROOT / split_source
+        split_rows_by_sku = {
+            row.sku_id: row for row in read_jsonl(split_source)
+        }
+        authoritative_validation_families = {
+            group_key(split_rows_by_sku[sku])
+            for sku in authoritative_validation_ids
+        }
+        manifest_inputs.update(
+            {
+                "sft_split_manifest": str(split_manifest_path),
+                "sft_split_manifest_sha256": _sha256_file(
+                    resolved_split_manifest
+                ),
+                "sft_split_manifest_version": split_manifest.get("version"),
+            }
+        )
+
+    invariants = {
+        "all_active_rows_are_eligible": all(
+            0 < row.difficulty.sft_pass_rate < 1 for row in active
+        ),
+        "active_and_capped_are_disjoint": not bool(active_ids & capped_ids),
+        "active_and_capped_cover_eligible": (
+            active_ids | capped_ids == eligible_ids
+        ),
+        "all_eligible_families_represented": (
+            {group_key(row) for row in active}
+            == {group_key(row) for row in eligible}
+        ),
+        "family_cap_respected": (
+            max(Counter(group_key(row) for row in active).values()) <= cap
+        ),
+    }
+    if authoritative_train_ids is not None:
+        invariants["all_active_rows_are_authoritative_sft_train"] = (
+            active_ids <= authoritative_train_ids
+        )
+        invariants["active_and_sft_validation_skus_are_disjoint"] = not (
+            active_ids & authoritative_validation_ids
+        )
+        invariants["active_and_sft_validation_families_are_disjoint"] = not (
+            {group_key(row) for row in active}
+            & authoritative_validation_families
+        )
+
     return {
-        "version": POOL_VERSION,
+        "version": (
+            "grpo-pool-cap4-sft-train-v1"
+            if split_manifest_path is not None
+            else POOL_VERSION
+        ),
         "created_at_utc": created_at_utc,
-        "inputs": {
-            "scored_dataset": str(scored_path),
-            "scored_dataset_sha256": _sha256_file(scored_path),
-            "retained_pool_audit": str(audit_path),
-            "retained_pool_audit_sha256": _sha256_file(audit_path),
-            "retained_pool_audit_version": AUDIT_VERSION,
-        },
+        "inputs": manifest_inputs,
         "policy": {
             "eligibility_rule": "0 < sft_pass_rate < 1",
             "family_grouping": (
@@ -224,25 +366,7 @@ def build_pool_manifest(
             "active_dataset_sha256": _sha256_file(output_data_path),
         },
         "active_composition": _active_composition(active),
-        "invariants": {
-            "all_active_rows_are_eligible": all(
-                0 < row.difficulty.sft_pass_rate < 1 for row in active
-            ),
-            "active_and_capped_are_disjoint": not bool(active_ids & capped_ids),
-            "active_and_capped_cover_eligible": (
-                active_ids | capped_ids == eligible_ids
-            ),
-            "all_eligible_families_represented": (
-                {group_key(row) for row in active}
-                == {group_key(row) for row in eligible}
-            ),
-            "family_cap_respected": (
-                max(
-                    Counter(group_key(row) for row in active).values()
-                )
-                <= cap
-            ),
-        },
+        "invariants": invariants,
         "code": {
             **_git_state(),
             "implementation_file": implementation_display,
@@ -261,6 +385,7 @@ def write_pool_artifacts(
     seed: int,
     created_at_utc: str,
     overwrite: bool = False,
+    split_manifest_path: str | Path | None = None,
 ) -> dict:
     output_data_path = Path(output_data_path)
     output_manifest_path = Path(output_manifest_path)
@@ -274,9 +399,43 @@ def write_pool_artifacts(
 
     rows = read_jsonl(scored_path)
     audit = json.loads(Path(audit_path).read_text(encoding="utf-8"))
+    # Validate the historical all-3,600-row difficulty audit before applying a
+    # narrower authoritative training boundary. This preserves its provenance
+    # while preventing its embedded W1-level split from controlling GRPO.
     eligible, active, capped, scenario = select_pool(
         rows, audit, cap=cap, seed=seed
     )
+    if split_manifest_path is not None:
+        rows = filter_authoritative_training_rows(
+            rows,
+            split_manifest_path=split_manifest_path,
+        )
+        eligible = [
+            row
+            for row in rows
+            if row.difficulty.sft_pass_rate is not None
+            and 0 < row.difficulty.sft_pass_rate < 1
+        ]
+        comparison = _sampling_policy_comparison(
+            rows,
+            eligible,
+            cap_seed=seed,
+        )
+        policy_name = f"deterministic_family_cap_{cap}"
+        scenario = next(
+            item
+            for item in comparison["scenarios"]
+            if item["policy"] == policy_name
+        )
+        active = select_deterministic_family_cap(
+            eligible,
+            cap=cap,
+            seed=seed,
+        )
+        active_ids = {row.sku_id for row in active}
+        capped = [row for row in eligible if row.sku_id not in active_ids]
+        if _sku_set_sha256(active) != scenario["active_sku_set_sha256"]:
+            raise RuntimeError("authoritative pool disagrees with recomputed scenario")
     if len(eligible) != len(active) + len(capped):
         raise ValueError("eligible partition count mismatch")
     write_jsonl(active, output_data_path)
@@ -291,6 +450,7 @@ def write_pool_artifacts(
         cap=cap,
         seed=seed,
         created_at_utc=created_at_utc,
+        split_manifest_path=split_manifest_path,
     )
     output_manifest_path.parent.mkdir(parents=True, exist_ok=True)
     output_manifest_path.write_text(
@@ -304,6 +464,14 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scored-data", default=DEFAULT_SCORED_DATA)
     parser.add_argument("--audit", default=DEFAULT_AUDIT)
+    parser.add_argument(
+        "--sft-split-manifest",
+        default=None,
+        help=(
+            "authoritative SFT train/validation manifest; when supplied, only "
+            "manifest-training rows may enter the new GRPO pool"
+        ),
+    )
     parser.add_argument("--output-data", default=DEFAULT_OUTPUT_DATA)
     parser.add_argument("--output-manifest", default=DEFAULT_OUTPUT_MANIFEST)
     parser.add_argument("--family-cap", type=int, default=DEFAULT_CAP)
@@ -323,6 +491,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         seed=args.seed,
         created_at_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         overwrite=args.overwrite,
+        split_manifest_path=args.sft_split_manifest,
     )
     print(
         "GRPO pool complete: "

@@ -5099,3 +5099,127 @@ After every real run:
 10. Update the opening thesis only after the final frozen evaluation supports it.
 
 This file is the working evidence ledger. The polished blog should be shorter, but every important claim in it should be traceable back to a row, manifest, checksum, command, test, or frozen metric recorded here.
+
+---
+
+## 21. Run 2 boundary audit before reward redesign
+
+Before defining a second GRPO reward, the Run 2 plan required one read-only
+audit of every existing train, development and evaluation boundary. The new
+`training/audit_data_boundaries.py` command treats
+`data/splits/sft-v1.json` as authoritative, verifies its source hash, verifies
+the cap-four pool manifest against the active dataset, reconstructs the 300
+unique Run 1 products from the durable 2,400-rollout archive and compares all
+collections at both exact-SKU and normalized product-family level. Embedded
+`row.split` values are recorded as diagnostics but cannot override the external
+manifest.
+
+The resulting artifact is
+`runs/grpo-run2-data-boundary-audit.json`, version
+`grpo-data-boundary-audit-v1`, status `issues_found`, SHA-256
+`95997f6b89d6c821b8e81b9a4f53acb05a29e6c90b422d8530275f7a82cac61f`.
+It is 584,087 bytes and deterministically rebuilds to the same object from its
+hash-verified inputs.
+
+### Exact authoritative split conflict
+
+| collection | rows | SFT train | SFT validation | outside SFT source |
+|---|---:|---:|---:|---:|
+| cap-four GRPO pool | 1,565 | 1,438 | **127** | 0 |
+| Run 1 products actually trained | 300 | 279 | **21** | 0 |
+
+The 127 pool conflicts span 99 normalized product families. The 21 products
+that actually supplied Run 1 rollouts span 20 validation families. Yet all
+1,565 rows in the active GRPO JSONL carry embedded `split="train"`. The issue
+is therefore not an ambiguous overlap calculation: two split representations
+disagree, and the existing pool path trusted the weaker embedded field.
+
+### SKU-disjoint sets still overlap by product family
+
+The audit also tightened what “disjoint” must mean. Both the probe and legacy
+frozen set have zero exact-SKU overlap with the GRPO pool, but normalized
+brand-plus-family-title matching finds:
+
+| comparison | shared families | training-side SKUs in those families | evaluation-side SKUs in those families |
+|---|---:|---:|---:|
+| GRPO pool vs probe 100 | 37 | 82 | 39 |
+| Run 1 products vs probe 100 | 15 | 16 | 16 |
+| GRPO pool vs legacy frozen 300 | 33 | 65 | 45 |
+| Run 1 products vs legacy frozen 300 | 10 | 12 | 14 |
+
+Family overlap does not prove that the model memorized an evaluation answer.
+It does mean that a color or size variant of the same normalized product family
+can appear on both sides, so SKU-only checks are insufficient for future model
+selection and confirmation claims.
+
+### Implementation and tests
+
+The auditor fails closed on source-hash drift, pool-dataset hash drift,
+duplicate SKUs, missing family source rows, malformed Run 1 step/SKU structure
+and output collisions. Every pairwise record preserves exact overlapping SKUs,
+shared family names and the member SKUs on each side of those families.
+
+The focused CPU command was:
+
+```bash
+uv run python -m pytest tests/test_audit_data_boundaries.py -q
+```
+
+Result: **6 passed**. Python compilation also passed, and a second in-memory
+build from the real inputs exactly equaled the published JSON object. No source
+dataset, split manifest, pool, rollout or evaluation file was modified.
+
+The next boundary is Phase B2 only: trace where embedded `split="train"` was
+assigned and identify the smallest authoritative-manifest enforcement point.
+The original Run 1 pool and all associated evidence remain immutable.
+
+### Corrected train-only pool
+
+The trace found two meanings of `train`. The embedded W1 field means “member of
+the 3,600-row weak-training corpus”; the later SFT manifest subdivides that
+corpus into 3,240 SFT-training and 360 validation rows. Difficulty scoring
+preserved the older field correctly, but the original GRPO builder never
+consulted the newer manifest.
+
+The builder now accepts `--sft-split-manifest`, verifies its source checksum,
+complete and disjoint SKU assignments, and family separation, then recomputes
+difficulty eligibility and family capping using only authoritative SFT-training
+rows. Tests cover misleading embedded splits, integration output, CLI
+forwarding, manifest hash drift and family leakage.
+
+The first corrected build used new paths and did not overwrite the historical
+pool:
+
+```bash
+uv run python -m training.build_grpo_pool \
+  --sft-split-manifest data/splits/sft-v1.json \
+  --output-data data/train_weak_grpo_cap4_sft_train_v1.jsonl \
+  --output-manifest runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json
+```
+
+| corrected-pool measurement | result |
+|---|---:|
+| authoritative source rows | 3,240 |
+| difficulty-eligible rows | 1,565 |
+| active cap-four rows | 1,438 |
+| capped eligible rows | 127 |
+| active families | 1,051 |
+| maximum rows in one family | 4 |
+| authoritative-validation SKU overlap | 0 |
+| authoritative-validation family overlap | 0 |
+
+The dataset SHA-256 is
+`1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53`;
+the manifest SHA-256 is
+`42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a`.
+Independent checks verified row order, output hash, family cap, all manifest
+invariants and exact equality to the old active pool after removing its 127
+authoritative validation SKUs.
+
+The next conceptual boundary is launch safety: Run 2 preflight must require the
+new manifest version and independently repeat the split-hash and zero-overlap
+checks rather than trusting the builder alone.
+
+The dedicated continuation brief for Run 2 and future blog posts is
+`W2_GRPO_RUN2_BLOG_TRACKER.md`. New Run 2 findings should be written there
+first, with this larger W2 ledger updated only for milestone summaries.

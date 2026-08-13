@@ -1,0 +1,1370 @@
+{
+  "code": {
+    "implementation_file": "training/replay_original_reward.py",
+    "implementation_file_sha256": "60f29e90f69ebdad8be80c2220228519c29c808c50ab453383d68b4caf0b3ee1",
+    "reward_file": "training/rewards.py",
+    "reward_file_sha256": "ac9658028c62a84b32a8ba52c9e53e8d27ecaba05cd6d1703e398917aec1706d"
+  },
+  "cuda_imports_performed": false,
+  "inputs": {
+    "difficulty_generation": {
+      "backend": "vllm",
+      "batch_size": 32,
+      "gpu_memory_utilization": 0.65,
+      "max_new_tokens": 170,
+      "rollouts_per_product": 8,
+      "sampler_backend": "native",
+      "seed": 20260802,
+      "structured_outputs": false,
+      "temperature": 0.7,
+      "top_p": 0.95
+    },
+    "difficulty_manifest": {
+      "bytes": 11042,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/runs/sft-difficulty-k8/manifest.json",
+      "sha256": "5c6fcc41bab65b36904cef256c56e747a19302b30b6da3c7208382e4dfdd3e5b"
+    },
+    "difficulty_manifest_version": "sft-difficulty-v2",
+    "physical_rollout_groups": 3600,
+    "physical_rollout_records": 28800,
+    "rollouts": {
+      "bytes": 509163,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/runs/sft-difficulty-k8/rollouts.jsonl.gz",
+      "sha256": "f17360b157287caaea8d0f8e907f0a4bf4fd107977452442e2e447628e95bf8b"
+    },
+    "run2_pool_dataset": {
+      "bytes": 3191282,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+      "sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53"
+    },
+    "run2_pool_manifest": {
+      "bytes": 82235,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json",
+      "sha256": "42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a"
+    },
+    "run2_pool_preflight": {
+      "cuda_imports_performed": false,
+      "manifest_invariants": {
+        "active_and_capped_are_disjoint": true,
+        "active_and_capped_cover_eligible": true,
+        "active_and_sft_validation_families_are_disjoint": true,
+        "active_and_sft_validation_skus_are_disjoint": true,
+        "all_active_rows_are_authoritative_sft_train": true,
+        "all_active_rows_are_eligible": true,
+        "all_eligible_families_represented": true,
+        "family_cap_respected": true
+      },
+      "pool": {
+        "active_sku_set_sha256": "dd5fafa64c09d231d0db1fb321518650524ccf7ef3d1a899c439e2f038232d1c",
+        "data_bytes": 3191282,
+        "data_path": "/Users/rp7/Documents/Study/tagging-rl/data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+        "data_sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53",
+        "families": 1051,
+        "manifest_path": "/Users/rp7/Documents/Study/tagging-rl/runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json",
+        "manifest_sha256": "42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a",
+        "manifest_version": "grpo-pool-cap4-sft-train-v1",
+        "maximum_family_size": 4,
+        "rows": 1438
+      },
+      "split_authority": {
+        "active_validation_family_overlap": 0,
+        "active_validation_sku_overlap": 0,
+        "manifest_path": "/Users/rp7/Documents/Study/tagging-rl/data/splits/sft-v1.json",
+        "manifest_sha256": "4d14d46fa4f7df95a24658c741940db64093e7798b5ccd1558f4faa29bbe9a3b",
+        "manifest_version": "sft-v1",
+        "source_path": "/Users/rp7/Documents/Study/tagging-rl/data/train_weak.jsonl",
+        "source_sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b",
+        "training_skus": 3240,
+        "validation_skus": 360
+      },
+      "status": "passed",
+      "version": "grpo-run2-pool-preflight-v1"
+    },
+    "sft_split_manifest": {
+      "bytes": 172056,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/data/splits/sft-v1.json",
+      "sha256": "4d14d46fa4f7df95a24658c741940db64093e7798b5ccd1558f4faa29bbe9a3b"
+    },
+    "sft_split_manifest_version": "sft-v1",
+    "source_dataset": {
+      "bytes": 7890715,
+      "path": "/Users/rp7/Documents/Study/tagging-rl/data/train_weak.jsonl",
+      "sha256": "1cbcbfba5ad379e7c66895d720a997edf913030ee1e76e4917101dfccb09530b"
+    }
+  },
+  "integrity": {
+    "active_pool_groups": 1438,
+    "active_pool_is_authoritative_training_subset": true,
+    "active_pool_validation_overlap": 0,
+    "authoritative_training_groups": 3240,
+    "replay_grade_mismatches": 0,
+    "reward_replay_matches_all_durable_rollout_grades": true,
+    "validation_groups_excluded": 360
+  },
+  "interpretation_guardrails": {
+    "completion_independence_assumed": false,
+    "direct_run1_32_7_percent_comparison_allowed": false,
+    "off_policy_return_estimate": false,
+    "reason": "this artifact replays one fixed starting-policy sample; Run 1's 32.7% came from a policy changing over 300 optimizer steps",
+    "selection_data": "training-only; no validation labels used"
+  },
+  "reward_contract": {
+    "functions_in_order": [
+      "format_validity_reward",
+      "vocab_rule_compliance_reward",
+      "golden_agreement_reward"
+    ],
+    "group_size": 8,
+    "weighted_total_range": [
+      0.0,
+      4.0
+    ],
+    "weights_in_order": [
+      1.0,
+      1.0,
+      2.0
+    ]
+  },
+  "role": "training_only_offline_original_reward_baseline",
+  "scope_contract": {
+    "candidate_comparison_rule": "all later reward candidates must reuse these ordered SKU and rollout-key hashes",
+    "excluded": "all 360 SFT-validation SKUs",
+    "primary": "run2_active_pool: exact corrected product distribution eligible for Run 2 sampling",
+    "secondary": "authoritative_sft_train: all training-only groups, including always-fail, mixed and always-pass starting-policy groups"
+  },
+  "scopes": {
+    "authoritative_sft_train": {
+      "channels": {
+        "format_validity_reward": {
+          "completion_distribution": {
+            "count": 25920,
+            "histogram": {
+              "1": 25920
+            },
+            "maximum": 1.0,
+            "mean": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "population_std": 0.0,
+            "quantiles_linear": {
+              "p05": 1.0,
+              "p25": 1.0,
+              "p50": 1.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "group_mean_distribution": {
+            "count": 3240,
+            "histogram": {
+              "1": 3240
+            },
+            "maximum": 1.0,
+            "mean": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "population_std": 0.0,
+            "quantiles_linear": {
+              "p05": 1.0,
+              "p25": 1.0,
+              "p50": 1.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "groups_with_variation": 0,
+          "largest_tie_size_per_group_histogram": {
+            "8": 3240
+          },
+          "unique_reward_values_per_group_histogram": {
+            "1": 3240
+          },
+          "within_group_variance_distribution": {
+            "count": 3240,
+            "histogram": {
+              "0": 3240
+            },
+            "maximum": 0.0,
+            "mean": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "population_std": 0.0,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.0,
+              "p75": 0.0,
+              "p95": 0.0
+            }
+          },
+          "zero_variance_groups": 3240,
+          "zero_variance_share": 1.0
+        },
+        "golden_agreement_reward": {
+          "completion_distribution": {
+            "count": 25920,
+            "histogram": {
+              "0": 14397,
+              "1": 11523
+            },
+            "maximum": 1.0,
+            "mean": 0.4445601851851852,
+            "median": 0.0,
+            "minimum": 0.0,
+            "population_std": 0.49691692156063577,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "group_mean_distribution": {
+            "count": 3240,
+            "histogram": {
+              "0": 965,
+              "0.125": 366,
+              "0.25": 242,
+              "0.375": 172,
+              "0.5": 173,
+              "0.625": 155,
+              "0.75": 189,
+              "0.875": 268,
+              "1": 710
+            },
+            "maximum": 1.0,
+            "mean": 0.4445601851851852,
+            "median": 0.375,
+            "minimum": 0.0,
+            "population_std": 0.4044485455621928,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.375,
+              "p75": 0.875,
+              "p95": 1.0
+            }
+          },
+          "groups_with_variation": 1565,
+          "largest_tie_size_per_group_histogram": {
+            "4": 173,
+            "5": 327,
+            "6": 431,
+            "7": 634,
+            "8": 1675
+          },
+          "unique_reward_values_per_group_histogram": {
+            "1": 1675,
+            "2": 1565
+          },
+          "within_group_variance_distribution": {
+            "count": 3240,
+            "histogram": {
+              "0": 1675,
+              "0.109375": 634,
+              "0.1875": 431,
+              "0.234375": 327,
+              "0.25": 173
+            },
+            "maximum": 0.25,
+            "mean": 0.08334780092592593,
+            "median": 0.0,
+            "minimum": 0.0,
+            "population_std": 0.094614470665962,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.0,
+              "p75": 0.1875,
+              "p95": 0.25
+            }
+          },
+          "zero_variance_groups": 1675,
+          "zero_variance_share": 0.5169753086419753
+        },
+        "vocab_rule_compliance_reward": {
+          "completion_distribution": {
+            "count": 25920,
+            "histogram": {
+              "0": 644,
+              "1": 25276
+            },
+            "maximum": 1.0,
+            "mean": 0.9751543209876543,
+            "median": 1.0,
+            "minimum": 0.0,
+            "population_std": 0.15565465379088786,
+            "quantiles_linear": {
+              "p05": 1.0,
+              "p25": 1.0,
+              "p50": 1.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "group_mean_distribution": {
+            "count": 3240,
+            "histogram": {
+              "0": 22,
+              "0.125": 5,
+              "0.25": 10,
+              "0.375": 10,
+              "0.5": 11,
+              "0.625": 31,
+              "0.75": 47,
+              "0.875": 92,
+              "1": 3012
+            },
+            "maximum": 1.0,
+            "mean": 0.9751543209876543,
+            "median": 1.0,
+            "minimum": 0.0,
+            "population_std": 0.1176462484114121,
+            "quantiles_linear": {
+              "p05": 0.875,
+              "p25": 1.0,
+              "p50": 1.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "groups_with_variation": 206,
+          "largest_tie_size_per_group_histogram": {
+            "4": 11,
+            "5": 41,
+            "6": 57,
+            "7": 97,
+            "8": 3034
+          },
+          "unique_reward_values_per_group_histogram": {
+            "1": 3034,
+            "2": 206
+          },
+          "within_group_variance_distribution": {
+            "count": 3240,
+            "histogram": {
+              "0": 3034,
+              "0.109375": 97,
+              "0.1875": 57,
+              "0.234375": 41,
+              "0.25": 11
+            },
+            "maximum": 0.25,
+            "mean": 0.010387731481481482,
+            "median": 0.0,
+            "minimum": 0.0,
+            "population_std": 0.04214317094839098,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.0,
+              "p75": 0.0,
+              "p95": 0.109375
+            }
+          },
+          "zero_variance_groups": 3034,
+          "zero_variance_share": 0.9364197530864198
+        },
+        "weighted_total": {
+          "completion_distribution": {
+            "count": 25920,
+            "histogram": {
+              "1": 644,
+              "2": 13753,
+              "4": 11523
+            },
+            "maximum": 4.0,
+            "mean": 2.8642746913580246,
+            "median": 2.0,
+            "minimum": 1.0,
+            "population_std": 1.027674889072939,
+            "quantiles_linear": {
+              "p05": 2.0,
+              "p25": 2.0,
+              "p50": 2.0,
+              "p75": 4.0,
+              "p95": 4.0
+            }
+          },
+          "group_mean_distribution": {
+            "count": 3240,
+            "histogram": {
+              "1": 22,
+              "1.125": 5,
+              "1.25": 8,
+              "1.375": 6,
+              "1.5": 7,
+              "1.625": 22,
+              "1.75": 23,
+              "1.875": 42,
+              "2": 847,
+              "2.125": 19,
+              "2.25": 341,
+              "2.375": 11,
+              "2.5": 228,
+              "2.625": 3,
+              "2.75": 170,
+              "2.875": 6,
+              "3": 163,
+              "3.125": 6,
+              "3.25": 149,
+              "3.375": 7,
+              "3.5": 177,
+              "3.625": 11,
+              "3.75": 257,
+              "4": 710
+            },
+            "maximum": 4.0,
+            "mean": 2.8642746913580246,
+            "median": 2.75,
+            "minimum": 1.0,
+            "population_std": 0.83739216101823,
+            "quantiles_linear": {
+              "p05": 2.0,
+              "p25": 2.0,
+              "p50": 2.75,
+              "p75": 3.75,
+              "p95": 4.0
+            }
+          },
+          "groups_with_variation": 1669,
+          "largest_tie_size_per_group_histogram": {
+            "3": 10,
+            "4": 186,
+            "5": 369,
+            "6": 454,
+            "7": 650,
+            "8": 1571
+          },
+          "unique_reward_values_per_group_histogram": {
+            "1": 1571,
+            "2": 1589,
+            "3": 80
+          },
+          "within_group_variance_distribution": {
+            "count": 3240,
+            "histogram": {
+              "0": 1571,
+              "0.109375": 43,
+              "0.1875": 29,
+              "0.234375": 26,
+              "0.25": 6,
+              "0.4375": 596,
+              "0.609375": 13,
+              "0.75": 406,
+              "0.859375": 2,
+              "0.9375": 310,
+              "0.984375": 24,
+              "1": 161,
+              "1.1875": 1,
+              "1.234375": 9,
+              "1.359375": 16,
+              "1.5": 4,
+              "1.609375": 2,
+              "1.6875": 11,
+              "1.75": 3,
+              "1.9375": 1,
+              "1.984375": 1,
+              "2.109375": 2,
+              "2.25": 3
+            },
+            "maximum": 2.25,
+            "mean": 0.3548900462962963,
+            "median": 0.1875,
+            "minimum": 0.0,
+            "population_std": 0.40517603617274217,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.1875,
+              "p75": 0.75,
+              "p95": 1.0
+            }
+          },
+          "zero_variance_groups": 1571,
+          "zero_variance_share": 0.48487654320987655
+        }
+      },
+      "completions": 25920,
+      "difficulty_band_group_counts": {
+        "always_failed": 965,
+        "always_passed": 710,
+        "mixed": 1565
+      },
+      "difficulty_bands": {
+        "always_failed": {
+          "component_groups_with_variation": {
+            "format_validity_reward": 0,
+            "golden_agreement_reward": 0,
+            "vocab_rule_compliance_reward": 104
+          },
+          "groups": 965,
+          "weighted_total": {
+            "completion_distribution": {
+              "count": 7720,
+              "histogram": {
+                "1": 453,
+                "2": 7267
+              },
+              "maximum": 2.0,
+              "mean": 1.941321243523316,
+              "median": 2.0,
+              "minimum": 1.0,
+              "population_std": 0.23502246704311902,
+              "quantiles_linear": {
+                "p05": 1.0,
+                "p25": 2.0,
+                "p50": 2.0,
+                "p75": 2.0,
+                "p95": 2.0
+              }
+            },
+            "group_mean_distribution": {
+              "count": 965,
+              "histogram": {
+                "1": 22,
+                "1.125": 5,
+                "1.25": 8,
+                "1.375": 6,
+                "1.5": 6,
+                "1.625": 20,
+                "1.75": 21,
+                "1.875": 38,
+                "2": 839
+              },
+              "maximum": 2.0,
+              "mean": 1.941321243523316,
+              "median": 2.0,
+              "minimum": 1.0,
+              "population_std": 0.19198429451769963,
+              "quantiles_linear": {
+                "p05": 1.625,
+                "p25": 2.0,
+                "p50": 2.0,
+                "p75": 2.0,
+                "p95": 2.0
+              }
+            },
+            "groups_with_variation": 104,
+            "largest_tie_size_per_group_histogram": {
+              "4": 6,
+              "5": 26,
+              "6": 29,
+              "7": 43,
+              "8": 861
+            },
+            "unique_reward_values_per_group_histogram": {
+              "1": 861,
+              "2": 104
+            },
+            "within_group_variance_distribution": {
+              "count": 965,
+              "histogram": {
+                "0": 861,
+                "0.109375": 43,
+                "0.1875": 29,
+                "0.234375": 26,
+                "0.25": 6
+              },
+              "maximum": 0.25,
+              "mean": 0.01837759067357513,
+              "median": 0.0,
+              "minimum": 0.0,
+              "population_std": 0.05586107043531839,
+              "quantiles_linear": {
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 0.1875
+              }
+            },
+            "zero_variance_groups": 861,
+            "zero_variance_share": 0.8922279792746114
+          }
+        },
+        "always_passed": {
+          "component_groups_with_variation": {
+            "format_validity_reward": 0,
+            "golden_agreement_reward": 0,
+            "vocab_rule_compliance_reward": 0
+          },
+          "groups": 710,
+          "weighted_total": {
+            "completion_distribution": {
+              "count": 5680,
+              "histogram": {
+                "4": 5680
+              },
+              "maximum": 4.0,
+              "mean": 4.0,
+              "median": 4.0,
+              "minimum": 4.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 4.0,
+                "p25": 4.0,
+                "p50": 4.0,
+                "p75": 4.0,
+                "p95": 4.0
+              }
+            },
+            "group_mean_distribution": {
+              "count": 710,
+              "histogram": {
+                "4": 710
+              },
+              "maximum": 4.0,
+              "mean": 4.0,
+              "median": 4.0,
+              "minimum": 4.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 4.0,
+                "p25": 4.0,
+                "p50": 4.0,
+                "p75": 4.0,
+                "p95": 4.0
+              }
+            },
+            "groups_with_variation": 0,
+            "largest_tie_size_per_group_histogram": {
+              "8": 710
+            },
+            "unique_reward_values_per_group_histogram": {
+              "1": 710
+            },
+            "within_group_variance_distribution": {
+              "count": 710,
+              "histogram": {
+                "0": 710
+              },
+              "maximum": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "minimum": 0.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 0.0
+              }
+            },
+            "zero_variance_groups": 710,
+            "zero_variance_share": 1.0
+          }
+        },
+        "mixed": {
+          "component_groups_with_variation": {
+            "format_validity_reward": 0,
+            "golden_agreement_reward": 1565,
+            "vocab_rule_compliance_reward": 102
+          },
+          "groups": 1565,
+          "weighted_total": {
+            "completion_distribution": {
+              "count": 12520,
+              "histogram": {
+                "1": 191,
+                "2": 6486,
+                "4": 5843
+              },
+              "maximum": 4.0,
+              "mean": 2.9181309904153356,
+              "median": 2.0,
+              "minimum": 1.0,
+              "population_std": 1.019345004614515,
+              "quantiles_linear": {
+                "p05": 2.0,
+                "p25": 2.0,
+                "p50": 2.0,
+                "p75": 4.0,
+                "p95": 4.0
+              }
+            },
+            "group_mean_distribution": {
+              "count": 1565,
+              "histogram": {
+                "1.5": 1,
+                "1.625": 2,
+                "1.75": 2,
+                "1.875": 4,
+                "2": 8,
+                "2.125": 19,
+                "2.25": 341,
+                "2.375": 11,
+                "2.5": 228,
+                "2.625": 3,
+                "2.75": 170,
+                "2.875": 6,
+                "3": 163,
+                "3.125": 6,
+                "3.25": 149,
+                "3.375": 7,
+                "3.5": 177,
+                "3.625": 11,
+                "3.75": 257
+              },
+              "maximum": 3.75,
+              "mean": 2.9181309904153356,
+              "median": 2.75,
+              "minimum": 1.5,
+              "population_std": 0.5618466575032562,
+              "quantiles_linear": {
+                "p05": 2.25,
+                "p25": 2.5,
+                "p50": 2.75,
+                "p75": 3.5,
+                "p95": 3.75
+              }
+            },
+            "groups_with_variation": 1565,
+            "largest_tie_size_per_group_histogram": {
+              "3": 10,
+              "4": 180,
+              "5": 343,
+              "6": 425,
+              "7": 607
+            },
+            "unique_reward_values_per_group_histogram": {
+              "2": 1485,
+              "3": 80
+            },
+            "within_group_variance_distribution": {
+              "count": 1565,
+              "histogram": {
+                "0.4375": 596,
+                "0.609375": 13,
+                "0.75": 406,
+                "0.859375": 2,
+                "0.9375": 310,
+                "0.984375": 24,
+                "1": 161,
+                "1.1875": 1,
+                "1.234375": 9,
+                "1.359375": 16,
+                "1.5": 4,
+                "1.609375": 2,
+                "1.6875": 11,
+                "1.75": 3,
+                "1.9375": 1,
+                "1.984375": 1,
+                "2.109375": 2,
+                "2.25": 3
+              },
+              "maximum": 2.25,
+              "mean": 0.7233925718849841,
+              "median": 0.75,
+              "minimum": 0.4375,
+              "population_std": 0.2742104795069301,
+              "quantiles_linear": {
+                "p05": 0.4375,
+                "p25": 0.4375,
+                "p50": 0.75,
+                "p75": 0.9375,
+                "p95": 1.0
+              }
+            },
+            "zero_variance_groups": 0,
+            "zero_variance_share": 0.0
+          }
+        }
+      },
+      "groups": 3240,
+      "ordered_rollout_key_sha256": "a6acc3446db2102b95fdec7fc798f731969a473b053bc23fe0e5a7a1d9851d59",
+      "ordered_sku_sha256": "05e22c09120a63f9936473fd1adf8bf7639545cbe2a22bdbb28b8ab2d74906ee"
+    },
+    "run2_active_pool": {
+      "channels": {
+        "format_validity_reward": {
+          "completion_distribution": {
+            "count": 11504,
+            "histogram": {
+              "1": 11504
+            },
+            "maximum": 1.0,
+            "mean": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "population_std": 0.0,
+            "quantiles_linear": {
+              "p05": 1.0,
+              "p25": 1.0,
+              "p50": 1.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "group_mean_distribution": {
+            "count": 1438,
+            "histogram": {
+              "1": 1438
+            },
+            "maximum": 1.0,
+            "mean": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "population_std": 0.0,
+            "quantiles_linear": {
+              "p05": 1.0,
+              "p25": 1.0,
+              "p50": 1.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "groups_with_variation": 0,
+          "largest_tie_size_per_group_histogram": {
+            "8": 1438
+          },
+          "unique_reward_values_per_group_histogram": {
+            "1": 1438
+          },
+          "within_group_variance_distribution": {
+            "count": 1438,
+            "histogram": {
+              "0": 1438
+            },
+            "maximum": 0.0,
+            "mean": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "population_std": 0.0,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.0,
+              "p75": 0.0,
+              "p95": 0.0
+            }
+          },
+          "zero_variance_groups": 1438,
+          "zero_variance_share": 1.0
+        },
+        "golden_agreement_reward": {
+          "completion_distribution": {
+            "count": 11504,
+            "histogram": {
+              "0": 6195,
+              "1": 5309
+            },
+            "maximum": 1.0,
+            "mean": 0.46149165507649514,
+            "median": 0.0,
+            "minimum": 0.0,
+            "population_std": 0.49851490185475134,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "group_mean_distribution": {
+            "count": 1438,
+            "histogram": {
+              "0.125": 352,
+              "0.25": 219,
+              "0.375": 156,
+              "0.5": 161,
+              "0.625": 135,
+              "0.75": 173,
+              "0.875": 242
+            },
+            "maximum": 0.875,
+            "mean": 0.46149165507649514,
+            "median": 0.375,
+            "minimum": 0.125,
+            "population_std": 0.27713732003910413,
+            "quantiles_linear": {
+              "p05": 0.125,
+              "p25": 0.25,
+              "p50": 0.375,
+              "p75": 0.75,
+              "p95": 0.875
+            }
+          },
+          "groups_with_variation": 1438,
+          "largest_tie_size_per_group_histogram": {
+            "4": 161,
+            "5": 291,
+            "6": 392,
+            "7": 594
+          },
+          "unique_reward_values_per_group_histogram": {
+            "2": 1438
+          },
+          "within_group_variance_distribution": {
+            "count": 1438,
+            "histogram": {
+              "0.109375": 594,
+              "0.1875": 392,
+              "0.234375": 291,
+              "0.25": 161
+            },
+            "maximum": 0.25,
+            "mean": 0.17171201321279556,
+            "median": 0.1875,
+            "minimum": 0.109375,
+            "population_std": 0.05615992829070079,
+            "quantiles_linear": {
+              "p05": 0.109375,
+              "p25": 0.109375,
+              "p50": 0.1875,
+              "p75": 0.234375,
+              "p95": 0.25
+            }
+          },
+          "zero_variance_groups": 0,
+          "zero_variance_share": 0.0
+        },
+        "vocab_rule_compliance_reward": {
+          "completion_distribution": {
+            "count": 11504,
+            "histogram": {
+              "0": 185,
+              "1": 11319
+            },
+            "maximum": 1.0,
+            "mean": 0.9839186369958275,
+            "median": 1.0,
+            "minimum": 0.0,
+            "population_std": 0.12578852399205778,
+            "quantiles_linear": {
+              "p05": 1.0,
+              "p25": 1.0,
+              "p50": 1.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "group_mean_distribution": {
+            "count": 1438,
+            "histogram": {
+              "0.25": 2,
+              "0.375": 4,
+              "0.5": 5,
+              "0.625": 11,
+              "0.75": 24,
+              "0.875": 52,
+              "1": 1340
+            },
+            "maximum": 1.0,
+            "mean": 0.9839186369958275,
+            "median": 1.0,
+            "minimum": 0.25,
+            "population_std": 0.07185691953409515,
+            "quantiles_linear": {
+              "p05": 0.875,
+              "p25": 1.0,
+              "p50": 1.0,
+              "p75": 1.0,
+              "p95": 1.0
+            }
+          },
+          "groups_with_variation": 98,
+          "largest_tie_size_per_group_histogram": {
+            "4": 5,
+            "5": 15,
+            "6": 26,
+            "7": 52,
+            "8": 1340
+          },
+          "unique_reward_values_per_group_histogram": {
+            "1": 1340,
+            "2": 98
+          },
+          "within_group_variance_distribution": {
+            "count": 1438,
+            "histogram": {
+              "0": 1340,
+              "0.109375": 52,
+              "0.1875": 26,
+              "0.234375": 15,
+              "0.25": 5
+            },
+            "maximum": 0.25,
+            "mean": 0.010659335883171072,
+            "median": 0.0,
+            "minimum": 0.0,
+            "population_std": 0.041772446257916145,
+            "quantiles_linear": {
+              "p05": 0.0,
+              "p25": 0.0,
+              "p50": 0.0,
+              "p75": 0.0,
+              "p95": 0.109375
+            }
+          },
+          "zero_variance_groups": 1340,
+          "zero_variance_share": 0.9318497913769124
+        },
+        "weighted_total": {
+          "completion_distribution": {
+            "count": 11504,
+            "histogram": {
+              "1": 185,
+              "2": 6010,
+              "4": 5309
+            },
+            "maximum": 4.0,
+            "mean": 2.906901947148818,
+            "median": 2.0,
+            "minimum": 1.0,
+            "population_std": 1.019596411119535,
+            "quantiles_linear": {
+              "p05": 2.0,
+              "p25": 2.0,
+              "p50": 2.0,
+              "p75": 4.0,
+              "p95": 4.0
+            }
+          },
+          "group_mean_distribution": {
+            "count": 1438,
+            "histogram": {
+              "1.5": 1,
+              "1.625": 2,
+              "1.75": 2,
+              "1.875": 4,
+              "2": 7,
+              "2.125": 18,
+              "2.25": 329,
+              "2.375": 11,
+              "2.5": 204,
+              "2.625": 3,
+              "2.75": 155,
+              "2.875": 6,
+              "3": 151,
+              "3.125": 6,
+              "3.25": 129,
+              "3.375": 6,
+              "3.5": 162,
+              "3.625": 11,
+              "3.75": 231
+            },
+            "maximum": 3.75,
+            "mean": 2.906901947148818,
+            "median": 2.75,
+            "minimum": 1.5,
+            "population_std": 0.5636369660230748,
+            "quantiles_linear": {
+              "p05": 2.25,
+              "p25": 2.25,
+              "p50": 2.75,
+              "p75": 3.5,
+              "p95": 3.75
+            }
+          },
+          "groups_with_variation": 1438,
+          "largest_tie_size_per_group_histogram": {
+            "3": 9,
+            "4": 168,
+            "5": 307,
+            "6": 385,
+            "7": 569
+          },
+          "unique_reward_values_per_group_histogram": {
+            "2": 1362,
+            "3": 76
+          },
+          "within_group_variance_distribution": {
+            "count": 1438,
+            "histogram": {
+              "0.4375": 558,
+              "0.609375": 12,
+              "0.75": 367,
+              "0.859375": 2,
+              "0.9375": 275,
+              "0.984375": 24,
+              "1": 149,
+              "1.1875": 1,
+              "1.234375": 8,
+              "1.359375": 16,
+              "1.5": 3,
+              "1.609375": 2,
+              "1.6875": 11,
+              "1.75": 3,
+              "1.9375": 1,
+              "1.984375": 1,
+              "2.109375": 2,
+              "2.25": 3
+            },
+            "maximum": 2.25,
+            "mean": 0.721890212100139,
+            "median": 0.75,
+            "minimum": 0.4375,
+            "population_std": 0.2780044120545095,
+            "quantiles_linear": {
+              "p05": 0.4375,
+              "p25": 0.4375,
+              "p50": 0.75,
+              "p75": 0.9375,
+              "p95": 1.0
+            }
+          },
+          "zero_variance_groups": 0,
+          "zero_variance_share": 0.0
+        }
+      },
+      "completions": 11504,
+      "difficulty_band_group_counts": {
+        "always_failed": 0,
+        "always_passed": 0,
+        "mixed": 1438
+      },
+      "difficulty_bands": {
+        "always_failed": {
+          "component_groups_with_variation": {
+            "format_validity_reward": 0,
+            "golden_agreement_reward": 0,
+            "vocab_rule_compliance_reward": 0
+          },
+          "groups": 0,
+          "weighted_total": {
+            "completion_distribution": {
+              "count": 0,
+              "histogram": {},
+              "maximum": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "minimum": 0.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 0.0
+              }
+            },
+            "group_mean_distribution": {
+              "count": 0,
+              "histogram": {},
+              "maximum": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "minimum": 0.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 0.0
+              }
+            },
+            "groups_with_variation": 0,
+            "largest_tie_size_per_group_histogram": {},
+            "unique_reward_values_per_group_histogram": {},
+            "within_group_variance_distribution": {
+              "count": 0,
+              "histogram": {},
+              "maximum": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "minimum": 0.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 0.0
+              }
+            },
+            "zero_variance_groups": 0,
+            "zero_variance_share": 0.0
+          }
+        },
+        "always_passed": {
+          "component_groups_with_variation": {
+            "format_validity_reward": 0,
+            "golden_agreement_reward": 0,
+            "vocab_rule_compliance_reward": 0
+          },
+          "groups": 0,
+          "weighted_total": {
+            "completion_distribution": {
+              "count": 0,
+              "histogram": {},
+              "maximum": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "minimum": 0.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 0.0
+              }
+            },
+            "group_mean_distribution": {
+              "count": 0,
+              "histogram": {},
+              "maximum": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "minimum": 0.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 0.0
+              }
+            },
+            "groups_with_variation": 0,
+            "largest_tie_size_per_group_histogram": {},
+            "unique_reward_values_per_group_histogram": {},
+            "within_group_variance_distribution": {
+              "count": 0,
+              "histogram": {},
+              "maximum": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "minimum": 0.0,
+              "population_std": 0.0,
+              "quantiles_linear": {
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 0.0
+              }
+            },
+            "zero_variance_groups": 0,
+            "zero_variance_share": 0.0
+          }
+        },
+        "mixed": {
+          "component_groups_with_variation": {
+            "format_validity_reward": 0,
+            "golden_agreement_reward": 1438,
+            "vocab_rule_compliance_reward": 98
+          },
+          "groups": 1438,
+          "weighted_total": {
+            "completion_distribution": {
+              "count": 11504,
+              "histogram": {
+                "1": 185,
+                "2": 6010,
+                "4": 5309
+              },
+              "maximum": 4.0,
+              "mean": 2.906901947148818,
+              "median": 2.0,
+              "minimum": 1.0,
+              "population_std": 1.019596411119535,
+              "quantiles_linear": {
+                "p05": 2.0,
+                "p25": 2.0,
+                "p50": 2.0,
+                "p75": 4.0,
+                "p95": 4.0
+              }
+            },
+            "group_mean_distribution": {
+              "count": 1438,
+              "histogram": {
+                "1.5": 1,
+                "1.625": 2,
+                "1.75": 2,
+                "1.875": 4,
+                "2": 7,
+                "2.125": 18,
+                "2.25": 329,
+                "2.375": 11,
+                "2.5": 204,
+                "2.625": 3,
+                "2.75": 155,
+                "2.875": 6,
+                "3": 151,
+                "3.125": 6,
+                "3.25": 129,
+                "3.375": 6,
+                "3.5": 162,
+                "3.625": 11,
+                "3.75": 231
+              },
+              "maximum": 3.75,
+              "mean": 2.906901947148818,
+              "median": 2.75,
+              "minimum": 1.5,
+              "population_std": 0.5636369660230748,
+              "quantiles_linear": {
+                "p05": 2.25,
+                "p25": 2.25,
+                "p50": 2.75,
+                "p75": 3.5,
+                "p95": 3.75
+              }
+            },
+            "groups_with_variation": 1438,
+            "largest_tie_size_per_group_histogram": {
+              "3": 9,
+              "4": 168,
+              "5": 307,
+              "6": 385,
+              "7": 569
+            },
+            "unique_reward_values_per_group_histogram": {
+              "2": 1362,
+              "3": 76
+            },
+            "within_group_variance_distribution": {
+              "count": 1438,
+              "histogram": {
+                "0.4375": 558,
+                "0.609375": 12,
+                "0.75": 367,
+                "0.859375": 2,
+                "0.9375": 275,
+                "0.984375": 24,
+                "1": 149,
+                "1.1875": 1,
+                "1.234375": 8,
+                "1.359375": 16,
+                "1.5": 3,
+                "1.609375": 2,
+                "1.6875": 11,
+                "1.75": 3,
+                "1.9375": 1,
+                "1.984375": 1,
+                "2.109375": 2,
+                "2.25": 3
+              },
+              "maximum": 2.25,
+              "mean": 0.721890212100139,
+              "median": 0.75,
+              "minimum": 0.4375,
+              "population_std": 0.2780044120545095,
+              "quantiles_linear": {
+                "p05": 0.4375,
+                "p25": 0.4375,
+                "p50": 0.75,
+                "p75": 0.9375,
+                "p95": 1.0
+              }
+            },
+            "zero_variance_groups": 0,
+            "zero_variance_share": 0.0
+          }
+        }
+      },
+      "groups": 1438,
+      "ordered_rollout_key_sha256": "c1fe09c88fa4a09e2397d6a98b4cd400dfdb57a9ef71cf61190ae0b96aef5500",
+      "ordered_sku_sha256": "97a96e775f2644c35cd33a412113b9bb135fba5019c5803e58f05ebd954eb4c7"
+    }
+  },
+  "status": "completed",
+  "version": "grpo-run2-original-reward-replay-v1"
+}

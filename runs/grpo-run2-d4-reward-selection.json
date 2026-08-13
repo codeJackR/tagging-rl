@@ -1,0 +1,283 @@
+{
+  "candidate_order": [
+    "U",
+    "UA",
+    "CB"
+  ],
+  "claim_boundary": "offline reward-design selection only; this does not establish that GRPO will improve model quality",
+  "inputs": {
+    "all_verified": true,
+    "sources": {
+      "comparison_contract": {
+        "bytes": 12079,
+        "path": "runs/grpo-run2-comparison-contract.json",
+        "sha256": "8692291af2319c33a9a6548c1a6530f8c61da0c04e27e69eaa048584245e1142"
+      },
+      "d3_analysis": {
+        "bytes": 16079523,
+        "path": "runs/grpo-run2-d3-candidate-analysis.json",
+        "sha256": "5812b23c1aae07cbfda923a7715db76f665bb072f39ec37a20592a41d9cbc7fb"
+      },
+      "universal_gate_decision": {
+        "bytes": 3430,
+        "path": "runs/grpo-run2-d4-universal-gate-decision.json",
+        "sha256": "1e8c85569060a706492cc11a50cc8304f5ccbfe3581a9396d9f627c27b33a194"
+      }
+    }
+  },
+  "role": "training_only_offline_reward_design_selection",
+  "selected_candidate": "UA",
+  "selection_boundary": {
+    "complexity_aware_selection_applied": true,
+    "gpu_training_authorized": false,
+    "run_contract_locked": false,
+    "winner_selected": true
+  },
+  "selection_reason": "CB did not satisfy every locked upgrade condition, so the simpler eligible UA policy wins",
+  "selection_steps": {
+    "1_universal_gate_filter": {
+      "U_failed_gate_ids": [
+        "G3_distinct_levels"
+      ],
+      "eligible": [
+        "UA",
+        "CB"
+      ],
+      "excluded": [
+        "U"
+      ]
+    },
+    "2_ua_versus_u": {
+      "applied": false,
+      "reason": "U was already excluded by the universal gate filter; UA is the surviving uniform candidate",
+      "surviving_uniform_candidate": "UA"
+    },
+    "3_cb_versus_ua": {
+      "applied": true,
+      "baseline_candidate": "UA",
+      "decision": {
+        "all_upgrade_conditions_passed": false,
+        "checks": {
+          "canonical_known_utility_ci_lower_noninferior": true,
+          "class_balanced_alignment_ci_lower_above_zero": true,
+          "class_balanced_alignment_point_gain_met": false,
+          "field_and_class_dominance_gates_pass": true,
+          "harmful_coverage_ci_upper_noninferior": false,
+          "pairwise_discrimination_ci_lower_noninferior": true
+        },
+        "observed_deltas_cb_minus_ua": {
+          "canonical_known_utility_alignment": {
+            "ci": [
+              -0.01799236119325368,
+              -0.0012078690947901775
+            ],
+            "point": -0.009710559396125307
+          },
+          "class_balanced_known_utility_alignment": {
+            "ci": [
+              0.0032354755814315056,
+              0.020601886587104053
+            ],
+            "point": 0.011751680880310977
+          },
+          "harmful_coverage": {
+            "ci": [
+              0.007713771753681392,
+              0.0390399096385542
+            ],
+            "point": 0.02252342704149933
+          },
+          "pairwise_discrimination": {
+            "ci": [
+              0.006879594675144096,
+              0.010381482217365456
+            ],
+            "point": 0.008568448241605298
+          }
+        },
+        "thresholds": {
+          "canonical_known_utility_alignment_ci_lower_noninferiority": -0.02,
+          "class_balanced_known_utility_alignment_ci_lower_minimum": 0.0,
+          "class_balanced_known_utility_alignment_point_delta_minimum": 0.03,
+          "field_and_class_dominance_gates_pass": true,
+          "harmful_coverage_ci_upper_noninferiority": 0.02,
+          "pairwise_discrimination_ci_lower_noninferiority": -0.02
+        }
+      },
+      "more_complex_candidate": "CB",
+      "paired_bootstraps": {
+        "canonical_known_utility_alignment": {
+          "baseline": {
+            "ci": [
+              0.8507414452781056,
+              0.8792040598324989
+            ],
+            "mean": 0.8651122882742164,
+            "median": 0.865133885150576,
+            "point": 0.8649726190022674
+          },
+          "candidate": {
+            "ci": [
+              0.8403983990462041,
+              0.8695122578535942
+            ],
+            "mean": 0.8554268159575286,
+            "median": 0.8555022116679649,
+            "point": 0.8552620596061421
+          },
+          "completion_level_resampling": false,
+          "confidence": 0.95,
+          "delta_candidate_minus_baseline": {
+            "ci": [
+              -0.01799236119325368,
+              -0.0012078690947901775
+            ],
+            "fraction_above_zero": 0.0123,
+            "fraction_below_zero": 0.9877,
+            "fraction_equal_zero": 0.0,
+            "mean": -0.00968547231668789,
+            "median": -0.00974280771148911,
+            "point": -0.009710559396125307
+          },
+          "groups_per_replicate": 1419,
+          "method": "paired nonparametric product-group bootstrap, percentile interval",
+          "pairing_unit": "entire k=8 product group",
+          "percentile_method": "linear interpolation at sorted index (n - 1) * p",
+          "replicate_stream_sha256": "f0c13881097ce108c74984e22ea48619d8ea3d733532d85c4297b2405958ad23",
+          "replicates": 10000,
+          "seed": 20260812
+        },
+        "class_balanced_known_utility_alignment": {
+          "baseline": {
+            "ci": [
+              0.8313657229339423,
+              0.8603764523434688
+            ],
+            "mean": 0.8461922075139946,
+            "median": 0.8462815838526354,
+            "point": 0.8460217235784293
+          },
+          "candidate": {
+            "ci": [
+              0.843422084598382,
+              0.8720581464777689
+            ],
+            "mean": 0.8579271297285309,
+            "median": 0.8579682246004903,
+            "point": 0.8577734044587403
+          },
+          "completion_level_resampling": false,
+          "confidence": 0.95,
+          "delta_candidate_minus_baseline": {
+            "ci": [
+              0.0032354755814315056,
+              0.020601886587104053
+            ],
+            "fraction_above_zero": 0.9965,
+            "fraction_below_zero": 0.0035,
+            "fraction_equal_zero": 0.0,
+            "mean": 0.011734922214536276,
+            "median": 0.011692159045472106,
+            "point": 0.011751680880310977
+          },
+          "groups_per_replicate": 1419,
+          "method": "paired nonparametric product-group bootstrap, percentile interval",
+          "pairing_unit": "entire k=8 product group",
+          "percentile_method": "linear interpolation at sorted index (n - 1) * p",
+          "replicate_stream_sha256": "cdce93c77177ead5e0138cd278e1080d2a7afa4702a87fb318f5af14362c7241",
+          "replicates": 10000,
+          "seed": 20260812
+        },
+        "harmful_coverage": {
+          "baseline": {
+            "ci": [
+              0.05281856593038823,
+              0.09892904953145916
+            ],
+            "mean": 0.07475977074966532,
+            "median": 0.07449799196787149,
+            "point": 0.07479082998661311
+          },
+          "candidate": {
+            "ci": [
+              0.07183672188755022,
+              0.12467390394912985
+            ],
+            "mean": 0.09718904618473896,
+            "median": 0.09677878179384203,
+            "point": 0.09731425702811244
+          },
+          "completion_level_resampling": false,
+          "confidence": 0.95,
+          "delta_candidate_minus_baseline": {
+            "ci": [
+              0.007713771753681392,
+              0.0390399096385542
+            ],
+            "fraction_above_zero": 0.999,
+            "fraction_below_zero": 0.001,
+            "fraction_equal_zero": 0.0,
+            "mean": 0.02242927543507363,
+            "median": 0.022088353413654616,
+            "point": 0.02252342704149933
+          },
+          "groups_per_replicate": 332,
+          "method": "paired nonparametric product-group bootstrap, percentile interval",
+          "pairing_unit": "entire k=8 product group",
+          "percentile_method": "linear interpolation at sorted index (n - 1) * p",
+          "replicate_stream_sha256": "86afa3b30c8315ed1e11fcd37c7d7a776734dc646b87e0af82b75a77f0c49a6f",
+          "replicates": 10000,
+          "seed": 20260812
+        },
+        "pairwise_discrimination": {
+          "baseline": {
+            "ci": [
+              0.6315561047089212,
+              0.651674572819392
+            ],
+            "mean": 0.6415973946950129,
+            "median": 0.6415159944367177,
+            "point": 0.6415408305185775
+          },
+          "candidate": {
+            "ci": [
+              0.6396036161335188,
+              0.6604907609775482
+            ],
+            "mean": 0.6501810749056229,
+            "median": 0.650183787005762,
+            "point": 0.6501092787601828
+          },
+          "completion_level_resampling": false,
+          "confidence": 0.95,
+          "delta_candidate_minus_baseline": {
+            "ci": [
+              0.006879594675144096,
+              0.010381482217365456
+            ],
+            "fraction_above_zero": 1.0,
+            "fraction_below_zero": 0.0,
+            "fraction_equal_zero": 0.0,
+            "mean": 0.008583680210609977,
+            "median": 0.008568448241605409,
+            "point": 0.008568448241605298
+          },
+          "groups_per_replicate": 1438,
+          "method": "paired nonparametric product-group bootstrap, percentile interval",
+          "pairing_unit": "entire k=8 product group",
+          "percentile_method": "linear interpolation at sorted index (n - 1) * p",
+          "replicate_stream_sha256": "93e3048f1d84a04c3e4fa80fedaf549373c3ee98352c3826c3ca23a9d9823ae1",
+          "replicates": 10000,
+          "seed": 20260812
+        }
+      }
+    }
+  },
+  "status": "run2_offline_reward_selected_pending_run_contract",
+  "universal_eligibility": {
+    "CB": true,
+    "U": false,
+    "UA": true
+  },
+  "version": "grpo-run2-complexity-aware-selection-v1"
+}

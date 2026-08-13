@@ -1,0 +1,447 @@
+<title>W2 — Teaching a small model a contract</title>
+<style>
+  :root{
+    --paper:#EFF2F4; --card:#FFF; --ink:#12171C; --dim:#67737D; --line:#DBE1E6;
+    --ac:#2D3FA8; --acS:#E5E9FB;
+    --ok:#0B7A5A; --okS:#DCF0E9;
+    --warn:#A2700A; --warnS:#F7EEDA;
+    --bad:#BE3A22; --badS:#FAE5DF;
+    --grid:rgba(45,63,168,.055); --onbar:#fff;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#0F1316; --card:#171D22; --ink:#E6ECF0; --dim:#8A97A1; --line:#252E35;
+    --ac:#8CA0FF; --acS:#1A2148;
+    --ok:#4FCBA4; --okS:#0E2A23;
+    --warn:#DFA742; --warnS:#2A2213;
+    --bad:#F07A5E; --badS:#2C1712;
+    --grid:rgba(140,160,255,.05); --onbar:#0F1316;
+  }}
+  :root[data-theme=light]{
+    --paper:#EFF2F4; --card:#FFF; --ink:#12171C; --dim:#67737D; --line:#DBE1E6;
+    --ac:#2D3FA8; --acS:#E5E9FB; --ok:#0B7A5A; --okS:#DCF0E9;
+    --warn:#A2700A; --warnS:#F7EEDA; --bad:#BE3A22; --badS:#FAE5DF;
+    --grid:rgba(45,63,168,.055); --onbar:#fff;
+  }
+  :root[data-theme=dark]{
+    --paper:#0F1316; --card:#171D22; --ink:#E6ECF0; --dim:#8A97A1; --line:#252E35;
+    --ac:#8CA0FF; --acS:#1A2148; --ok:#4FCBA4; --okS:#0E2A23;
+    --warn:#DFA742; --warnS:#2A2213; --bad:#F07A5E; --badS:#2C1712;
+    --grid:rgba(140,160,255,.05); --onbar:#0F1316;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--paper);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.45;padding:30px 16px 90px;-webkit-font-smoothing:antialiased;
+  }
+  .w{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,"Cascadia Mono",monospace}
+
+  h1{font-size:clamp(28px,7vw,40px);line-height:1.04;letter-spacing:-.035em;
+     font-weight:800;text-wrap:balance}
+  .sub{font-size:16px;color:var(--dim);margin-top:12px;text-wrap:pretty;max-width:56ch}
+  .eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;
+     letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;
+     display:flex;flex-direction:column;gap:14px}
+  .cap{font-size:13.5px;color:var(--dim);text-wrap:pretty}
+  b.hl{color:var(--ink);font-weight:650}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* transform */
+  .xform{display:grid;grid-template-columns:1fr 30px 1fr;align-items:center;gap:6px}
+  @media(max-width:520px){.xform{grid-template-columns:1fr;gap:10px}
+    .xform .arw{transform:rotate(90deg);height:20px}}
+  .pane{border-radius:11px;padding:12px 13px;font-size:11.5px;line-height:1.55;
+     font-family:ui-monospace,Menlo,monospace;overflow:hidden}
+  .pane.i{background:var(--acS);border:1.5px solid var(--ac);color:var(--ink)}
+  .pane.o{background:var(--okS);border:1.5px solid var(--ok);color:var(--ink)}
+  .pane .tag{display:block;font-size:9.5px;font-weight:700;letter-spacing:.14em;
+     text-transform:uppercase;margin-bottom:7px}
+  .pane.i .tag{color:var(--ac)} .pane.o .tag{color:var(--ok)}
+  .arw{text-align:center;font-size:19px;color:var(--dim);line-height:1}
+
+  /* stat strip */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .st{border:1px solid var(--line);border-radius:11px;padding:11px 12px;background:var(--card)}
+  .st .v{font-size:23px;font-weight:750;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+  .st .k{font-size:10.5px;color:var(--dim);margin-top:1px;letter-spacing:.02em}
+
+  /* stage rail */
+  .rail{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .sg{border-radius:11px;padding:12px;border:1.5px solid;position:relative}
+  .sg .n{font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:700;
+     letter-spacing:.12em;text-transform:uppercase}
+  .sg .t{font-size:14px;font-weight:650;margin-top:4px;letter-spacing:-.01em}
+  .sg .d{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .sg.done{border-color:var(--ok);background:var(--okS)} .sg.done .n{color:var(--ok)}
+  .sg.now{border-color:var(--ac);background:var(--acS)}  .sg.now .n{color:var(--ac)}
+  .sg.stop{border-color:var(--bad);background:var(--badS)} .sg.stop .n{color:var(--bad)}
+  @media(max-width:520px){.rail{grid-template-columns:1fr}}
+
+  /* two-up */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  @media(max-width:520px){.two{grid-template-columns:1fr}}
+  .def{border-radius:11px;padding:13px;border:1.5px solid}
+  .def .h{font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:700}
+  .def .m{font-size:13px;margin-top:6px;font-weight:600}
+  .def .e{font-size:12px;color:var(--dim);margin-top:5px}
+  .def.a{border-color:var(--ac);background:var(--acS)}  .def.a .h{color:var(--ac)}
+  .def.b{border-color:var(--warn);background:var(--warnS)} .def.b .h{color:var(--warn)}
+
+  /* verifier fork */
+  .fork{display:grid;grid-template-columns:1fr;gap:9px;align-items:center}
+  .hub{border:1.5px solid var(--ink);border-radius:11px;padding:12px;text-align:center;
+     background:var(--card)}
+  .hub .h{font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:700}
+  .hub .s{font-size:11.5px;color:var(--dim);margin-top:3px}
+  .legs{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .leg{border:1px dashed var(--line);border-radius:11px;padding:11px;font-size:12.5px}
+  .leg u{display:block;text-decoration:none;font-size:10px;font-weight:700;letter-spacing:.12em;
+     text-transform:uppercase;color:var(--dim);margin-bottom:4px;
+     font-family:ui-monospace,Menlo,monospace}
+  .vsplit{text-align:center;color:var(--dim);font-size:15px;letter-spacing:.4em}
+
+  /* family collapse */
+  .fam{display:grid;grid-template-columns:1fr 26px auto;align-items:center;gap:8px}
+  @media(max-width:520px){.fam{grid-template-columns:1fr;gap:9px}}
+  .rows{display:flex;flex-direction:column;gap:4px}
+  .rows i{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-style:normal;
+     background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:5px 8px;
+     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fchip{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;font-weight:700;
+     background:var(--acS);border:1.5px solid var(--ac);color:var(--ac);
+     border-radius:9px;padding:9px 11px;text-align:center}
+
+  /* pie-ish lora */
+  .lora{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .dial{width:104px;height:104px;border-radius:50%;flex:none;position:relative;
+     background:conic-gradient(var(--ac) 0 1.013deg,var(--line) 1.013deg 360deg)}
+  .dial::after{content:"";position:absolute;inset:13px;border-radius:50%;background:var(--card)}
+  .dial span{position:absolute;inset:0;display:grid;place-items:center;z-index:1;
+     font-size:16px;font-weight:750;letter-spacing:-.02em;color:var(--ac);
+     font-variant-numeric:tabular-nums}
+  .loraT{flex:1;min-width:190px;font-size:13px}
+  .loraT div{display:flex;justify-content:space-between;padding:5px 0;
+     border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
+  .loraT div:last-child{border-bottom:none}
+  .loraT span:last-child{font-family:ui-monospace,Menlo,monospace;font-weight:600}
+
+  /* paired bars */
+  .pb{display:flex;flex-direction:column;gap:11px}
+  .pb .r{display:grid;grid-template-columns:112px 1fr;gap:10px;align-items:center}
+  @media(max-width:520px){.pb .r{grid-template-columns:1fr;gap:3px}}
+  .pb .lbl{font-size:12.5px;color:var(--dim);text-align:right}
+  @media(max-width:520px){.pb .lbl{text-align:left}}
+  .track{display:flex;flex-direction:column;gap:3px}
+  .bar{height:15px;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;
+     padding-right:6px;font-size:10.5px;font-weight:700;color:var(--onbar);
+     font-variant-numeric:tabular-nums;min-width:46px}
+  .bar.a{background:var(--dim)}
+  .bar.b{background:var(--ok)}
+  .bar.flat{background:var(--warn)}
+  .bar.down{background:var(--bad)}
+  .delta{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;
+     color:var(--ok);font-variant-numeric:tabular-nums}
+
+  /* headline comparison */
+  .hl4{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .mv{border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--card)}
+  .mv .k{font-size:11px;color:var(--dim);letter-spacing:.02em}
+  .mv .row{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+  .mv .from{font-size:15px;color:var(--dim);font-variant-numeric:tabular-nums;
+     text-decoration:line-through;text-decoration-thickness:1px}
+  .mv .to{font-size:26px;font-weight:780;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .mv .d{font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:700;
+     margin-left:auto;padding:2px 6px;border-radius:6px}
+  .mv.up .to{color:var(--ok)}   .mv.up .d{background:var(--okS);color:var(--ok)}
+  .mv.eq .to{color:var(--dim)}  .mv.eq .d{background:var(--paper);color:var(--dim)}
+
+  /* chips */
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;padding:5px 9px;
+     border-radius:7px;background:var(--badS);border:1px solid var(--bad);color:var(--bad);
+     font-weight:600}
+  .chip.g{background:var(--okS);border-color:var(--ok);color:var(--ok)}
+
+  /* count bars */
+  .cb{display:flex;flex-direction:column;gap:5px}
+  .cb .r{display:grid;grid-template-columns:110px 1fr 22px;gap:9px;align-items:center;
+     font-size:12.5px}
+  .cb .r span:first-child{color:var(--dim);text-align:right}
+  .cb i{display:block;height:11px;border-radius:3px;background:var(--bad);opacity:.85}
+  .cb .r span:last-child{font-family:ui-monospace,Menlo,monospace;font-size:11px;
+     font-weight:700;font-variant-numeric:tabular-nums;color:var(--dim)}
+
+  pre{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 13px;
+     overflow-x:auto;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.55}
+  .warnbox{border:1.5px solid var(--bad);background:var(--badS);border-radius:11px;padding:14px}
+  .warnbox .h{font-weight:700;font-size:14px;color:var(--bad);margin-bottom:5px}
+  .warnbox .t{font-size:13px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="w">
+
+  <!-- HERO -->
+  <header>
+    <div class="eyebrow">Week 2 · SFT baseline before RL</div>
+    <h1 style="margin-top:10px">Teaching a 1.5B model an output <em>contract</em>.</h1>
+    <p class="sub">A catalog listing goes in. One JSON record, 15 fields, closed vocabulary,
+      comes out. A verifier decides — mechanically — whether it counts.</p>
+  </header>
+
+  <div class="card">
+    <div class="xform">
+      <div class="pane i"><span class="tag">listing in</span>
+        Title: Organic Cotton Pull On Pant<br>
+        Brand: NAADAM<br>
+        Category: Woven Pants<br>
+        Description: …100% organic cotton, the easy<br>elastic waist…<br>
+        Tags: cotton, Bottoms, elastic, summer
+      </div>
+      <div class="arw">→</div>
+      <div class="pane o"><span class="tag">record out</span>
+        closure: "pullover"<br>
+        collar_type: <b>null</b><br>
+        colour_primary: "unknown"<br>
+        fit: "loose"<br>
+        garment_category: "pants"<br>
+        material: "cotton"<br>
+        <span style="color:var(--dim)">…9 more fields</span>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="st"><div class="v num">15</div><div class="k">fields</div></div>
+      <div class="st"><div class="v num">156</div><div class="k">allowed values</div></div>
+      <div class="st"><div class="v num">34</div><div class="k">cross-field rules</div></div>
+    </div>
+  </div>
+
+  <!-- STAGES -->
+  <div class="rail">
+    <div class="sg done"><div class="n">W1 · done</div><div class="t">The instrument</div>
+      <div class="d">Verifier, frozen 300-row eval, harness</div></div>
+    <div class="sg now"><div class="n">W2 · here</div><div class="t">SFT baseline</div>
+      <div class="d">Arm A trained. Arm B pending.</div></div>
+    <div class="sg stop"><div class="n">W2 · blocked</div><div class="t">GRPO</div>
+      <div class="d">vLLM / TRL version clash</div></div>
+  </div>
+
+  <!-- VERIFIER -->
+  <div class="card">
+    <div class="eyebrow">The load-bearing idea</div>
+    <div class="fork">
+      <div class="hub"><div class="h">one verifier</div>
+        <div class="s">valid JSON → allowed values → cross-field rules</div></div>
+      <div class="vsplit">↙ ↘</div>
+      <div class="legs">
+        <div class="leg"><u>during RL</u>It <b class="hl">is</b> the reward.</div>
+        <div class="leg"><u>in production</u>It's the QA gate.</div>
+      </div>
+    </div>
+    <div class="cap">Because both consumers share one implementation, “correct” can't drift
+      between the thing you train on and the thing you ship.</div>
+  </div>
+
+  <!-- NULL VS UNKNOWN -->
+  <div class="card">
+    <div class="eyebrow">Two kinds of blank — never merged</div>
+    <div class="two">
+      <div class="def a"><div class="h">null</div>
+        <div class="m">Cannot apply.</div>
+        <div class="e">Pants have no neckline.</div></div>
+      <div class="def b"><div class="h">"unknown"</div>
+        <div class="m">Could apply. Text didn't say.</div>
+        <div class="e">The listing never mentions colour.</div></div>
+    </div>
+    <div class="cap">Collapsing these lets a model earn credit for calling a missing fact
+      <b class="hl">inapplicable</b>. Abstention has to cost something.</div>
+  </div>
+
+  <!-- HONESTY -->
+  <div class="card">
+    <div class="eyebrow">What these numbers are not</div>
+    <div style="display:flex;flex-wrap:wrap;gap:2px">
+      <!-- 4500 cells, 78 reviewed -->
+      <div id="dots" style="display:flex;flex-wrap:wrap;gap:2px;width:100%"></div>
+    </div>
+    <div class="cap"><b class="hl">78 of 4,500</b> evaluation cells were human-reviewed.
+      The rest still equal the frontier model's own answer. So absolute scores are partly
+      tautological — but <b class="hl">deltas under the same frozen evaluator stay honest</b>.
+      That's the only claim this project makes.</div>
+  </div>
+
+  <!-- FAMILY SPLIT -->
+  <div class="card">
+    <div class="eyebrow">Why the split isn't random</div>
+    <div class="fam">
+      <div class="rows">
+        <i>Everyday Tote | Red (XL)</i>
+        <i>Everyday Tote | Black (M)</i>
+        <i>Everyday Tote | Navy (L)</i>
+        <i style="color:var(--dim)">…57 variants total</i>
+      </div>
+      <div class="arw">→</div>
+      <div class="fchip">Thursday Boots<br>+ everyday tote<br>
+        <span style="font-weight:500;color:var(--dim)">1 family</span></div>
+    </div>
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      <div class="st"><div class="v num">2,255</div><div class="k">families</div></div>
+      <div class="st"><div class="v num">3,240</div><div class="k">train rows</div></div>
+      <div class="st"><div class="v num">360</div><div class="k">validation rows</div></div>
+    </div>
+    <div class="cap">Train on the red tote, test on the black one, and you've measured
+      recognition — not generalization. Whole families move together, stratified so every
+      garment category lands near 10%.</div>
+  </div>
+
+  <!-- LORA -->
+  <div class="card">
+    <div class="eyebrow">How little actually gets trained</div>
+    <div class="lora">
+      <div class="dial"><span>0.28%</span></div>
+      <div class="loraT">
+        <div><span>Qwen2.5-1.5B, frozen</span><span>1,548,072,448</span></div>
+        <div><span>LoRA, trainable</span><span>4,358,144</span></div>
+        <div><span>rank</span><span>16</span></div>
+        <div><span>adapter on disk</span><span>17.5 MB</span></div>
+      </div>
+    </div>
+    <div class="cap">Attention projections only (Q, K, V, out) across 28 blocks.
+      The base model never moves — a thin adjustment path runs alongside it.</div>
+  </div>
+
+  <!-- THE COMPARISON -->
+  <div class="card">
+    <div class="eyebrow">The load-bearing comparison · step 203 vs 406, same run</div>
+    <div class="hl4">
+      <div class="mv up"><div class="k">vocabulary-valid records</div>
+        <div class="row"><span class="from num">78.0%</span><span class="to num">90.0%</span>
+          <span class="d">+43</span></div></div>
+      <div class="mv up"><div class="k">macro-F1</div>
+        <div class="row"><span class="from num">0.708</span><span class="to num">0.751</span>
+          <span class="d">+.043</span></div></div>
+      <div class="mv up"><div class="k">rule violations</div>
+        <div class="row"><span class="from num">19</span><span class="to num">15</span>
+          <span class="d">−4</span></div></div>
+      <div class="mv eq"><div class="k">schema-valid</div>
+        <div class="row"><span class="from num">99.7%</span><span class="to num">99.7%</span>
+          <span class="d">flat</span></div></div>
+    </div>
+    <div class="cap">Epoch 2 was selected on <b class="hl">generated output</b>, not on falling
+      loss. Schema validity was already saturated, so flat is the expected result there.</div>
+    <pre>why one run, not two ·  cosine LR decays over <b>total planned steps</b>
+step 203 of 203  →  LR ≈ 0        step 203 of 406  →  LR mid-decay
+same index, different model. only in-run checkpoints isolate the epoch.</pre>
+  </div>
+
+  <!-- PER ATTRIBUTE -->
+  <div class="card">
+    <div class="eyebrow">Where the second pass landed · macro-F1 by field</div>
+    <div class="pb" id="pb"></div>
+    <div class="cap">Twelve of 15 fields improved. Three didn't — which is exactly why
+      per-field results get inspected instead of hiding behind one average.</div>
+  </div>
+
+  <!-- STILL BROKEN -->
+  <div class="card">
+    <div class="eyebrow">What epoch 2 did not fix</div>
+    <div class="cap" style="color:var(--ink);font-size:14px">The model has the JSON shell.
+      It hasn't fully learned that every value comes from a <b class="hl">closed list</b>.</div>
+    <div class="chips">
+      <span class="chip">"woven"</span><span class="chip">"patchwork"</span>
+      <span class="chip">"snap"</span><span class="chip">"asymmetric"</span>
+      <span class="chip">"scarf"</span><span class="chip">"popovers"</span>
+      <span class="chip">["gather"]</span>
+    </div>
+    <div class="cap">Perfectly reasonable English. Not in the contract. That gap —
+      <b class="hl">semantically plausible vs. contract-valid</b> — is the whole reason this
+      task makes a good RL testbed.</div>
+    <div class="cb" id="cb" style="margin-top:4px"></div>
+    <div class="cap">Invalid-value fields across the 36 non-compliant records.
+      Plus 15 rule violations, led by <span class="mono">solid_is_not_multicolour</span> (5)
+      and auto applies-to (6).</div>
+  </div>
+
+  <!-- NEXT -->
+  <div class="card">
+    <div class="eyebrow">Where it stands</div>
+    <div class="two">
+      <div class="def a" style="border-color:var(--ok);background:var(--okS)">
+        <div class="h" style="color:var(--ok)">arm A ✓</div>
+        <div class="m">Attention-only, 2 epochs</div>
+        <div class="e">530 s · peak 4.75 GiB · W&amp;B iwsrgsn2</div></div>
+      <div class="def b"><div class="h">arm B</div>
+        <div class="m">Attention + MLP</div>
+        <div class="e">Not yet run. The ablation is incomplete until it is.</div></div>
+    </div>
+    <div class="warnbox">
+      <div class="h">GRPO is blocked</div>
+      <div class="t"><span class="mono">trl 0.24.0</span> expects an older vLLM API than
+        <span class="mono">vllm 0.23.0</span> exposes. <span class="mono">GRPOTrainer</span>
+        fails at import — <span class="mono">GuidedDecodingParams</span> is gone.</div>
+    </div>
+    <div class="cap">The interesting story was never “RL makes a number go up.” It's how a
+      small model learns an operational contract, how the verifier exposes its shortcuts,
+      and why baseline discipline is what makes the result worth believing.</div>
+  </div>
+
+</div>
+
+<script>
+// 4,500 eval cells; 78 human-reviewed. One dot = 25 cells, so the reviewed
+// slice is ~3 dots out of 180 — the point is that it is barely visible.
+(function(){
+  const el = document.getElementById('dots');
+  const TOTAL = 180, REVIEWED = Math.round(78 / 4500 * TOTAL); // 3
+  let html = '';
+  for (let i = 0; i < TOTAL; i++){
+    const on = i < REVIEWED;
+    html += '<i style="width:9px;height:9px;border-radius:2px;display:block;background:'
+          + (on ? 'var(--ok)' : 'var(--line)') + '"></i>';
+  }
+  el.innerHTML = html;
+})();
+
+// step-203 -> step-406 macro-F1, the fields that moved most plus the three that didn't
+(function(){
+  const D = [
+    ['closure',          .285, .549],
+    ['pattern',          .757, .919],
+    ['sleeve_length',    .793, .870],
+    ['silhouette',       .562, .610],
+    ['fit',              .876, .904],
+    ['material',         .804, .827],
+    ['waistline',        .518, .518],
+    ['garment_category', .874, .868],
+    ['occasion',         .614, .609],
+  ];
+  document.getElementById('pb').innerHTML = D.map(([k,a,b]) => {
+    const d = b - a;
+    const cls = d > 0.001 ? 'b' : d < -0.001 ? 'down' : 'flat';
+    const sign = d > 0.001 ? '+' : d < -0.001 ? '−' : '±';
+    return '<div class="r"><div class="lbl">' + k + '</div><div class="track">'
+      + '<div class="bar a"  style="width:' + (a*100).toFixed(1) + '%">' + a.toFixed(3) + '</div>'
+      + '<div class="bar ' + cls + '" style="width:' + (b*100).toFixed(1) + '%">' + b.toFixed(3)
+      + ' <span style="opacity:.75;margin-left:4px">' + sign + Math.abs(d).toFixed(3).slice(1)
+      + '</span></div>'
+      + '</div></div>';
+  }).join('');
+})();
+
+// fields that emitted an out-of-vocabulary value at the final checkpoint
+(function(){
+  const C = [['neckline',8],['closure',7],['details',7],['material',5],['pattern',3],
+             ['silhouette',3],['garment_category',2],['occasion',2],['sleeve_style',1]];
+  const max = 8;
+  document.getElementById('cb').innerHTML = C.map(([k,v]) =>
+    '<div class="r"><span>' + k + '</span><i style="width:' + (v/max*100) + '%"></i>'
+    + '<span>' + v + '</span></div>').join('');
+})();
+</script>
