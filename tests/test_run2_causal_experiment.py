@@ -19,6 +19,7 @@ from training.run2_causal_experiment import (
     build_quality_policy,
     common_training_config,
     quality_observations,
+    run_construction,
 )
 from training.run2_checkpoint_monitor_control import CheckpointMonitorCoordinator
 
@@ -268,3 +269,47 @@ def test_causal_wrapper_publishes_decision_and_aborts_repeated_breach(tmp_path):
     )
     assert decision["abort_training"] is True
     assert decision["repeated_consecutive_breach_keys"] == [key]
+
+
+def test_read_only_construction_binds_both_configs_and_rewards(tmp_path):
+    root = Path(__file__).resolve().parents[1]
+    contract_path = root / "runs/grpo-run2-causal-experiment-contract.json"
+    if not contract_path.exists():
+        pytest.skip("causal contract has not been published")
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    from training.run2_causal_experiment import _identity
+
+    preflight = tmp_path / "preflight.json"
+    preflight.write_text(
+        json.dumps(
+            {
+                "status": "passed_read_only_no_training_dispatch",
+                "contract": _identity(contract_path, root),
+                "model_loaded": False,
+                "trainer_constructed": False,
+                "training_dispatched": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeConfig:
+        def __init__(self, **kwargs):
+            self.__dict__.update(kwargs)
+            self.report_to = [] if kwargs.get("report_to") == "none" else kwargs.get("report_to")
+            self.generation_batch_size = 8
+
+    report = run_construction(
+        root=root,
+        contract_path=contract_path,
+        preflight_path=preflight,
+        config_class=FakeConfig,
+    )
+    assert report["status"] == "both_arm_configs_constructed_no_trainer_no_dispatch"
+    assert report["arms"]["A"]["reward_callable_names"] == [
+        "format_validity_reward",
+        "vocab_rule_compliance_reward",
+        "golden_agreement_reward",
+    ]
+    assert report["arms"]["B"]["reward_callable_names"] == ["candidate_ua_reward"]
+    assert report["trainer_constructed"] is False

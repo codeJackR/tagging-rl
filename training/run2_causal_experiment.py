@@ -25,6 +25,7 @@ from training.run2_checkpoint_monitor_control import CheckpointMonitorCoordinato
 
 VERSION = "grpo-run2-causal-gpu-experiment-v1"
 PREFLIGHT_VERSION = "grpo-run2-causal-gpu-preflight-v1"
+CONSTRUCTION_VERSION = "grpo-run2-causal-config-construction-v1"
 QUALITY_POLICY_VERSION = "grpo-run2-causal-quality-policy-v1"
 DEFAULT_DOCUMENT = "W2_GRPO_RUN2_CAUSAL_EXPERIMENT_CONTRACT.md"
 DEFAULT_SCHEDULE = "data/grpo_run2_causal_schedule_v1.jsonl"
@@ -33,6 +34,7 @@ DEFAULT_BASELINE_DIR = "runs/grpo-run2-checkpoint-monitor-baseline-sft"
 DEFAULT_BASELINE_RECEIPT = "runs/grpo-run2-checkpoint-monitor-baseline-sft.receipt.json"
 DEFAULT_OUTPUT = "runs/grpo-run2-causal-experiment-contract.json"
 DEFAULT_PREFLIGHT_OUTPUT = "runs/grpo-run2-causal-preflight.json"
+DEFAULT_CONSTRUCTION_OUTPUT = "runs/grpo-run2-causal-construction.json"
 BASE_MODEL = "unsloth/Qwen2.5-1.5B-Instruct"
 STARTING_ADAPTER = "runs/sft-combined-2epoch/checkpoint-406"
 STARTING_ADAPTER_SHA256 = "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af"
@@ -127,8 +129,12 @@ class CausalQualityAbort(RuntimeError):
 
 
 def _identity(path: Path, root: Path) -> dict[str, Any]:
+    try:
+        display = str(path.relative_to(root))
+    except ValueError:
+        display = str(path)
     return {
-        "path": str(path.relative_to(root)),
+        "path": display,
         "bytes": path.stat().st_size,
         "sha256": sha256_file(path),
     }
@@ -804,6 +810,120 @@ def run_preflight(
     }
 
 
+def _normalized_config_value(value: Any) -> Any:
+    if hasattr(value, "value"):
+        return value.value
+    if isinstance(value, tuple):
+        return list(value)
+    return value
+
+
+def _inspect_constructed_config(config: object, expected: Mapping[str, Any]) -> dict[str, Any]:
+    observed = {}
+    for key, expected_value in expected.items():
+        actual = _normalized_config_value(getattr(config, key, None))
+        if key == "report_to" and actual in ([], (), "none"):
+            observed[key] = []
+            continue
+        if key == "reward_weights":
+            actual = list(actual) if actual is not None else None
+        if actual != expected_value:
+            raise RuntimeError(
+                f"causal GRPOConfig normalized {key} unexpectedly: {actual!r} != {expected_value!r}"
+            )
+        observed[key] = actual
+    generation_batch_size = getattr(config, "generation_batch_size", None)
+    if generation_batch_size != 8:
+        raise RuntimeError("causal GRPOConfig generation batch must be eight")
+    return {
+        "settings": observed,
+        "generation_batch_size": generation_batch_size,
+        "prompts_per_generation_batch": generation_batch_size // GENERATIONS_PER_STEP,
+        "settings_match_contract": True,
+    }
+
+
+def _reward_callables(arm: str) -> tuple[Callable[..., list[float]], ...]:
+    if arm == "A":
+        from training.rewards import FIRST_RUN_REWARD_FUNCTIONS
+
+        return FIRST_RUN_REWARD_FUNCTIONS
+    if arm == "B":
+        from training.run2_rewards import candidate_ua_reward
+
+        return (candidate_ua_reward,)
+    raise ValueError("causal arm must be A or B")
+
+
+def run_construction(
+    *,
+    root: str | Path,
+    contract_path: str | Path,
+    preflight_path: str | Path,
+    config_class: type | None = None,
+) -> dict[str, Any]:
+    """Construct both real config/reward surfaces without a model or Trainer."""
+    root = Path(root).resolve()
+    contract_path = (root / contract_path).resolve()
+    preflight_path = (root / preflight_path).resolve()
+    contract = _load_json(contract_path)
+    preflight = _load_json(preflight_path)
+    if preflight.get("status") != "passed_read_only_no_training_dispatch":
+        raise ValueError("causal construction requires a passed preflight")
+    if preflight.get("contract") != _identity(contract_path, root):
+        raise RuntimeError("causal construction preflight names a different contract")
+    if any(
+        preflight.get(key) is not False
+        for key in ("model_loaded", "trainer_constructed", "training_dispatched")
+    ):
+        raise RuntimeError("causal construction received a mutated preflight")
+    if config_class is None:
+        import torch
+        from trl import GRPOConfig
+
+        config_class = GRPOConfig
+        cuda_initialized_before = torch.cuda.is_initialized()
+    else:
+        torch = None
+        cuda_initialized_before = False
+
+    arm_reports = {}
+    for arm in contract["arm_order"]:
+        spec = contract["arms"][arm]
+        expected = {**spec["config"], "reward_weights": spec["reward"]["weights"]}
+        config = config_class(**expected)
+        callables = _reward_callables(arm)
+        names = [getattr(value, "__name__", type(value).__name__) for value in callables]
+        if names != spec["reward"]["functions"]:
+            raise RuntimeError(f"causal arm {arm} reward callable binding drifted")
+        arm_reports[arm] = {
+            "config_class": config_class.__name__,
+            "config_module": config_class.__module__,
+            "config": _inspect_constructed_config(config, expected),
+            "reward_callable_names": names,
+            "reward_callable_modules": [value.__module__ for value in callables],
+            "model_constructed": False,
+            "trainer_constructed": False,
+            "training_dispatched": False,
+        }
+    cuda_initialized_after = torch.cuda.is_initialized() if torch is not None else False
+    if cuda_initialized_before or cuda_initialized_after:
+        raise RuntimeError("read-only causal config construction initialized CUDA")
+    return {
+        "version": CONSTRUCTION_VERSION,
+        "status": "both_arm_configs_constructed_no_trainer_no_dispatch",
+        "contract": _identity(contract_path, root),
+        "preflight": _identity(preflight_path, root),
+        "arms": arm_reports,
+        "causal_difference_audit": contract["causal_difference_audit"],
+        "cuda_initialized": False,
+        "model_constructed": False,
+        "trainer_constructed": False,
+        "training_dispatched": False,
+        "arm_output_paths_created": False,
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", default=".")
@@ -814,13 +934,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     preflight = sub.add_parser("preflight")
     preflight.add_argument("--contract", default=DEFAULT_OUTPUT)
     preflight.add_argument("--output", default=DEFAULT_PREFLIGHT_OUTPUT)
+    construction = sub.add_parser("construct")
+    construction.add_argument("--contract", default=DEFAULT_OUTPUT)
+    construction.add_argument("--preflight", default=DEFAULT_PREFLIGHT_OUTPUT)
+    construction.add_argument("--output", default=DEFAULT_CONSTRUCTION_OUTPUT)
     args = parser.parse_args(argv)
     root = Path(args.repo_root).resolve()
     if args.command == "build":
         result = build_contract(root=root, expected_code_commit=args.expected_code_commit)
         output = root / args.output
-    else:
+    elif args.command == "preflight":
         result = run_preflight(root=root, contract_path=args.contract)
+        output = root / args.output
+    else:
+        result = run_construction(
+            root=root,
+            contract_path=args.contract,
+            preflight_path=args.preflight,
+        )
         output = root / args.output
     write_exclusive_atomic_json(output, result)
     print(json.dumps({"output": str(output.relative_to(root)), "status": result["status"]}, sort_keys=True))
