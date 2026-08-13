@@ -15,6 +15,7 @@ from training.run2_causal_experiment import (
     QualityBreachTracker,
     _arm_diff,
     arm_spec,
+    build_contract,
     build_quality_policy,
     common_training_config,
     quality_observations,
@@ -177,6 +178,18 @@ def test_report_must_be_complete_and_checkpoint_order_is_fixed():
 
 def test_driver_headroom_constant_is_six_gib():
     assert MINIMUM_MONITOR_DRIVER_FREE_BYTES == 6 * 1024**3
+
+
+def test_published_causal_contract_rebuilds_from_its_pinned_code_commit():
+    path = Path(__file__).resolve().parents[1] / "runs/grpo-run2-causal-experiment-contract.json"
+    if not path.exists():
+        pytest.skip("causal experiment contract has not been published")
+    published = json.loads(path.read_text(encoding="utf-8"))
+    rebuilt = build_contract(
+        root=path.parents[1],
+        expected_code_commit=published["expected_execution_code_commit"],
+    )
+    assert published == rebuilt
 
 
 def _base_monitor(tmp_path: Path):
