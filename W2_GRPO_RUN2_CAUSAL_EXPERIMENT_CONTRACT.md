@@ -79,12 +79,12 @@ publish atomically before training may continue.
 Evaluator launch failure, timeout, invalid publication or checkpoint mismatch
 aborts immediately. Quality stopping uses a separate baseline-derived policy:
 
-1. for higher-is-better metrics, threshold = baseline sampled mean minus the
-   larger of two population standard deviations or a predeclared practical
-   margin;
-2. for rule-violation rate, threshold = mean plus the larger of two standard
-   deviations or its practical margin;
-3. greedy and sampled-mean observations are evaluated separately;
+1. the allowance is the larger of two sampled population standard deviations
+   or a predeclared practical margin;
+2. greedy thresholds are anchored to the deterministic greedy baseline;
+   sampled-mean thresholds are anchored to the eight-seed sampled mean;
+3. lower bounds subtract the allowance and the rule-violation upper bound adds
+   it; greedy and sampled-mean observations are evaluated separately;
 4. one breach warns; the same view/metric/decoding-mode must breach at two
    consecutive checkpoints to abort;
 5. a clean intervening checkpoint resets that breach sequence;

@@ -27,7 +27,11 @@ from training.run2_checkpoint_monitor_control import CheckpointMonitorCoordinato
 def _baseline_report(mean: float = 0.8, std: float = 0.01):
     views = {}
     for view, metric, _direction, _margin in PRACTICAL_MARGINS:
-        views.setdefault(view, {"sampled": {"aggregate": {}}})
+        views.setdefault(
+            view,
+            {"greedy": {"scalars": {}}, "sampled": {"aggregate": {}}},
+        )
+        views[view]["greedy"]["scalars"][metric] = mean + 0.01
         views[view]["sampled"]["aggregate"][metric] = {
             "mean": mean,
             "population_stddev": std,
@@ -50,26 +54,31 @@ def _checkpoint_report(policy, *, breached_keys=()):
             guardrail["view"],
             {"greedy": {"scalars": {}}, "sampled": {"aggregate": {}}},
         )
-        safe = (
-            guardrail["threshold"] + 0.01
-            if guardrail["direction"] == "lower"
-            else guardrail["threshold"] - 0.01
-        )
         greedy_key = f"{guardrail['key']}:greedy"
         sampled_key = f"{guardrail['key']}:sampled_mean"
-        greedy = safe
-        sampled = safe
+        greedy_threshold = guardrail["thresholds"]["greedy"]
+        sampled_threshold = guardrail["thresholds"]["sampled_mean"]
+        greedy = (
+            greedy_threshold + 0.01
+            if guardrail["direction"] == "lower"
+            else greedy_threshold - 0.01
+        )
+        sampled = (
+            sampled_threshold + 0.01
+            if guardrail["direction"] == "lower"
+            else sampled_threshold - 0.01
+        )
         if greedy_key in breached_keys:
             greedy = (
-                guardrail["threshold"] - 0.01
+                greedy_threshold - 0.01
                 if guardrail["direction"] == "lower"
-                else guardrail["threshold"] + 0.01
+                else greedy_threshold + 0.01
             )
         if sampled_key in breached_keys:
             sampled = (
-                guardrail["threshold"] - 0.01
+                sampled_threshold - 0.01
                 if guardrail["direction"] == "lower"
-                else guardrail["threshold"] + 0.01
+                else sampled_threshold + 0.01
             )
         view["greedy"]["scalars"][guardrail["metric"]] = greedy
         view["sampled"]["aggregate"][guardrail["metric"]] = {"mean": sampled}
@@ -111,13 +120,13 @@ def test_quality_threshold_uses_larger_of_variability_or_practical_margin():
         if item["key"] == "representative_all:macro_f1"
     )
     assert macro["variability_allowance"] == 0.05
-    assert macro["threshold"] == 0.75
+    assert macro["thresholds"] == {"greedy": 0.76, "sampled_mean": 0.75}
     rules = next(
         item
         for item in policy["guardrails"]
         if item["key"] == "representative_all:rule_violation_rate"
     )
-    assert rules["threshold"] == 0.82
+    assert rules["thresholds"] == {"greedy": 0.83, "sampled_mean": 0.82}
     variable = build_quality_policy(_baseline_report(mean=0.8, std=0.04))
     macro_variable = next(
         item
@@ -125,7 +134,10 @@ def test_quality_threshold_uses_larger_of_variability_or_practical_margin():
         if item["key"] == "representative_all:macro_f1"
     )
     assert macro_variable["variability_allowance"] == 0.08
-    assert macro_variable["threshold"] == 0.72
+    assert macro_variable["thresholds"] == {
+        "greedy": 0.73,
+        "sampled_mean": 0.72,
+    }
 
 
 def test_same_mode_must_breach_at_two_consecutive_checkpoints_to_abort():

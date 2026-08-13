@@ -297,27 +297,36 @@ def build_quality_policy(baseline_report: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("quality baseline must contain 360 rows and eight repeats")
     guardrails = []
     for view, metric, direction, practical_margin in PRACTICAL_MARGINS:
+        baseline_greedy = float(
+            baseline_report["views"][view]["greedy"]["scalars"][metric]
+        )
         distribution = baseline_report["views"][view]["sampled"]["aggregate"][metric]
         mean = float(distribution["mean"])
         std = float(distribution["population_stddev"])
         variability_allowance = max(2.0 * std, practical_margin)
-        threshold = (
-            max(0.0, mean - variability_allowance)
-            if direction == "lower"
-            else min(1.0, mean + variability_allowance)
-        )
+        if direction == "lower":
+            threshold_fn = lambda value: max(
+                0.0, value - variability_allowance
+            )
+        else:
+            threshold_fn = lambda value: min(
+                1.0, value + variability_allowance
+            )
         guardrails.append(
             {
                 "key": f"{view}:{metric}",
                 "view": view,
                 "metric": metric,
                 "direction": direction,
+                "baseline_greedy": baseline_greedy,
                 "baseline_sampled_mean": mean,
                 "baseline_sampled_population_stddev": std,
                 "practical_margin": practical_margin,
                 "variability_allowance": variability_allowance,
-                "threshold": round(threshold, 12),
-                "decoding_modes": ["greedy", "sampled_mean"],
+                "thresholds": {
+                    "greedy": round(threshold_fn(baseline_greedy), 12),
+                    "sampled_mean": round(threshold_fn(mean), 12),
+                },
             }
         )
     return {
@@ -350,10 +359,11 @@ def quality_observations(
             ),
         }
         for mode, value in values.items():
+            threshold = guardrail["thresholds"][mode]
             breached = (
-                value < guardrail["threshold"]
+                value < threshold
                 if guardrail["direction"] == "lower"
-                else value > guardrail["threshold"]
+                else value > threshold
             )
             observations.append(
                 {
@@ -362,7 +372,7 @@ def quality_observations(
                     "metric": guardrail["metric"],
                     "decoding_mode": mode,
                     "direction": guardrail["direction"],
-                    "threshold": guardrail["threshold"],
+                    "threshold": threshold,
                     "observed": value,
                     "breached": breached,
                 }
