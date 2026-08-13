@@ -1,0 +1,215 @@
+{
+  "checkpoint": {
+    "adapter_model_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+    "files": {
+      "README.md": {
+        "bytes": 5234,
+        "path": "README.md",
+        "sha256": "64b7055b4141fff271e651244cf5e5e8f962d0780bbb72fc119da70a89cb3e92"
+      },
+      "adapter_config.json": {
+        "bytes": 1242,
+        "path": "adapter_config.json",
+        "sha256": "03b32ecd1a9b9c3e050d1d21d32fb3e31bd4b2fc37d9f4d784628c24ef47fa57"
+      },
+      "adapter_model.safetensors": {
+        "bytes": 73911112,
+        "path": "adapter_model.safetensors",
+        "sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af"
+      },
+      "added_tokens.json": {
+        "bytes": 605,
+        "path": "added_tokens.json",
+        "sha256": "58b54bbe36fc752f79a24a271ef66a0a0830054b4dfad94bde757d851968060b"
+      },
+      "chat_template.jinja": {
+        "bytes": 2507,
+        "path": "chat_template.jinja",
+        "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+      },
+      "merges.txt": {
+        "bytes": 1671853,
+        "path": "merges.txt",
+        "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+      },
+      "special_tokens_map.json": {
+        "bytes": 614,
+        "path": "special_tokens_map.json",
+        "sha256": "b5acd1507cb3a3539e63369cb4a2b675a599cf13afe62282d371518288967797"
+      },
+      "tokenizer.json": {
+        "bytes": 11421896,
+        "path": "tokenizer.json",
+        "sha256": "9c5ae00e602b8860cbd784ba82a8aa14e8feecec692e7076590d014d7b7fdafa"
+      },
+      "tokenizer_config.json": {
+        "bytes": 4713,
+        "path": "tokenizer_config.json",
+        "sha256": "4581fb09137f69b0249be04a4d16d035fffcc06624fdeb883dba5d1f4bd34a90"
+      },
+      "trainer_state.json": {
+        "bytes": 8269,
+        "path": "trainer_state.json",
+        "sha256": "1f7c1058805c406d572828edcb01df5ee0a44151813d28e6ffc0ac34b50f54bf"
+      },
+      "training_args.bin": {
+        "bytes": 6417,
+        "path": "training_args.bin",
+        "sha256": "fe9e9ead3ca9d60355e2e3b2f09baa885437a45c972a4ce21843b9153e8f630a"
+      },
+      "vocab.json": {
+        "bytes": 2776833,
+        "path": "vocab.json",
+        "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+      }
+    },
+    "path": "/workspace/tagging-rl/runs/sft-combined-2epoch/checkpoint-406"
+  },
+  "checkpoint_created_by_smoke": false,
+  "code": {
+    "files": {
+      "evalharness/metrics.py": {
+        "bytes": 10267,
+        "path": "evalharness/metrics.py",
+        "sha256": "98763087717a8c904a8cb7e5ab6728797354320c45f5f9675df77a7f5a08c4ad"
+      },
+      "evalharness/predictions.py": {
+        "bytes": 4617,
+        "path": "evalharness/predictions.py",
+        "sha256": "87967600fe842af202f21d404fcb8c1ee47e3e2bc8997c9b704e67f0d255913c"
+      },
+      "labeling/records.py": {
+        "bytes": 8974,
+        "path": "labeling/records.py",
+        "sha256": "727f1b361834eeb985acaac7861cb2eff5df5ea3cff758ecce0b724ec5f0a683"
+      },
+      "training/audit_data_boundaries.py": {
+        "bytes": 21398,
+        "path": "training/audit_data_boundaries.py",
+        "sha256": "80920cefb81f81895645c46b20c893af9a0f7fe59783f9959233ea878bff7a53"
+      },
+      "training/predict.py": {
+        "bytes": 5669,
+        "path": "training/predict.py",
+        "sha256": "1477919e40dcf981c740b69e33e46ada8eba0add63df3e7dfe5806e3a69999e8"
+      },
+      "training/rewards.py": {
+        "bytes": 4671,
+        "path": "training/rewards.py",
+        "sha256": "ac9658028c62a84b32a8ba52c9e53e8d27ecaba05cd6d1703e398917aec1706d"
+      },
+      "training/run2_checkpoint_monitor.py": {
+        "bytes": 13785,
+        "path": "training/run2_checkpoint_monitor.py",
+        "sha256": "3a08cb1cee1cda76359470f5860d17698231c5b3e4ad1e7a49ed4f66d71d1acf"
+      },
+      "training/run2_checkpoint_monitor_contract.py": {
+        "bytes": 8129,
+        "path": "training/run2_checkpoint_monitor_contract.py",
+        "sha256": "ff3637988d9f9819a530f4b8094afc02b62be1e7bb138f93abdafb47075f74b3"
+      },
+      "training/run2_checkpoint_monitor_control.py": {
+        "bytes": 17646,
+        "path": "training/run2_checkpoint_monitor_control.py",
+        "sha256": "c05dd3555a23ba8586f1a863a2fc8fbb3fcadd84758959846ecc0728e61c35c5"
+      },
+      "training/run2_checkpoint_monitor_runtime.py": {
+        "bytes": 21481,
+        "path": "training/run2_checkpoint_monitor_runtime.py",
+        "sha256": "dba936f27e6850cb0bf1f5060d3e7d367c452e8955c972e5be877f9c95bf89f5"
+      },
+      "training/run2_rewards.py": {
+        "bytes": 38893,
+        "path": "training/run2_rewards.py",
+        "sha256": "5197095bf77762481cbf8c3803ac651ec0f69733b4b3c52638c7b76923350ab4"
+      },
+      "verifier/__init__.py": {
+        "bytes": 8281,
+        "path": "verifier/__init__.py",
+        "sha256": "19ea656adae0003f3a4feeccf7effce8432a26100785ae81b367bd6780627836"
+      },
+      "verifier/rules.py": {
+        "bytes": 7598,
+        "path": "verifier/rules.py",
+        "sha256": "d4c5287fa059237a9af1e12477f8dacd637481fca7b89b904b6d8f6910d3d796"
+      },
+      "verifier/schema.py": {
+        "bytes": 6214,
+        "path": "verifier/schema.py",
+        "sha256": "aed20907d91f677aff5156fbbfafd86fba19c8b878a4bd09d2f14be3fb61805c"
+      }
+    },
+    "git_commit": "f0ac795507b961cb263e8e0b91a9be983d88de4e"
+  },
+  "configuration": {
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "batch_size": 8,
+    "greedy_repetitions": 1,
+    "max_completion_length": 170,
+    "max_prompt_length": 600,
+    "rows": 360,
+    "sampled_repetitions": 8,
+    "sampled_seeds": [
+      20260813,
+      20260814,
+      20260815,
+      20260816,
+      20260817,
+      20260818,
+      20260819,
+      20260820
+    ],
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "view_rows": {
+      "difficult_0_to_2_of_8": 204,
+      "easy_retention_6_to_8_of_8": 110,
+      "middle_3_to_5_of_8": 46,
+      "representative_all": 360
+    }
+  },
+  "contract": {
+    "bytes": 44812,
+    "path": "runs/grpo-run2-checkpoint-monitor-contract.json",
+    "sha256": "81048bff4cdf067ee53b46a4442084728e79c876be5efe572422fce99bc79059"
+  },
+  "execution_boundary": {
+    "confirmation_data_used": false,
+    "full_grpo_training_dispatched": false,
+    "quality_abort_threshold_applied": false
+  },
+  "files": {
+    "greedy_predictions": {
+      "bytes": 168093,
+      "path": "greedy.jsonl",
+      "sha256": "6218a34ac162737a5ff12120f4214c8b4a1af1d63ab22c8433822487b330d458"
+    },
+    "resource_report": {
+      "bytes": 1417,
+      "path": "resource.json",
+      "sha256": "6708b47fc0c96ce514a307bb26c982efe8fc777d970c65b521897329f8ecbfba"
+    },
+    "sampled_predictions": {
+      "bytes": 1418763,
+      "path": "sampled.jsonl",
+      "sha256": "e3524f89e2e4bbac8bf46c924f76bfbc922fc6ce4902acef10b8b3cb670c00f4"
+    },
+    "scored_report": {
+      "bytes": 628546,
+      "path": "report.json",
+      "sha256": "0906d4138ef02b0daca2f44f99f5ce93edec770451e538be6aa622ee4e8cc94c"
+    }
+  },
+  "invariants": {
+    "confirmation_data_used": false,
+    "fixed_development_membership": true,
+    "greedy_and_repeated_sampled_complete": true,
+    "original_and_dense_rewards_scored": true,
+    "published_exclusively_and_atomically": true,
+    "quality_abort_threshold_applied": false
+  },
+  "mode": "production",
+  "quality_evidence": true,
+  "status": "checkpoint_monitor_complete",
+  "version": "grpo-run2-checkpoint-monitor-runtime-v1"
+}

@@ -1,0 +1,46 @@
+{
+  "checkpoint_save_resource": {},
+  "cuda_after_load": {
+    "allocated_bytes": 3161288192,
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "free_bytes": 21281570816,
+    "max_allocated_bytes": 3235147264,
+    "reserved_bytes": 3286237184,
+    "total_bytes": 25298141184
+  },
+  "cuda_after_release": {
+    "allocated_bytes": 9568256,
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "free_bytes": 21457731584,
+    "max_allocated_bytes": 3918550016,
+    "reserved_bytes": 3091202048,
+    "total_bytes": 25298141184
+  },
+  "cuda_before_load": {
+    "allocated_bytes": 0,
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "free_bytes": 24611848192,
+    "max_allocated_bytes": 0,
+    "reserved_bytes": 0,
+    "total_bytes": 25298141184
+  },
+  "cuda_cleanup_within_64_mib_of_start": true,
+  "cuda_peak": {
+    "allocated_bytes": 3170856448,
+    "device_name": "NVIDIA GeForce RTX 3090",
+    "free_bytes": 19469631488,
+    "max_allocated_bytes": 3918550016,
+    "reserved_bytes": 5079302144,
+    "total_bytes": 25298141184
+  },
+  "model_reference_released": true,
+  "timing": {
+    "cpu_scoring_seconds": 2.9330013119615614,
+    "greedy_generation_seconds": 271.0419507439947,
+    "model_load_seconds": 6.727012560004368,
+    "sampled_generation_seconds": 2232.8423153120093,
+    "total_seconds": 2515.3931721290573
+  },
+  "tokenizer_reference_released": true,
+  "version": "grpo-run2-checkpoint-monitor-runtime-v1"
+}
