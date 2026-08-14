@@ -194,6 +194,21 @@ def run_arm(
         smoke_max_steps=smoke_max_steps,
     )
 
+    # A model loaded in inference mode trains nothing and still reports a loss
+    # and a completed run. The 1-step smoke caught exactly this: an adapter
+    # attached with `load_adapter` produced "Trainable parameters = 0".
+    parameters = getattr(trainer.model, "parameters", None)
+    if callable(parameters):
+        trainable = sum(
+            int(getattr(value, "numel", lambda: 0)())
+            for value in parameters()
+            if getattr(value, "requires_grad", False)
+        )
+        if trainable <= 0:
+            raise WorkloadError(
+                "model has no trainable parameters; the adapter was loaded for "
+                "inference rather than training"
+            )
     started = clock_fn()
     try:
         outcome = trainer.train()

@@ -247,6 +247,7 @@ def build_callbacks(
     monitor_command_builder: Callable[[int, Path, Path], list[str]],
     monitor_runner: Callable[..., Mapping[str, Any]],
     gpu_free_bytes_fn: Callable[[], int],
+    smoke: bool = False,
 ) -> tuple[list[Any], FullRunPhaseProfiler, dict[str, Any]]:
     """Build exactly the profiler and causal-monitor callbacks, in that order."""
     spec = contract["arms"][arm]
@@ -305,11 +306,16 @@ def build_callbacks(
     if causal.gpu_free_bytes_fn is not gpu_free_bytes_fn:
         raise CompositionError("causal monitor did not retain the injected GPU probe")
 
-    callbacks = [profiler_callback, monitor_callback]
+    # In smoke mode the monitor is built and verified but not registered: its
+    # `on_train_begin` independently re-asserts the production step schedule
+    # (max_steps 300, save_steps 100), so a short run cannot proceed with it
+    # attached. Building it anyway keeps every wiring check above in force.
+    callbacks = [profiler_callback] if smoke else [profiler_callback, monitor_callback]
     return callbacks, phase_profiler, {
         "callback_classes": [type(value).__name__ for value in callbacks],
         "profiler_present": True,
-        "causal_monitor_present": True,
+        "causal_monitor_present": not smoke,
+        "causal_monitor_built_but_unregistered": smoke,
         "monitor_checkpoint_steps": list(base.expected_steps),
         "monitor_runner_invoked_by_contract": False,
         "callback_lifecycle_invoked_by_contract": False,
@@ -581,6 +587,7 @@ def compose_arm_runtime(
         monitor_command_builder=monitor_command_builder,
         monitor_runner=monitor_runner,
         gpu_free_bytes_fn=gpu_free_bytes_fn,
+        smoke=smoke_max_steps is not None,
     )
 
     model, tokenizer = model_loader()
