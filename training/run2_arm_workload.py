@@ -161,6 +161,27 @@ def publish_atomically(staging: Path, final: Path) -> dict[str, Any]:
     return {"published": True, "path": str(final)}
 
 
+def bind_rollout_collector(trainer_class: type, collector: Any) -> type:
+    """Wrap a trainer class so it captures every completion group it generates.
+
+    TRL overwrites its generated group each step, so rollouts must be captured
+    as they are produced. Run 1 solved this with a capturing subclass that
+    takes the collector as an extra constructor argument; composition calls the
+    trainer with a fixed five-argument signature, so the collector is bound
+    here rather than threaded through composition.
+    """
+    from training.train_grpo import make_full_run_rollout_capturing_trainer_class
+
+    capturing = make_full_run_rollout_capturing_trainer_class(trainer_class)
+
+    class CollectorBoundTrainer(capturing):
+        def __init__(self, **kwargs: Any):
+            super().__init__(**kwargs, full_run_rollout_collector=collector)
+
+    CollectorBoundTrainer.__name__ = f"Collecting{trainer_class.__name__}"
+    return CollectorBoundTrainer
+
+
 def run_arm(
     *,
     root: str | Path,
@@ -178,6 +199,7 @@ def run_arm(
     gpu_free_bytes_fn: Callable[[], int],
     scratch_root: str | Path,
     smoke_max_steps: int | None = None,
+    rollout_collector: Any = None,
     clock_fn: Callable[[], float] = time.perf_counter,
 ) -> dict[str, Any]:
     """Compose, train, validate and publish one arm."""
@@ -199,7 +221,11 @@ def run_arm(
         pack=pack,
         model_loader=model_loader,
         config_class=config_class,
-        trainer_class=trainer_class,
+        trainer_class=(
+            bind_rollout_collector(trainer_class, rollout_collector)
+            if rollout_collector is not None
+            else trainer_class
+        ),
         callback_base_class=callback_base_class,
         synchronize_fn=synchronize_fn,
         monitor_contract_path=monitor_contract_path,
@@ -240,7 +266,11 @@ def run_arm(
         # `collected_phase_records` attribute off the trainer that only the test
         # fake had, so the real 1-step smoke reported zero records.
         "phase_records": _phase_records(phase_profiler, steps),
-        "rollouts": list(getattr(trainer, "collected_rollouts", [])),
+        "rollouts": (
+            list(rollout_collector.records)
+            if rollout_collector is not None
+            else list(getattr(trainer, "collected_rollouts", []))
+        ),
         "checkpoints": list(getattr(trainer, "saved_checkpoints", [])),
     }
     evidence = validate_training_result(result, steps=steps, smoke=smoke)
