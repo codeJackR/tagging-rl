@@ -661,3 +661,42 @@ def test_dispatched_trainer_holds_the_raw_reward_callables(compose, contract):
         "training.rewards"
     ] * len(expected)
     assert report["boundaries"]["rewards_observed_called"] == 0
+
+
+# --- the smoke escape hatch ---------------------------------------------------
+
+
+def test_smoke_mode_relaxes_the_step_budget_and_is_stamped(compose):
+    """A short GPU smoke cannot otherwise reach this path.
+
+    The production gate requires the locked 300-step schedule, so proving that
+    the instrumentation actually FIRES needs a deliberate escape hatch. It must
+    be impossible to mistake the result for a production composition.
+    """
+    report, _ = compose("A", smoke_max_steps=1)
+    assert report["status"] == "arm_runtime_smoke_composed"
+    assert report["smoke_mode"] is True
+    assert report["step_schedule"]["max_steps"] == 1
+    assert report["step_schedule"]["checkpointing"] == "disabled"
+
+
+def test_production_composition_is_never_stamped_as_smoke(compose):
+    report, _ = compose("A")
+    assert report["status"] == "arm_runtime_composed_no_training_dispatched"
+    assert report["smoke_mode"] is False
+    assert report["step_schedule"]["max_steps"] == 300
+
+
+def test_smoke_mode_disables_checkpointing_so_the_monitor_cannot_fire(compose):
+    """With saving off, `on_save` never runs and the quality tracker is never
+    asked for a step the smoke will not reach."""
+    _, trainer = compose("A", smoke_max_steps=2)
+    assert trainer.args.save_strategy == "no"
+    assert trainer.args.max_steps == 2
+
+
+@pytest.mark.parametrize("bad", [0, -1, 300, 500])
+def test_smoke_budget_outside_the_permitted_range_fails_closed(compose, bad):
+    """It must not be possible to run a full-length job through the smoke path."""
+    with pytest.raises(CompositionError, match="smoke step budget"):
+        compose("A", smoke_max_steps=bad)

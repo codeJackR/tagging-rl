@@ -242,6 +242,7 @@ def build_callbacks(
     contract: Mapping[str, Any],
     callback_base_class: type,
     synchronize_fn: Callable[[], object],
+    expected_steps: int,
     monitor_contract_path: Path,
     monitor_command_builder: Callable[[int, Path, Path], list[str]],
     monitor_runner: Callable[..., Mapping[str, Any]],
@@ -268,7 +269,7 @@ def build_callbacks(
     # factory would strictly weaken the proof for no benefit. Only the CUDA
     # synchronize call is injected.
     phase_profiler = FullRunPhaseProfiler(
-        expected_steps=TRAINING_STEPS, synchronize_fn=synchronize_fn
+        expected_steps=expected_steps, synchronize_fn=synchronize_fn
     )
     profiler_callback_class = make_phase_profiler_callback_class(callback_base_class)
     profiler_callback = profiler_callback_class(phase_profiler=phase_profiler)
@@ -510,6 +511,7 @@ def compose_arm_runtime(
     monitor_runner: Callable[..., Mapping[str, Any]],
     gpu_free_bytes_fn: Callable[[], int],
     trainer_scratch_dir: str | Path,
+    smoke_max_steps: int | None = None,
 ) -> tuple[dict[str, Any], Any]:
     """Compose one arm's trainer surface; return its report and the trainer.
 
@@ -541,11 +543,27 @@ def compose_arm_runtime(
     # not looking, and surface at train begin on the GPU.
     max_steps = spec["config"]["max_steps"]
     save_steps = spec["config"]["save_steps"]
-    if max_steps != TRAINING_STEPS:
+    if smoke_max_steps is not None:
+        # A short GPU smoke cannot otherwise reach this path: the production
+        # gate below requires the locked 300-step schedule. Smoke mode relaxes
+        # the step budget and disables checkpointing outright, so the quality
+        # monitor never fires and cannot demand a step the smoke will not
+        # reach. The report is stamped so a smoke artifact can never be read as
+        # a production composition.
+        max_steps = int(smoke_max_steps)
+        if not 1 <= max_steps < TRAINING_STEPS:
+            raise CompositionError(
+                f"smoke step budget {max_steps} must be between 1 and "
+                f"{TRAINING_STEPS - 1}"
+            )
+    elif max_steps != TRAINING_STEPS:
         raise CompositionError(
             f"arm max_steps {max_steps} does not match the locked {TRAINING_STEPS}"
         )
-    if tuple(range(save_steps, max_steps + 1, save_steps)) != tuple(CHECKPOINT_STEPS):
+    if (
+        smoke_max_steps is None
+        and tuple(range(save_steps, max_steps + 1, save_steps)) != tuple(CHECKPOINT_STEPS)
+    ):
         raise CompositionError(
             f"save_steps {save_steps} over {max_steps} steps would not produce "
             f"checkpoints {tuple(CHECKPOINT_STEPS)}"
@@ -558,6 +576,7 @@ def compose_arm_runtime(
         contract=contract,
         callback_base_class=callback_base_class,
         synchronize_fn=synchronize_fn,
+        expected_steps=max_steps,
         monitor_contract_path=Path(monitor_contract_path).resolve(),
         monitor_command_builder=monitor_command_builder,
         monitor_runner=monitor_runner,
@@ -584,9 +603,15 @@ def compose_arm_runtime(
         )
     config_kwargs = {**spec["config"], "reward_weights": spec["reward"]["weights"]}
     config_kwargs["output_dir"] = str(scratch)
+    config_kwargs["max_steps"] = max_steps
+    if smoke_max_steps is not None:
+        config_kwargs["save_strategy"] = "no"
     config = config_class(**config_kwargs)
     expected_config = _normalized_expected_config(spec)
     expected_config["output_dir"] = str(scratch)
+    expected_config["max_steps"] = max_steps
+    if smoke_max_steps is not None:
+        expected_config["save_strategy"] = "no"
     try:
         config_inspection = _inspect_constructed_config(config, expected_config)
     except RuntimeError as exc:
@@ -680,7 +705,16 @@ def compose_arm_runtime(
 
     return {
         "version": VERSION,
-        "status": "arm_runtime_composed_no_training_dispatched",
+        "status": (
+            "arm_runtime_smoke_composed"
+            if smoke_max_steps is not None
+            else "arm_runtime_composed_no_training_dispatched"
+        ),
+        "smoke_mode": smoke_max_steps is not None,
+        "step_schedule": {
+            "max_steps": max_steps,
+            "checkpointing": "disabled" if smoke_max_steps is not None else "epoch/steps",
+        },
         "arm": arm,
         "role": spec["role"],
         "contract_lineage": lineage,
