@@ -6444,3 +6444,533 @@ runtime/trainer composition behind this bridge: ordered materialized dataset,
 original reward, profiler callback, causal monitor callback, checkpoint
 handoffs and fail-closed publication. Model loading, detached launch and real
 GPU optimizer work remain separate and unavailable until that proof is reviewed.
+
+## 108. The composition proof asks whether the assembled trainer keeps its instruments
+
+The Arm A bridge validated inputs. It did not answer the next question: when
+those validated pieces are actually assembled into a trainer, does anything get
+quietly dropped on the way in?
+
+That question is not academic for this experiment. Run 1's most expensive
+finding was that a regression went undetected until the frozen evaluation. Run 2's
+answer is a checkpoint-quality monitor that aborts on repeated breaches. But a
+`GRPOTrainer` that silently discards that monitor callback still trains all 300
+steps, still writes valid checkpoints, still publishes a complete bundle, and
+still produces a comparable macro-F1. The only symptom is that the one
+instrument built to catch the failure never runs. A composition step that does
+not assert the monitor survived is therefore not a formality; it protects the
+experiment's whole justification.
+
+`training/run2_arm_runtime_composition.py` (17,032 bytes at this revision,
+SHA-256 `4d1418e9597562e5b9649526e3209d11e830595380f46c29debe92e3fd3fe854`,
+superseded in section 111) performs
+that assembly with every GPU-bearing collaborator injected: the model loader,
+config class, trainer class, callback base class, profiler, monitor command
+builder, monitor runner and GPU free-memory probe are all parameters. The module
+imports no Torch, TRL or Unsloth, starts no monitor process, calls no reward and
+creates no reserved arm path. Production supplies the real classes later; the
+tests supply fakes that record what they were handed.
+
+### What the assembly asserts
+
+| invariant | how it is checked |
+|---|---|
+| optimizer-step order | ordered SKU hash recomputed **after** dataset materialization and compared with the contract, plus file-order versus dataset-order equality |
+| dataset identity | 300 rows, 300 unique SKUs, exact `{prompt, gold, sku_id}` columns, retained by the trainer by object identity |
+| reward binding | callable names, modules and order against the contract; weight count equals reward count; never invoked |
+| config lineage | built from the identical kwargs Phase G's accepted construction used, namely arm settings plus `reward_weights` |
+| trainer boundary | global step zero, no optimizer, no LR scheduler and no reference model under `beta=0` |
+| instrument retention | profiler **and** causal monitor both present on the constructed trainer, compared by identity rather than equality |
+| path reservation | the arm output directory must be absent before assembly and is rechecked afterwards |
+
+Order is verified after materialization rather than trusted from the file. The
+schedule is the experiment: with `shuffle_dataset=False` and one product per
+optimizer step, a loader that reordered rows would silently change which product
+each step trained on while every count and hash of the source file still looked
+correct.
+
+Callback retention is compared by identity, not equality. An equal-but-distinct
+callback object is a different instrument: it would hold a different coordinator,
+a different breach tracker and a different quality output root.
+
+### Negative coverage
+
+Twelve of the twenty-two tests exist to make a specific silent failure loud. The
+two load-bearing ones drop a callback: a trainer that registers the profiler but
+discards the monitor, and its mirror image. Both now raise `CompositionError`
+instead of returning a healthy-looking report. The remainder cover reordered
+rewards, drifted reward weights, a pre-built optimizer, a reference model
+appearing under `beta=0`, a nonzero starting global step, a missing trainer
+argument, a substituted dataset, config drift away from the locked learning
+rate, a dead model loader, an unknown arm identifier, a trainer that registers
+no callbacks at all, and an already-existing reserved output path.
+
+One positive test carries the causal claim directly: composing Arm A and Arm B
+produces **identical dataset bindings and identical callback classes, and differs
+only in the reward binding**. The intended experimental difference is therefore
+enforced at the assembly layer, not only in the contract document.
+
+The focused file passes **28 tests**; with the Arm A launcher, causal
+experiment and monitor-control suites it passes **57 tests**. The repository-wide run reaches **917 passing tests** alongside the
+one known historical failure, the deterministic-rebuild mismatch in the older
+published comparison contract, which is unchanged by this work.
+
+Direct finding: the assembled trainer can be proven to retain its schedule,
+reward binding and both instruments without a GPU. Intuition: the alarm has been
+wired into the panel and its wire tugged, not merely delivered to the site.
+Limitation: a proof over injected fakes constrains the assembly logic, not the
+real TRL classes; the fakes must mirror the attribute surface the real trainer
+exposes, and that correspondence is itself an assumption to be checked. Section
+110 records what happened when it was checked.
+
+## 109. A stash cycle corrupted the working index, and the recovery is worth recording
+
+While checking whether a failing test predated this work, the repository was
+stashed with `git stash -u` and restored with `git stash pop`. The pop left the
+index in an inconsistent state: every tracked file was staged as deleted while
+the same files remained present on disk as untracked entries. No commit moved
+and no file content was lost, but `git status` briefly implied the entire
+repository had been removed.
+
+The repair was `git reset` with no mode flag. A mixed reset rewrites the index
+from `HEAD` and does not touch the working tree, which is the correct instrument
+when the working tree is right and only the index is wrong. Afterwards
+`git diff HEAD` was empty, `HEAD` was unchanged at `1d5ba38`, all 162 tracked
+source files were present, the causal contract and schedule rehashed to their
+recorded values, and the focused suites passed.
+
+The procedural lesson is recorded rather than tidied away. A stash cycle mutates
+the whole worktree to answer a question about one file, and this repository is
+edited by more than one agent. The same question, whether a test failure is
+pre-existing, is answerable by reading the test and its published artifact, or by
+running it in a separate clone. Stashing was the wrong instrument for a read-only
+question.
+
+Direct finding: the failing comparison-contract test is pre-existing and
+independent of the composition work. Intuition: the answer was correct but the
+method briefly set fire to the room it was asked about. Limitation: this incident
+touched only local Git bookkeeping; no artifact, hash or committed result was
+affected.
+
+## 110. Reviewing the proof found that one of its checks did nothing in production
+
+A proof whose collaborators are all injected has one characteristic failure
+mode: it can assert against a surface that only the test fake has. The review
+therefore asked a single question. Does this constrain the real runtime, or is
+it a tautology over its own fakes?
+
+It was partly a tautology, and the defect was specific. The first draft compared
+the constructed trainer configuration against the contract by reading a
+`.settings` mapping off the config object. The test fake stored its settings
+that way, so the check passed. Introspection on the GPU host established that
+the real class does not:
+
+```text
+GRPOConfig has .settings:      False
+instance has .settings:        False
+```
+
+The production path therefore took the `is not None` branch, found nothing, and
+skipped configuration validation entirely. Any locked training setting could
+have drifted at dispatch without the composition step objecting. Given that Run
+1's third diagnosed contributor was `beta=0` shipping unnoticed because it was
+never re-justified for the full run, a silent config check was close to the
+worst possible defect for this particular module to carry.
+
+The repair reuses proven code rather than adding new code. Phase G's accepted
+construction proof already validated both arms' real `GRPOConfig` objects with
+`_inspect_constructed_config`, which reads plain attributes. Composition now
+calls that same inspector, and the test fake was rewritten to expose plain
+attributes so that it mirrors the real class instead of a convenient dictionary.
+
+Drift is now caught on every locked setting. A parametrized regression test
+covers seven, led deliberately by the one that matters most here:
+
+| drifted setting | why it must stop composition |
+|---|---|
+| `beta` | Run 1 shipped `beta=0` unnoticed; this is that failure's tripwire |
+| `learning_rate` | locked at `5e-6` for both arms |
+| `temperature` | sampling must match the difficulty run that built the pool |
+| `max_steps` | the step budget is part of the comparison |
+| `shuffle_dataset` | shuffling would destroy the fixed product schedule |
+| `save_steps` | checkpoints must land at 100, 200 and 300 for the monitor |
+| `seed` | both arms must share their randomness |
+
+Two further correspondences were checked rather than assumed, since the same
+class of defect could hide behind either:
+
+1. `trainer.reward_funcs`, `reward_weights`, `optimizer`, `lr_scheduler`,
+   `ref_model` and `state.global_step` are all read by Run 1's own construction
+   gate against a real `GRPOTrainer`, so they are precedent-verified rather than
+   invented for the fake.
+2. The real Transformers `CallbackHandler` sets `self.callbacks` and its
+   `add_callback` appends the instance it is given. Comparing registered
+   callbacks by identity is therefore meaningful in production, which is what
+   makes the two callback-drop tests worth having.
+
+Those findings are now recorded in the module's own docstring, so the
+fake-to-real correspondence is auditable beside the code that depends on it
+rather than living only in a tracker entry.
+
+The focused file passed **28 tests** at this point. The module was then 17,032
+bytes, SHA-256
+`4d1418e9597562e5b9649526e3209d11e830595380f46c29debe92e3fd3fe854`, and the test
+file 14,378 bytes, SHA-256
+`987483f943dd6e18f56e8189a44af61b49ad6d7b9c509622889c72b7e942345e`. **Both
+identities are superseded**: section 111 records an adversarial review that
+rewrote both files. They are retained here so the sequence of revisions stays
+auditable, not as current artifact identities.
+
+Direct finding: the composition proof contained one check that passed against
+its fake and did nothing in production, and it was the configuration check.
+Intuition: the alarm panel had a test button wired to a light on the panel
+itself rather than to the alarm. Limitation: injected-collaborator proofs are
+only as strong as the fake-to-real correspondence, and that correspondence must
+be verified against the installed library rather than reasoned about; the real
+`GRPOTrainer` attribute surface is still asserted from Run 1 precedent rather
+than re-instantiated here, because instantiating one requires loading the model.
+
+## 111. Adversarial review found the proof would have signed off on a confounded experiment
+
+The composition proof was handed to an independent adversarial reviewer with one
+question: does this constrain the real runtime, or is it a tautology over its own
+fakes? The answer was neither extreme. The attribute surface was real, but four
+checks passed locally and did nothing on the box, and one invariant that the
+entire experiment rests on was never enforced at all. The reviewer's verdict was
+**not strong enough to gate a GPU dispatch**, with ten runnable probes attached.
+All ten reproduced before any fix.
+
+### The critical finding
+
+`test_arms_differ_only_in_reward` was vacuous. Its three assertions compared
+values that are structurally guaranteed to match: the dataset builder took no
+arm argument, the callback classes came from the same two constructors, and the
+reward binding differs by construction. Nothing ever compared arm A's trainer
+configuration against arm B's; each arm was only checked against its own spec.
+
+A per-arm check cannot detect a confound. Probe P2 set arm B's learning rate to
+`5e-5`, its seed to `999` and its temperature to `1.2`. Both arms composed
+cleanly, and every assertion in that test still passed. The proof would have
+authorized an A/B whose arms differed in three settings besides the one under
+study, producing a result that could not attribute anything to reward design.
+
+The repair reuses `_arm_diff`, which Phase G already used and which raises unless
+the entire trainer-config difference is exactly `{output_dir, run_name}`.
+Composition now recomputes it, requires it to equal the contract's stored audit,
+and separately requires `beta` to be equal and explicitly zero in both arms.
+
+### The checks that did nothing in production
+
+| finding | why it passed locally and failed to protect the run |
+|---|---|
+| required trainer kwargs | the observed set defaulted to the required set, so production reduced to `issubset(itself)`; the test asserted on bookkeeping its own fake planted |
+| `trainer_shuffle` in the report | read from `arm_order[0]`, always arm A, so an arm B artifact would state the opposite of the truth for the one flag that destroys the fixed schedule |
+| contract lineage | any dictionary was accepted; a scratch contract with an invented version composed cleanly |
+| quality-policy steps | the Phase F coordinator and the Phase G breach tracker read step lists from different places; when they disagreed, training reached the final checkpoint before raising |
+| reserved-path collision | only `output_dir` was checked; a stale `monitor_root` composed cleanly and then detonated inside `on_train_begin`, which does `mkdir(exist_ok=False)`, with the model already on the GPU |
+| reserved-path creation | a real `Trainer.__init__` calls `makedirs(output_dir)`, so the documented production shape would have created the reserved path and permanently failed the launch preflight |
+| profiler wiring | the profiler was injected as a fake even though it is pure stdlib, and the composed sequence omitted `instrument_trainer` entirely, which is what wraps `_generate`, `_calculate_rewards` and `compute_loss` |
+| boundary keys | `reward_called`, `monitor_runner_invoked` and the whole `boundaries` block were literals; a trainer that invoked all three reward functions during construction was still reported as having called none |
+
+### What changed
+
+Reward calls are now **measured** through counting proxies rather than asserted.
+The profiler uses the real `FullRunPhaseProfiler` and real callback factory, with
+only the CUDA synchronize call injected, and `instrument_trainer` is part of the
+composed sequence with an assertion that all three phase methods were wrapped.
+The scratch output directory is a required argument, so composition can never
+point a real trainer at a reserved path. All five reserved paths are checked
+before and after. Injected collaborators are asserted to be retained, because a
+coordinator that silently reverted to the real GPU probe or the real supervised
+runner would be invisible during composition. Dataset retention now checks
+**content** rather than identity, matching Run 1's real gate, since TRL may
+return a mapped copy; identity is reported rather than required. Report keys that
+remain assertions were renamed with a `_by_contract` suffix so the artifact no
+longer reads as a measurement.
+
+All ten probes now fail closed. The focused file grew from 28 to **48 tests**;
+the repository-wide suite passes **943 tests** alongside the one known historical
+comparison-contract failure.
+
+> **Superseded.** Both identities below were replaced by the revision in
+> section 112. Retained so the revision sequence stays auditable.
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/run2_arm_runtime_composition.py` | 26,160 | `0f5d3d72c1d00b33ffd0d6fb41ee3037b8da9f068fe0465ca385c69e3ec1bc86` |
+| `tests/test_run2_arm_runtime_composition.py` | 22,041 | `76e0709fa7d95f7f94f4b5dfeec8ec1ccded73fa20c9455ed511496785b1b154` |
+
+Direct finding: the first version of a proof designed to catch silent failures
+contained four of them, and one would have invalidated the experiment rather than
+merely weakening the evidence. Intuition: the inspector checking that the alarms
+were wired had several clipboards where the box was already ticked. Limitation:
+this review was itself adversarial rather than exhaustive; the real
+`GRPOTrainer` attribute surface is still asserted from Run 1 precedent rather
+than re-instantiated, and the open question about dataset
+identity was closed by inspection rather than by constructing a real trainer:
+under the installed TRL 0.24.0 the GRPO trainer performs no dataset remapping
+and the base `Trainer.__init__` assigns `self.train_dataset` directly, so
+identity is expected to hold, while content remains the enforced invariant.
+
+## 112. The second review found the measurement apparatus had contaminated the measurement
+
+The rewrite went back to the same reviewer. Findings 1 to 10 and 12 held up: the
+old probes failed closed for the right reasons, and the causal-isolation gate,
+the five-path collision check, the quality-tracker cross-check and the
+collaborator identity asserts were all judged real checks rather than
+fake-shaped ones. But the two mechanisms added to fix findings 4 and 10 had each
+introduced a new defect, and one was worse than what it replaced. Verdict:
+**no-go**, again.
+
+### The critical one: proxies reached the dispatched trainer
+
+To make "no reward ran during construction" a measurement rather than a
+hardcoded `False`, each reward callable was wrapped in a counting proxy. Those
+proxies were then handed to the trainer and never removed, and
+`compose_arm_runtime` returns that trainer for dispatch. Measured:
+
+```text
+trainer.reward_funcs[0]  -> compose_arm_runtime.<locals>._counting.<locals>.proxy
+defining file            -> training/run2_arm_runtime_composition.py
+signature(proxy)         -> (*args, **kwargs)      params ['args', 'kwargs']
+signature(real)          -> (completions, *, pack=None, **_)
+```
+
+Run 2 would have trained against closures whose parameter names are `args` and
+`kwargs`, while TRL introspects reward signatures to decide which dataset
+columns to forward to each function. Whether that changes reward values cannot
+be determined from a CPU box, which is the reason it must not ship: the
+apparatus built to measure the artifact had modified the artifact. It would also
+have broken comparability with the offline G10 selection, which scored those
+exact functions.
+
+Two smaller consequences followed from the same code. The proxy assigned
+`__name__` from the report's own `callable_names`, so the trainer reward-name
+check compared a value against one composition itself had planted. And the
+report advertised `training.rewards` as the bound modules while the objects on
+the trainer were defined in this module.
+
+The repair keeps the measurement and discards the apparatus: proxies are used
+for construction, the raw callables are restored immediately afterwards, the
+restoration is verified by name and by identity, and a trainer that refuses
+reassignment now fails closed rather than raising a bare `AttributeError`. A
+dedicated test asserts the dispatched trainer holds the raw functions from
+`training/rewards.py`. That test is the one that would have caught this.
+
+### The instrumentation check certified work it had not done
+
+`_instrument_and_verify` compared `getattr(trainer, method)` before and after
+instrumentation. On a real trainer those methods live on the class, so every
+attribute access mints a fresh bound method and the comparison is unequal
+whether or not wrapping happened. Demonstrated with a profiler whose
+`instrument_trainer` wraps nothing: the check reported all three phases and
+`accelerator.backward` as instrumented while `compute_loss` was not even in the
+instance dictionary.
+
+The private `_trainer_instrumented` flag next to it was sound but redundant: it
+is set unconditionally as the last statement of `instrument_trainer`, so reading
+it proves only that the call returned, which the absence of an exception already
+proves. Between them the function verified nothing. It now inspects the instance
+dictionary, where `_wrap_callable` actually writes, and requires the installed
+attribute to be the profiler's `measured` wrapper; `accelerator.backward` is
+checked the same way instead of being reported as `True` unconditionally.
+
+### The idiom that had just been removed came straight back
+
+`_assert_trainer_retained`, which replaced the vacuous `received_kwargs` check,
+used `getattr(trainer, "model", model) is not model`. The default is the value
+being compared, so a trainer with no `model` attribute at all passed and the
+report said `model_retained: True`. Presence is now required first.
+
+The same finding exposed an inconsistency: the dataset check had been softened
+to compare content because TRL may return a mapped copy, while `model` and
+`args` were given strict identity in the same edit. Inspection on the GPU host
+settled it. `Trainer.__init__` assigns `self.args = args` plainly, so identity
+is required there; the model may be rewrapped for PEFT before the base
+initializer runs, so its identity is now reported and its presence enforced.
+
+### Remaining fixes
+
+A scratch directory *nested inside* a reserved path was accepted, which a real
+`makedirs(parents=True)` would turn back into the finding-7 failure. Nothing
+cross-checked `max_steps` and `save_steps` against the locked constants, and
+`_arm_diff` cannot help there because it only compares the arms with each other,
+so a both-arms drift would have placed checkpoints where the monitor is not
+looking. The original vacuous `test_arms_differ_only_in_reward` was still
+present beside its real replacement and has been deleted. The lineage key that
+merely copies the contract's expected commit is now named to say so.
+
+All round-two probes fail closed. The focused file is at **50 tests**; the
+repository-wide suite passes **945**.
+
+> **Superseded.** Both identities below were replaced by the revision in
+> section 113. Retained so the revision sequence stays auditable.
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/run2_arm_runtime_composition.py` | 30,154 | `5356862971aef06f6727ac2dd173facc7d481f7272b87c8ce0c2d3de1b31e62f` |
+| `tests/test_run2_arm_runtime_composition.py` | 24,034 | `b861e0dce98a9902d7a9d7f0214661f651d0a7838b483408f7cfd2ddc9ef0e53` |
+
+Direct finding: two rounds of adversarial review found defects in every version
+of a module whose entire purpose is catching silent failures, and the second
+round's critical defect was introduced by the first round's fix. Intuition: the
+instrument used to test the alarm had been left inside the alarm. Limitation:
+this remains an argument from repeated attack rather than proof; a third round
+may find more, and the real `GRPOTrainer` has still never been constructed here.
+
+## 113. The third review: a fix that overwrote the evidence it was meant to preserve
+
+The restoration step added in the previous round assigned the raw reward
+callables back onto the trainer unconditionally. The reviewer was asked directly
+whether that was legitimate or whether it masked construction-time mangling. It
+masked it, and the demonstration was three independent cases that all composed
+cleanly:
+
+| trainer behaviour during `__init__` | old outcome |
+|---|---|
+| reverses the reward order | passes; report lists the correct order |
+| keeps only two of three rewards | passes; report lists all three, including the weight-2.0 term |
+| substitutes a foreign callable | passes; report lists the contract's three |
+
+Every check downstream of the assignment was reading back what the assignment
+had just written: the restored-name comparison, the proxy-survival check, the
+retention check and the trainer-boundary name check all collapsed into reading
+one line's own output. A trainer that silently trained Arm A on two rewards
+would have been certified correct. That is the same silent-instrument loss the
+callback tests exist to catch, applied to the one thing the two arms are meant
+to differ in.
+
+The tell was in this repository's own test suite and had been written down
+without being recognised. To keep `test_reordered_reward_binding_fails_closed`
+green, the previous round had strengthened its fake with a read-only property
+and a comment explaining that a trainer refusing reassignment "cannot be
+repaired by the restoration step". That comment was accurate and it documented
+the hole: the plain reordering case the test was originally written for had
+stopped being caught, and the fake was made harder until the test passed again.
+Strengthening a fake to preserve a green test is a signal that the assertion has
+moved off the behaviour it was meant to protect.
+
+The repair is three lines: compare what the trainer holds against what it was
+handed, raise if they differ, and only then restore. The later checks are kept
+because they still catch an assignment that silently no-ops. Reverting the fake
+to its plain form and adding the drop and substitute cases turns all three
+demonstrations into regression tests.
+
+### The other findings
+
+The model floor was `is not None`, so a trainer holding an unrelated object
+composed cleanly while reporting `model_present: True`. The asymmetry itself was
+judged defensible, since TRL and Unsloth may rewrap the policy for PEFT and the
+dataset already receives the same treatment, but the dataset case enforces
+content when identity fails while the model case enforced nothing. Composition
+now walks the standard unwrap chain and requires the loaded policy to be
+reachable; a legitimate wrapper passes and a foreign object does not.
+
+The instrumentation check matched only the last segment of the wrapper's
+qualified name, so three functions merely *named* `measured` were certified as
+instrumentation. It now requires the full qualified name and a non-empty
+closure. An accelerator using `__slots__` produced a bare `TypeError` from
+`vars()` that escaped the composition error surface; that is now typed like
+everything around it.
+
+All seven round-three probes fail closed. The focused file is at **54 tests**;
+the repository-wide suite passes **949**.
+
+> **Partly superseded.** The module identity below was replaced in section 114
+> after round four's `_unwrap_to` fix; the test identity is unchanged and
+> remains current.
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/run2_arm_runtime_composition.py` | 32,527 | `3670561d4e5eee142798e89913abaa763fc5a081c5b7ce03085047457c28ddfd` |
+| `tests/test_run2_arm_runtime_composition.py` | 25,768 | `bb8f55445b9ba3dc2a915883d614e8faf07b3f6752c47245a21906a0aedf4ea9` |
+
+Direct finding: across three reviews, each round's critical defect was created
+by the previous round's fix, and each was a case of the measurement apparatus
+acting on the thing it was measuring. Intuition: first the alarm was untested,
+then the tester was left inside the alarm, then the tester reset the alarm before
+reading it. Limitation: convergence is visible but not proven. The structural
+gaps closed in round one have not reopened, rounds two and three each found one
+critical defect rather than several, and the remaining items were minor. The real
+`GRPOTrainer` has still never been constructed here, so the fake-to-real
+correspondence continues to rest on inspection and on Run 1 precedent.
+
+## 114. Four rounds of inference were settled by one model load
+
+The fourth review returned no critical or major findings. Its assessment of
+convergence rested on the *shape* of the earlier defects rather than their
+count. Round one found absences: checks never written. Rounds two and three each
+found a defect inside newly-added verification machinery, and specifically
+inside the only two mechanisms that touch the trainer. Reward proxying
+contaminated the dispatched artifact; the restoration then overwrote the
+artifact's state before reading it. Same locus, same failure at one remove: the
+proof mutating the thing it measures. Round four's three minors sit outside that
+locus entirely, and both mutating mechanisms are now verify-before-mutate.
+
+One was a real bug worth naming. `_unwrap_to` chained its candidate attributes
+with `or`, which tests truthiness rather than presence. An empty `nn.ModuleList`
+is falsy, so the walk would step past the layer holding the target and reject a
+legitimate wrapper. It fails closed rather than open, but it would have failed
+at dispatch. It now chains on `None`.
+
+### The check that was worth more than another review round
+
+The reviewer was asked whether a cheaper high-value check was being missed,
+given that the real `GRPOTrainer` had never been constructed here. The answer
+was yes, and it was not the one proposed. A one-step *training* smoke would have
+required new code, because the step-schedule gate added in round three requires
+`max_steps == 300`. A **construction-only** smoke requires none: composition
+never calls `train()`, so neither that gate nor the monitor's `on_train_begin`
+is reached.
+
+It was run on the RTX 3090 with every real collaborator injected: real
+`GRPOConfig`, real `GRPOTrainer`, real `transformers.TrainerCallback`, the
+Unsloth loader with the locked SFT adapter, `torch.cuda.synchronize`, a
+forbidden monitor runner, and a scratch directory under `/tmp`. The trainer was
+discarded without training.
+
+| measured on the real stack | result |
+|---|---|
+| composition completed without raising | yes |
+| `trainer.model` identity | **retained** |
+| `trainer.train_dataset` identity | **retained** |
+| `trainer.args` identity | retained |
+| reward callables bound | the three real functions from `training/rewards.py` |
+| rewards invoked during construction | 0 |
+| phases instrumented | generation, reward, forward_loss |
+| callbacks registered | `DefaultFlowCallback`, `ProgressCallback`, `FullRunPhaseProfilerTrainerCallback`, `Run2CausalMonitorTrainerCallback` |
+| reserved arm paths created | none |
+| peak GPU allocation | 3.01 GiB |
+
+Four rounds of review had *inferred* the model, dataset and config identity
+questions from Run 1 precedent and from reading library source. One model load
+measured them. Both TRL-era unknowns resolved in the permissive direction:
+identity survives construction, so the unwrap chain and the dataset content
+fallback are now belt-and-braces rather than load-bearing. The two project
+callbacks sit alongside the two Transformers defaults, which is exactly why the
+retention check compares by identity and by subset rather than by count.
+
+Every cross-round finding of the "passes locally, no-ops on real TRL" class
+would have been answered by this one run: `.settings`, `received_kwargs`, the
+bound-method comparison, and all three identity questions. The lesson is
+narrow and practical. When a proof's weakest point is the correspondence between
+a fake and a real library, the cheapest way to strengthen it is usually to
+instantiate the real library once, not to review the fake again.
+
+| artifact | bytes | SHA-256 |
+|---|---:|---|
+| `training/run2_arm_runtime_composition.py` | 32,811 | `dd9c76b21445c3aa67a4de7ea350a73594dbe31236e4d27b32935c22c399ead8` |
+| `tests/test_run2_arm_runtime_composition.py` | 25,768 | `bb8f55445b9ba3dc2a915883d614e8faf07b3f6752c47245a21906a0aedf4ea9` |
+
+The module was copied to the GPU host as an untracked file for the smoke and
+removed afterwards; the host's tracked worktree is unchanged and the GPU
+returned to its 396 MiB idle baseline. Production deployment must go through a
+commit, not a copy.
+
+Direct finding: the composition proof now holds against the real TRL stack, and
+the review verdict moves from conditional go to satisfied. Intuition: after
+three rounds of arguing about whether the wiring diagram matched the building,
+somebody finally switched the power on for a second. Limitation: construction is
+not execution. `instrumented_phases` proves the phase methods are wrapped, not
+that the wrappers ever fire, and no reward has been computed and no optimizer
+step taken through this path. Those remain unproven until Arm A actually runs.
