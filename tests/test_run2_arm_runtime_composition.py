@@ -147,7 +147,8 @@ def compose(contract, pack, tmp_path):
             trainer_scratch_dir=tmp_path / "trainer-scratch",
         )
         kwargs.update(overrides)
-        return compose_arm_runtime(**kwargs)
+        report, trainer, _profiler = compose_arm_runtime(**kwargs)
+        return report, trainer
 
     return _compose
 

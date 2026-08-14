@@ -51,6 +51,20 @@ class WorkloadError(RuntimeError):
     """Raised when an arm run cannot be completed or its evidence is incomplete."""
 
 
+def _phase_records(phase_profiler: Any, steps: int) -> list[Any]:
+    """Take the profiler's records, converting its validation into ours.
+
+    An earlier draft read a `collected_phase_records` attribute off the trainer
+    that only the test fake had, so the real 1-step smoke found zero records.
+    The profiler owns them; its own validator raises `ValueError`, which is
+    re-typed here so callers catching `WorkloadError` see every failure.
+    """
+    try:
+        return list(phase_profiler.snapshot(expected_steps=steps)["records"])
+    except (ValueError, RuntimeError) as exc:
+        raise WorkloadError(f"phase profiler produced no usable timing: {exc}") from exc
+
+
 def _expected_rollouts(steps: int) -> int:
     return steps * GENERATIONS_PER_STEP
 
@@ -91,12 +105,14 @@ def validate_training_result(
         raise WorkloadError(
             f"phase profiler recorded {len(phase_records)} steps, expected {steps}"
         )
-    # An instrumented-but-never-fired profiler yields records whose phases are
-    # all empty. Composition can only prove the methods were wrapped; this is
-    # where the wrappers are proven to have run.
+    # An instrumented-but-never-fired profiler yields records with no phase
+    # calls. Composition can only prove the methods were wrapped; this is where
+    # the wrappers are proven to have run. The key is `phase_calls`, taken from
+    # the real record shape in `FullRunPhaseProfiler.end_step` -- an earlier
+    # draft invented a `phases` key that no profiler ever emits.
     for index, record in enumerate(phase_records, start=1):
-        phases = record.get("phases") if isinstance(record, Mapping) else None
-        if not phases:
+        calls = record.get("phase_calls") if isinstance(record, Mapping) else None
+        if not calls or not any(int(value) > 0 for value in calls.values()):
             raise WorkloadError(f"phase record {index} contains no measured phases")
 
     rollouts = result.get("rollouts", [])
@@ -176,7 +192,7 @@ def run_arm(
     if not smoke and staging.exists():
         raise WorkloadError(f"a previous staging tree survives: {staging}")
 
-    report, trainer = compose_arm_runtime(
+    report, trainer, phase_profiler = compose_arm_runtime(
         root=root,
         arm=arm,
         contract=contract,
@@ -220,7 +236,10 @@ def run_arm(
         "global_step": int(getattr(trainer.state, "global_step", -1)),
         "training_loss": getattr(outcome, "training_loss", None),
         "log_history": list(getattr(trainer.state, "log_history", [])),
-        "phase_records": list(getattr(trainer, "collected_phase_records", [])),
+        # From the profiler, which owns them. An earlier draft read a
+        # `collected_phase_records` attribute off the trainer that only the test
+        # fake had, so the real 1-step smoke reported zero records.
+        "phase_records": _phase_records(phase_profiler, steps),
         "rollouts": list(getattr(trainer, "collected_rollouts", [])),
         "checkpoints": list(getattr(trainer, "saved_checkpoints", [])),
     }

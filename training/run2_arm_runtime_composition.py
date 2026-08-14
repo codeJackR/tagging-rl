@@ -518,8 +518,12 @@ def compose_arm_runtime(
     gpu_free_bytes_fn: Callable[[], int],
     trainer_scratch_dir: str | Path,
     smoke_max_steps: int | None = None,
-) -> tuple[dict[str, Any], Any]:
-    """Compose one arm's trainer surface; return its report and the trainer.
+) -> tuple[dict[str, Any], Any, FullRunPhaseProfiler]:
+    """Compose an arm; return its report, the trainer and the phase profiler.
+
+    The profiler is returned rather than discovered later: its records are the
+    only proof that the instrumentation fired, and reaching into the trainer's
+    callback list to find it would make that proof depend on callback ordering.
 
     `trainer_scratch_dir` is required, not optional. A real `Trainer.__init__`
     calls `os.makedirs(args.output_dir)`, so pointing it at the reserved arm
@@ -735,6 +739,7 @@ def compose_arm_runtime(
         "reserved_paths": {key: str(path) for key, path in reserved.items()},
         "reserved_paths_created": False,
         "trainer_scratch_dir": str(scratch),
+        "phase_profiler_attached": True,
         "boundaries": {
             "rewards_observed_called": sum(call_counts.values()),
             "monitor_process_started": False,
@@ -743,4 +748,4 @@ def compose_arm_runtime(
             "optimizer_steps": 0,
             "training_dispatched": False,
         },
-    }, trainer
+    }, trainer, phase_profiler

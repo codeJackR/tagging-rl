@@ -48,7 +48,7 @@ def good_result(steps=1, *, checkpoints=()):
         "training_loss": 0.5,
         "log_history": [{"step": i} for i in range(1, steps + 1)],
         "phase_records": [
-            {"step": i, "phases": {"generation": 1.0, "reward": 0.1}}
+            {"step": i, "phase_calls": {"generation": 1, "reward": 1}}
             for i in range(1, steps + 1)
         ],
         "rollouts": [
@@ -78,9 +78,9 @@ def test_short_run_fails_closed():
 
 def test_instrumented_but_never_fired_profiler_fails_closed():
     """Composition proves the phase methods are wrapped. Only a real run can
-    prove the wrappers fired; empty phases mean they did not."""
+    prove the wrappers fired; zero phase calls mean they did not."""
     result = good_result(1)
-    result["phase_records"] = [{"step": 1, "phases": {}}]
+    result["phase_records"] = [{"step": 1, "phase_calls": {}}]
     with pytest.raises(WorkloadError, match="no measured phases"):
         validate_training_result(result, steps=1, smoke=True)
 
@@ -147,12 +147,31 @@ class TrainingFakeTrainer(FakeTrainer):
     n_rollouts = None
 
     def train(self):
+        # Drive the registered callbacks the way Transformers does, so the
+        # profiler is exercised through the real path rather than bypassed.
+        control = object()
+        optimizer = type("Opt", (), {"step": lambda self: None})()
+        # The profiler instruments the optimizer from on_train_begin and then
+        # requires one optimizer call per step, so the fake must supply both.
+        for callback in self.callback_handler.callbacks:
+            if hasattr(callback, "on_train_begin"):
+                callback.on_train_begin(self.args, self.state, control, optimizer=optimizer)
+        for step in range(1, self.steps + 1):
+            for callback in self.callback_handler.callbacks:
+                if hasattr(callback, "on_step_begin"):
+                    callback.on_step_begin(self.args, self.state, control)
+            if self.phases_fire:
+                self._generate()
+                self._calculate_rewards()
+                self.compute_loss()
+                self.accelerator.backward()
+                optimizer.step()
+            self.state.global_step = step
+            for callback in self.callback_handler.callbacks:
+                if hasattr(callback, "on_step_end"):
+                    callback.on_step_end(self.args, self.state, control)
         self.state.global_step = self.steps
         self.state.log_history = [{"step": i} for i in range(1, self.steps + 1)]
-        self.collected_phase_records = [
-            {"step": i, "phases": {"generation": 1.0} if self.phases_fire else {}}
-            for i in range(1, self.steps + 1)
-        ]
         n = self.n_rollouts if self.n_rollouts is not None else self.steps * 8
         self.collected_rollouts = [{"i": i, "reward": 1.0} for i in range(n)]
         self.saved_checkpoints = []
@@ -198,7 +217,10 @@ def test_a_successful_run_with_dead_instrumentation_is_not_published(pack, tmp_p
     class SilentProfilerTrainer(TrainingFakeTrainer):
         phases_fire = False
 
-    with pytest.raises(WorkloadError, match="no measured phases"):
+    # The profiler's own validator catches this first: a step whose wrapped
+    # methods never ran has zero phase calls, which it rejects before our
+    # phase-record check is reached. Either way nothing is published.
+    with pytest.raises(WorkloadError, match="call counts drifted"):
         _run(pack, tmp_path, trainer_class=SilentProfilerTrainer)
     assert not (ROOT / CONTRACT["arms"]["A"]["output_dir"]).exists()
 
