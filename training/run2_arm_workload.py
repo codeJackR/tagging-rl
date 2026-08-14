@@ -121,11 +121,17 @@ def validate_training_result(
         raise WorkloadError(
             f"collected {len(rollouts)} rollouts, expected {expected}"
         )
-    rewards = [entry.get("reward") for entry in rollouts if isinstance(entry, Mapping)]
+    # `weighted_total` is the field the real collector writes; an earlier draft
+    # invented a `reward` key. Advantage is checked too: it is what GRPO
+    # actually optimizes, and a group whose advantages are all zero taught the
+    # policy nothing even though its rewards look fine.
+    rewards = [
+        entry.get("weighted_total") for entry in rollouts if isinstance(entry, Mapping)
+    ]
     if len(rewards) != len(rollouts) or any(
         value is None or value != value for value in rewards
     ):
-        raise WorkloadError("every rollout must carry a finite reward")
+        raise WorkloadError("every rollout must carry a finite weighted_total")
 
     checkpoints = sorted(int(value) for value in result.get("checkpoints", []))
     if smoke:
@@ -143,6 +149,11 @@ def validate_training_result(
         "checkpoints": checkpoints,
         "training_loss": float(loss),
         "distinct_rewards": len({round(float(value), 12) for value in rewards}),
+        "zero_variance_groups": sum(
+            1
+            for start in range(0, len(rewards), GENERATIONS_PER_STEP)
+            if len({round(float(v), 12) for v in rewards[start : start + GENERATIONS_PER_STEP]}) == 1
+        ),
     }
 
 

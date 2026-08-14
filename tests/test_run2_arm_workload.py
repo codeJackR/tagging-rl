@@ -52,7 +52,7 @@ def good_result(steps=1, *, checkpoints=()):
             for i in range(1, steps + 1)
         ],
         "rollouts": [
-            {"step": i, "index": j, "reward": float(j)}
+            {"step": i, "rollout_index": j, "weighted_total": float(j)}
             for i in range(1, steps + 1)
             for j in range(8)
         ],
@@ -94,8 +94,8 @@ def test_missing_rollouts_fail_closed():
 
 def test_non_finite_reward_fails_closed():
     result = good_result(1)
-    result["rollouts"][0]["reward"] = float("nan")
-    with pytest.raises(WorkloadError, match="finite reward"):
+    result["rollouts"][0]["weighted_total"] = float("nan")
+    with pytest.raises(WorkloadError, match="finite weighted_total"):
         validate_training_result(result, steps=1, smoke=True)
 
 
@@ -173,7 +173,7 @@ class TrainingFakeTrainer(FakeTrainer):
         self.state.global_step = self.steps
         self.state.log_history = [{"step": i} for i in range(1, self.steps + 1)]
         n = self.n_rollouts if self.n_rollouts is not None else self.steps * 8
-        self.collected_rollouts = [{"i": i, "reward": 1.0} for i in range(n)]
+        self.collected_rollouts = [{"rollout_index": i, "weighted_total": 1.0} for i in range(n)]
         self.saved_checkpoints = []
         return type("Out", (), {"training_loss": 0.42})()
 
