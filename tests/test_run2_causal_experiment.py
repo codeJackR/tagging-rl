@@ -328,3 +328,93 @@ def test_read_only_construction_binds_both_configs_and_rewards(tmp_path):
     assert report["arms"]["B"]["reward_callable_names"] == ["candidate_ua_reward"]
     assert report["trainer_constructed"] is False
     assert report["cuda_context"]["material_cuda_allocation"] is False
+
+
+# --- the guardrail split, added after Arm A's first production attempt --------
+
+
+def _policy_for_tracker():
+    """A minimal policy carrying one quality and one compliance guardrail."""
+    return {
+        "checkpoints": [100, 200, 300],
+        "guardrails": [
+            {
+                "key": "representative_all:macro_f1",
+                "view": "representative_all",
+                "metric": "macro_f1",
+                "direction": "lower",
+                "thresholds": {"greedy": 0.80, "sampled_mean": 0.80},
+            },
+            {
+                "key": "representative_all:rule_violation_rate",
+                "view": "representative_all",
+                "metric": "rule_violation_rate",
+                "direction": "upper",
+                "thresholds": {"greedy": 0.05, "sampled_mean": 0.05},
+            },
+        ],
+    }
+
+
+def _report(*, macro_f1, rule_rate):
+    scalars = {"macro_f1": macro_f1, "rule_violation_rate": rule_rate}
+    return {
+        "status": "checkpoint_outputs_scored",
+        "views": {
+            "representative_all": {
+                "greedy": {"scalars": dict(scalars)},
+                "sampled": {"aggregate": {k: {"mean": v} for k, v in scalars.items()}},
+            }
+        }
+    }
+
+
+def test_repeated_compliance_breach_warns_but_does_not_abort():
+    """Arm A's control run was killed for exhibiting the degradation it exists
+    to demonstrate. Compliance metrics are now recorded, never terminal."""
+    from training.run2_causal_experiment import QualityBreachTracker
+
+    tracker = QualityBreachTracker(_policy_for_tracker())
+    bad_rules = _report(macro_f1=0.86, rule_rate=0.09)
+    first = tracker.observe(step=100, report=bad_rules)
+    second = tracker.observe(step=200, report=bad_rules)
+
+    assert first["status"] == "warn" and first["abort_training"] is False
+    assert second["abort_training"] is False, "compliance must not end a run"
+    assert "representative_all:rule_violation_rate:greedy" in second["breached_keys"]
+    assert second["recorded_only_breached_keys"], "the breach must still be recorded"
+    assert not second["abortable_breached_keys"]
+
+
+def test_repeated_quality_breach_still_aborts():
+    """The protection that matters is unchanged: a run whose macro-F1 collapses
+    at two consecutive checkpoints is still stopped."""
+    from training.run2_causal_experiment import QualityBreachTracker
+
+    tracker = QualityBreachTracker(_policy_for_tracker())
+    collapsed = _report(macro_f1=0.40, rule_rate=0.01)
+    tracker.observe(step=100, report=collapsed)
+    second = tracker.observe(step=200, report=collapsed)
+
+    assert second["abort_training"] is True
+    assert second["repeated_consecutive_breach_keys"]
+    assert "representative_all:macro_f1:greedy" in second["abortable_breached_keys"]
+
+
+def test_a_single_quality_breach_warns_without_aborting():
+    from training.run2_causal_experiment import QualityBreachTracker
+
+    tracker = QualityBreachTracker(_policy_for_tracker())
+    decision = tracker.observe(step=100, report=_report(macro_f1=0.40, rule_rate=0.01))
+    assert decision["status"] == "warn" and decision["abort_training"] is False
+
+
+def test_compliance_breaches_do_not_mask_a_later_quality_abort():
+    """A run breaching compliance throughout must still be stoppable on quality."""
+    from training.run2_causal_experiment import QualityBreachTracker
+
+    tracker = QualityBreachTracker(_policy_for_tracker())
+    tracker.observe(step=100, report=_report(macro_f1=0.86, rule_rate=0.09))
+    tracker.observe(step=200, report=_report(macro_f1=0.40, rule_rate=0.09))
+    third = tracker.observe(step=300, report=_report(macro_f1=0.40, rule_rate=0.09))
+    assert third["abort_training"] is True

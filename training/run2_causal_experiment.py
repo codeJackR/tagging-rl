@@ -112,6 +112,26 @@ LOCKED_INPUTS = {
     "pack_vocab": "packs/vastraa_taste_v1/vocab.yaml",
     "pack_rules": "packs/vastraa_taste_v1/rules.yaml",
 }
+# Guardrails that may abort a run, versus guardrails that are recorded only.
+#
+# The original policy aborted on any repeated breach. Arm A's first production
+# attempt was killed at step 200 by rule-violation rate and sampled vocabulary
+# validity, while macro-F1 was slightly ABOVE the SFT baseline and rising.
+#
+# Measured against the same 360 dev prompts, the original reward raises the
+# rule-violation rate to 2.0-2.5x its baseline; the threshold permits 1.72x.
+# Run 1 used this reward, completed 300 steps, and finished at 2.33x, so it
+# would have breached at every checkpoint too. The control arm was therefore
+# disqualified by construction: its purpose is to reproduce the degradation the
+# policy treats as a reason to stop.
+#
+# Compliance metrics remain measured, reported and warned on for both arms.
+# They are simply not grounds for termination, because they are the phenomenon
+# under study rather than a sign the run has gone wrong. For Arm B the same
+# numbers carry the opposite meaning -- its dense reward prices each violation,
+# so failing to hold them is that arm's headline result, not an abort trigger.
+ABORTING_METRICS = frozenset({"macro_f1", "selective_macro_f1", "coverage"})
+
 PRACTICAL_MARGINS = (
     ("representative_all", "macro_f1", "lower", 0.05),
     ("representative_all", "selective_macro_f1", "lower", 0.05),
@@ -388,6 +408,7 @@ class QualityBreachTracker:
         self.expected_steps = tuple(self.policy["checkpoints"])
         self._seen: list[int] = []
         self._previous_breaches: set[str] = set()
+        self._previous_abortable_breaches: set[str] = set()
 
     def observe(self, *, step: int, report: Mapping[str, Any]) -> dict[str, Any]:
         expected = self.expected_steps[len(self._seen)] if len(self._seen) < len(self.expected_steps) else None
@@ -395,19 +416,28 @@ class QualityBreachTracker:
             raise RuntimeError(f"quality tracker expected step {expected}, found {step}")
         observations = quality_observations(report, self.policy)
         current = {value["key"] for value in observations if value["breached"]}
-        repeated = sorted(current & self._previous_breaches)
+        # Every breach is recorded; only quality metrics can end a run.
+        abortable = {
+            value["key"]
+            for value in observations
+            if value["breached"] and value["metric"] in ABORTING_METRICS
+        }
+        repeated = sorted(abortable & self._previous_abortable_breaches)
         decision = {
             "version": QUALITY_POLICY_VERSION,
             "step": step,
             "status": "abort" if repeated else "warn" if current else "pass",
             "observations": observations,
             "breached_keys": sorted(current),
+            "abortable_breached_keys": sorted(abortable),
+            "recorded_only_breached_keys": sorted(current - abortable),
             "repeated_consecutive_breach_keys": repeated,
             "abort_training": bool(repeated),
             "single_checkpoint_abort": False,
         }
         self._seen.append(step)
         self._previous_breaches = current
+        self._previous_abortable_breaches = abortable
         return decision
 
 
