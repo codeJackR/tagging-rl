@@ -41,9 +41,12 @@ def build_report(*, repo_root: Path, scratch_root: Path) -> dict[str, Any]:
     from transformers import TrainerCallback
     from trl import GRPOConfig, GRPOTrainer
 
-    from training.run2_arm_a_launcher import build_monitor_command
     from training.run2_arm_workload import run_arm
-    from training.run2_causal_experiment import BASE_MODEL, STARTING_ADAPTER
+    from training.run2_causal_experiment import (
+        BASE_MODEL,
+        CHECKPOINT_STEPS,
+        STARTING_ADAPTER,
+    )
     from training.run2_checkpoint_monitor_control import run_supervised_monitor
     from training.train_grpo import FullRunRolloutCollector
     from verifier import load_pack
@@ -69,16 +72,48 @@ def build_report(*, repo_root: Path, scratch_root: Path) -> dict[str, Any]:
             fast_inference=False,
         )
 
+    trainer_root = (scratch_root / "trainer").resolve()
+    monitor_root = (repo_root / contract["arms"][ARM]["monitor_root"]).resolve()
+
     def monitor_command(step: int, checkpoint: Path, output: Path) -> list[str]:
-        return build_monitor_command(
-            root=repo_root,
-            monitor_contract=monitor_contract,
-            pack_path=(repo_root / DEFAULT_PACK).resolve(),
-            step=step,
-            checkpoint=checkpoint,
-            output=output,
-            python_executable=sys.executable,
-        )
+        """Build the evaluator command for one checkpoint.
+
+        The launcher's `build_monitor_command` cannot be used here: it requires
+        the checkpoint to sit at the reserved production path, while the
+        trainer writes into scratch precisely so that a real `Trainer.__init__`
+        cannot create that reserved path and permanently fail the preflight.
+        The two constraints are incompatible, so the path assertions are made
+        against where the trainer actually writes. Which checkpoint is being
+        evaluated is not left to the path: the coordinator independently
+        verifies the adapter's SHA-256.
+        """
+        if step not in CHECKPOINT_STEPS:
+            raise RuntimeError(f"monitor step {step} is not a contract checkpoint")
+        if checkpoint.resolve() != trainer_root / f"checkpoint-{step}":
+            raise RuntimeError(f"monitor checkpoint path drifted: {checkpoint}")
+        if output.resolve() != monitor_root / f"checkpoint-{step}":
+            raise RuntimeError(f"monitor output path drifted: {output}")
+        return [
+            sys.executable,
+            "-m",
+            "training.run2_checkpoint_monitor_runtime",
+            "--repo-root",
+            str(repo_root),
+            "--contract",
+            str(monitor_contract.relative_to(repo_root)),
+            "--pack",
+            DEFAULT_PACK,
+            "--base-model",
+            BASE_MODEL,
+            "--local-files-only",
+            "evaluate",
+            "--checkpoint",
+            str(checkpoint.resolve()),
+            "--output",
+            str(output.resolve()),
+            "--mode",
+            "production",
+        ]
 
     return run_arm(
         root=repo_root,
