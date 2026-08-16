@@ -28,7 +28,10 @@ VERSION = "grpo-run2-arm-production-v1"
 DEFAULT_PACK = "packs/vastraa_taste_v1"
 # v2 supersedes v1 after the quality-policy amendment; v1 is retained
 # unchanged as the original predeclaration. See W2_GRPO_RUN2_POLICY_AMENDMENT.md.
-DEFAULT_CONTRACT = "runs/grpo-run2-causal-experiment-contract-v2.json"
+# v3 supersedes v2 after the rollout collector was parameterised. v1 and v2 are
+# retained unchanged; v3 differs from v2 in exactly three fields, all of them
+# the code identity of training/train_grpo.py. No experimental setting moved.
+DEFAULT_CONTRACT = "runs/grpo-run2-causal-experiment-contract-v3.json"
 DEFAULT_MONITOR_CONTRACT = "runs/grpo-run2-checkpoint-monitor-contract.json"
 MAX_SEQUENCE_LENGTH = 896
 
