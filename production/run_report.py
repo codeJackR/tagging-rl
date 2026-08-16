@@ -38,6 +38,7 @@ from production.escalation import (  # noqa: E402
 )
 from production.tagger import (  # noqa: E402
     DEFAULT_PRICE_PER_MTOK,
+    TagResult,
     tag_many,
     write_results,
 )
@@ -109,6 +110,22 @@ def estimate_cost(products: int, k: int, price_table: dict[str, float]) -> dict[
     }
 
 
+def load_pass(path: Path, *, expected: int) -> list[TagResult] | None:
+    """Reload a previously completed pass, or None if it is absent or partial.
+
+    Completeness is checked by row count. A pass truncated mid-write would
+    otherwise be resumed as if it were whole, and its missing products would
+    silently reduce the sample the report is computed from.
+    """
+    if not path.exists():
+        return None
+    rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    if len(rows) != expected:
+        print(f"  {path.name}: {len(rows)}/{expected} rows, rerunning", flush=True)
+        return None
+    return [TagResult(**row) for row in rows]
+
+
 def build_provider(model: str | None):
     """Construct the provider, loading .env the way the labelling scripts do.
 
@@ -150,12 +167,24 @@ def run(
     # than partial for all products.
     passes: list[list] = []
     for index in range(k):
+        path = out_dir / f"pass-{index + 1}.jsonl"
+        # Resume a complete pass rather than paying for it twice. An
+        # interrupted run had already spent real money on two passes; a
+        # pipeline that cannot resume turns every interruption into a refund
+        # request nobody will honour. A pass counts only if it is complete,
+        # so a half-written file is redone rather than silently trusted.
+        existing = load_pass(path, expected=len(items))
+        if existing is not None:
+            passes.append(existing)
+            print(f"  pass {index + 1}/{k}: resumed from disk", flush=True)
+            continue
+
         results, totals = tag_many(
             items, system=SYSTEM, provider=provider, pack=pack,
             price_table=price_table,
         )
         passes.append(results)
-        write_results(out_dir / f"pass-{index + 1}.jsonl", results)
+        write_results(path, results)
         print(
             f"  pass {index + 1}/{k}: "
             f"gate {totals.summary()['gate_pass_rate']:.3f} "
@@ -302,9 +331,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
     out_dir = ROOT / args.out
-    if out_dir.exists():
-        raise SystemExit(f"refusing to overwrite an existing report: {out_dir}")
-    out_dir.mkdir(parents=True)
+    if (out_dir / "report.json").exists():
+        raise SystemExit(f"refusing to overwrite a finished report: {out_dir}")
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     report = run(
         products=args.products, k=args.k, threshold=args.threshold,

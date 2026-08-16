@@ -382,3 +382,80 @@ A measurement is only valid for the thing that was measured. Carrying one across
 a boundary — from training to production, from the model's prompt to the API's
 request — needs re-measuring rather than reuse, and a two-product smoke is the
 cheapest possible way to find out.
+
+## 8. W3.5 — the post is verified by a test, not by a proofread
+
+Blog #1 was drafted, evidence-complete and unpublished. The plan's step was to
+prepare it to the point where publication is a single decision rather than a
+project. Two things were built.
+
+### A test that reads the post
+
+`tests/test_blog_claims.py` extracts figures **from the post by regex** and
+checks each against the artifact it came from. Fourteen tests cover the frozen
+headline, the zero-shot comparison, the bootstrap interval, both arms at
+checkpoints 203 and 406, parameter counts, split sizes, the lock manifest's
+hashes, and the cost table as arithmetic on the stated hourly rate.
+
+Extracting rather than hand-copying is the point. A test containing its own copy
+of the numbers drifts from the prose it is meant to protect, and then passes
+while the post is wrong. Pulling them out of the file means an edit that changes
+a figure without changing the evidence fails.
+
+Three tests check **caveats rather than numbers**: that "conditional" still
+appears beside the zero-shot F1, that the 78-of-4,500 human-review figure
+survives, and that all five limitation bullets are present. Those are the first
+things an editor trimming for length would cut, and they are what the post's
+honesty rests on.
+
+The post claims "every table in this post recomputes from committed artifacts".
+The only respectable way to make that claim is to recompute them, so now
+something does, on every commit.
+
+The figures also regenerate **byte-identically** from `make_figures.py`,
+confirmed by hashing before and after. They are reproducible from committed
+data rather than artefacts of one session.
+
+### A sweep that found one real thing
+
+Secrets: clean. No key patterns in tracked files, `.env` never committed and
+ignored, no GPU host address, port or user anywhere in the repository.
+
+Four committed provenance artifacts contain absolute paths of the form
+`/Users/<username>/Documents/Study/...`. Not a credential, but it exposes a
+username and a directory layout.
+
+It was **not fixed**, and the reason is the interesting part. Those files are
+hash-pinned evidence: their SHA-256 values are recorded in the Run 2 tracker and
+referenced by later contracts. Rewriting a path changes the hash and invalidates
+the provenance chain the entire project's discipline rests on. A tidy-up that
+silently breaks an audit trail is worse than a username in a JSON file.
+
+So it goes to the human with three costed options: accept, re-issue the
+artifacts and every recorded hash, or exclude the four files and lose the
+verifiability of the claims that cite them.
+
+### The larger question the sweep surfaced
+
+`data/train_weak.jsonl` holds 3,600 product listings with descriptions, tags and
+image URLs, collected from public Shopify endpoints. The terms audit found 16 of
+20 stores prohibit that access and none approve it.
+
+That audit governed *future collection*. Publishing the corpus is a different
+and larger question, because **redistribution is a stronger act than access**.
+The W2 brief already called the corpus "an experimental research artifact rather
+than a redistributable benchmark", written before the audit made the position
+concrete; the audit turns a cautious sentence into a decision.
+
+The recommendation in the checklist is to publish the repository without the
+corpus. Every number in the post stays verifiable from the committed labels,
+metrics and predictions; only the raw merchant text stays behind.
+
+**Direct finding:** the post is verified against its evidence by 14 automated
+tests, its figures regenerate byte-identically, the secrets sweep is clean, and
+two publication decisions requiring human judgement are documented with costed
+options. **Intuition:** the post has been handed a set of keys and a note saying
+which doors are still locked and why, rather than being declared finished.
+**Limitation:** the tests verify that the post's numbers match the artifacts;
+they cannot verify that the artifacts are correct, and no test can check whether
+a sentence is a fair characterisation of what a number means.

@@ -96,10 +96,62 @@ def test_selection_prompts_match_the_training_renderer():
 # --- the report contract ------------------------------------------------------
 
 
-def test_an_existing_report_directory_is_never_overwritten(tmp_path, monkeypatch):
+def test_a_finished_report_is_never_overwritten(tmp_path, monkeypatch):
     """A report is evidence. Overwriting one silently replaces a measurement."""
-    target = tmp_path / "existing"
+    target = tmp_path / "finished"
     target.mkdir()
+    (target / "report.json").write_text("{}")
     monkeypatch.chdir(ROOT)
     with pytest.raises(SystemExit, match="refusing to overwrite"):
         main(["run", "--products", "2", "--confirm-cost", "--out", str(target)])
+
+
+# --- resume -------------------------------------------------------------------
+
+
+def test_a_complete_pass_is_resumed_not_repurchased(tmp_path):
+    """An interrupted run had already spent real money on two passes. A
+    pipeline that cannot resume turns every interruption into a refund request
+    nobody will honour."""
+    from production.run_report import load_pass
+    from production.tagger import TagResult, write_results
+
+    results = [
+        TagResult(
+            sku_id=f"s{i}", idempotency_key="k", raw="{}", parsed={},
+            schema_valid=True, vocab_valid=True, rule_violations=[],
+            gate_passed=True, errors=[], attempts=1, latency_seconds=1.0,
+            prompt_tokens=10, completion_tokens=5, cost_usd=0.001,
+        )
+        for i in range(3)
+    ]
+    path = tmp_path / "pass-1.jsonl"
+    write_results(path, results)
+
+    loaded = load_pass(path, expected=3)
+    assert loaded is not None and len(loaded) == 3
+    assert loaded[0].sku_id == "s0" and loaded[0].gate_passed is True
+
+
+def test_a_partial_pass_is_rerun_rather_than_trusted(tmp_path, capsys):
+    """A pass truncated mid-write would otherwise be resumed as whole, and its
+    missing products would silently shrink the sample the report is built on."""
+    from production.run_report import load_pass
+    from production.tagger import TagResult, write_results
+
+    write_results(tmp_path / "pass-1.jsonl", [
+        TagResult(
+            sku_id="s0", idempotency_key="k", raw="{}", parsed={},
+            schema_valid=True, vocab_valid=True, rule_violations=[],
+            gate_passed=True, errors=[], attempts=1, latency_seconds=1.0,
+            prompt_tokens=10, completion_tokens=5, cost_usd=0.001,
+        )
+    ])
+    assert load_pass(tmp_path / "pass-1.jsonl", expected=5) is None
+    assert "1/5 rows" in capsys.readouterr().out
+
+
+def test_an_absent_pass_is_simply_run(tmp_path):
+    from production.run_report import load_pass
+
+    assert load_pass(tmp_path / "nope.jsonl", expected=3) is None
