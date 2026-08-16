@@ -7364,3 +7364,58 @@ advantages were zero. Intuition: a ruler marked only in metres, being used to
 measure how much someone grew this year. Limitation: this is one arm, one seed,
 one pool; the comparison that matters is Arm B on the identical 300 products,
 and it has not run yet.
+
+## 121. Arm B's first checkpoint is the first one in this experiment to pass
+
+Arm B reached step 100 and its monitor returned a verdict no previous checkpoint
+has produced: **`pass`**, with zero breaches of any kind, abortable or recorded.
+
+| metric, greedy, 360 held-out products | SFT baseline | Arm A @100 | **Arm B @100** |
+|---|---:|---:|---:|
+| macro-F1 | 0.8537 | 0.8577 | **0.8589** |
+| rule-violation rate | 0.0278 | 0.0667 | **0.0222** |
+| vocabulary validity | 0.9417 | 0.9361 | **0.9861** |
+| quality status | — | `warn` | **`pass`** |
+
+Read the rule-violation row against the baseline rather than against Arm A. Arm
+A degraded compliance to **2.40x** the model it started from. Arm B is at
+**0.80x**: not merely holding the line but finishing below the SFT policy, on
+products neither arm trained on, with macro-F1 marginally higher than both.
+
+Vocabulary validity moved the same way. Arm A drifted slightly below baseline to
+0.9361; Arm B is at 0.9861, which is a larger improvement over baseline than Arm
+A's degradation was a decline.
+
+### Why this is the predicted result rather than a surprise
+
+Hypothesis H2 from the Run 1 diagnosis said the original reward's compliance
+component was saturated at 96.5% and therefore exerted almost no pressure to
+stay compliant, while the sparse whole-record agreement term pushed elsewhere.
+Section 120 measured the consequence directly: three distinct reward values
+across 2,400 completions, with 64% of them at the maximum.
+
+Candidate UA prices **each rule violation separately** rather than folding
+compliance into one saturated binary bit. If H2 was right, that is precisely the
+degradation that should reverse, and it is the one that did.
+
+### What this does not yet establish
+
+This is one checkpoint of one arm. The comparison the experiment was designed
+around is the paired checkpoint-300 endpoint, and Arm B has not reached it. Two
+specific things remain open:
+
+1. **Whether it holds.** Arm A's compliance was worst at checkpoint 100 (2.40x)
+   and improved to 2.00x by 200. A single early checkpoint can move.
+2. **The dead-step question, which is the more interesting one.** Section 120
+   predicted not just fewer zero-variance groups than Arm A's 125, but a
+   *flatter* curve than Arm A's 36 to 43 to 46 climb, because a reward grading
+   fifteen fields separately should keep finding distinctions as the policy
+   improves. That is measurable only from the finished bundle.
+
+**Direct finding:** Arm B's first checkpoint passes every guardrail, with
+rule violations at 0.80x the SFT baseline against Arm A's 2.40x and vocabulary
+validity above baseline, at equal macro-F1. **Intuition:** the arm charged for
+each broken rule stopped breaking rules, which is the least surprising result in
+the project and the first one that arrived on time. **Limitation:** one
+checkpoint, one seed, one arm; the predeclared endpoint is checkpoint 300 and
+the flatness prediction cannot be tested until the bundle exists.
