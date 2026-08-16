@@ -248,3 +248,79 @@ things rails cannot prevent. **Limitation:** a fake provider cannot prove that
 constrained decoding actually yields valid JSON at the vendor, which is why
 schema validity is recorded; that number only becomes evidence on the real run
 in W3.4.
+
+## 6. W3.3 — the escalation rate is the product's unit economics
+
+`production/escalation.py` samples the production path k=5 times per product,
+measures per-attribute agreement across those samples, and routes cells below a
+threshold to a review queue.
+
+Confidence deliberately does not come from logprobs. The plan's revision 2 is
+explicit: generative models have no well-calibrated confidence over structured
+outputs, and token probabilities do not reliably track whether a value is right.
+So confidence is measured behaviourally instead. Ask the same question five
+times and see whether the answers agree.
+
+The consensus mathematics is not reimplemented. `labeling.consensus` already
+computes modal labels, agreement fractions and review queues, and was used for
+the W1 labelling round; this module samples the production path and hands the
+results to it.
+
+### Why this number matters more than accuracy
+
+Accuracy alone is not a claim about a pipeline, because a pipeline can reach any
+accuracy you like by escalating everything, and one that escalates nothing is
+only as good as its worst cell. **The escalation rate is the labour cost per
+catalog**, which is the number a buyer of this system actually pays.
+
+### Three ways the rate can be quietly wrong
+
+**Collapsing the two kinds of blank.** `null` means the field cannot apply;
+`unknown` means it could and the listing did not say. If those are merged, an
+abstention looks like an inapplicability and drops out of the queue, which is
+exactly the cell a human most needs to see. The label mapping keeps them
+distinct and a test pins it.
+
+**Counting an unmeasurable product as a confident one.** A product whose samples
+all failed cannot be scored for agreement. It is not confident, it is unmeasured.
+Counting it either way corrupts the rate, so it is excluded and the exclusion is
+tested.
+
+**Hiding one bad attribute inside a healthy average.** One attribute escalating
+at 100% inside fifteen gives a 6.7% headline, which reads as fine. The report is
+therefore per attribute as well as overall, sorted worst first, and a test
+constructs exactly that case.
+
+### Two rates, because a reviewer opens products
+
+Cell rate and **product touch rate** are both reported. A single disagreeing
+cell in fifteen is a 6.7% cell rate and a 100% chance of having to open the
+product. Those are very different pieces of information for someone estimating
+review labour, and quoting only the first would understate the work.
+
+### The threshold is a decision, so it is reported as a curve
+
+Escalation rate is computed across every achievable threshold rather than at one
+chosen point. With k samples only multiples of 1/k are achievable, so the curve
+uses exactly those: intermediate values would add resolution the sample size
+cannot support. A single number would hide the trade-off it was selected from.
+A test asserts the curve is monotonic, since a higher bar cannot escalate less.
+
+### Stop condition honoured
+
+The queue is a CSV, the same round-trip W1 used, sorted worst-agreement first so
+a reviewer with limited time spends it where the model is least sure. No review
+interface was built. The W1 review round was completed on a phone spreadsheet,
+which is evidence that a CSV is sufficient rather than an excuse for skipping
+the UI.
+
+**Direct finding:** self-consistency escalation is implemented over the existing
+consensus code, reports cell and product rates per attribute and overall, and
+exposes the threshold as a curve rather than a chosen point; 11 tests pin the
+arithmetic and the three ways the rate can be corrupted. **Intuition:** asking
+the same question five times and counting the disagreements is a cruder measure
+of doubt than reading the model's own probabilities, and it is the one that
+survives contact with structured output. **Limitation:** agreement is not
+correctness. Five samples can agree confidently on the same wrong answer, and
+nothing here detects that; the escalation rate bounds review labour, it does not
+bound error.
