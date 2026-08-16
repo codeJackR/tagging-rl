@@ -77,7 +77,9 @@ def test_the_real_monitor_runner_and_collector_are_bound():
     """A production run with a stubbed monitor would train blind."""
     source = CORE.read_text(encoding="utf-8")
     assert "monitor_runner=run_supervised_monitor" in source
-    assert "FullRunRolloutCollector()" in source
+    assert "FullRunRolloutCollector(" in source
+    # and it must be told this arm's reward identity, not left on the defaults
+    assert "expected_reward_names=" in source
     # `smoke` may appear in prose explaining what the smoke test found. What
     # must not appear is an identifier, keyword or attribute reaching it, so
     # inspect names rather than the raw text.

@@ -131,7 +131,13 @@ def build_report(*, repo_root: Path, scratch_root: Path, arm: str) -> dict[str, 
         monitor_runner=run_supervised_monitor,
         gpu_free_bytes_fn=lambda: torch.cuda.mem_get_info()[0],
         scratch_root=scratch_root,
-        rollout_collector=FullRunRolloutCollector(),
+        # The collector is told this arm's reward identity so both arms record
+        # through the same code. Arm A's names and weights are the defaults, so
+        # its bundle is unaffected.
+        rollout_collector=FullRunRolloutCollector(
+            expected_reward_names=contract["arms"][arm]["reward"]["functions"],
+            expected_reward_weights=contract["arms"][arm]["reward"]["weights"],
+        ),
     )
 
 

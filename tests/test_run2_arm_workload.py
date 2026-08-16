@@ -279,3 +279,53 @@ def test_a_run_missing_one_checkpoint_evaluation_fails_closed(tmp_path):
         validate_training_result(
             good_result(300, checkpoints=observed), steps=300, smoke=False
         )
+
+
+# --- the collector must serve both arms --------------------------------------
+
+
+@pytest.mark.parametrize(
+    "arm,names,weights",
+    [
+        ("A", ["format_validity_reward", "vocab_rule_compliance_reward",
+               "golden_agreement_reward"], [1.0, 1.0, 2.0]),
+        ("B", ["candidate_ua_reward"], [1.0]),
+    ],
+)
+def test_the_collector_accepts_each_arm_s_reward_identity(arm, names, weights):
+    """Arm B died at step zero because the collector hardcoded Run 1's three
+    reward names and 1:1:2 weights. Both arms must record through the same
+    code, or their rollout records are not safely comparable."""
+    from training.train_grpo import FullRunRolloutCollector
+
+    collector = FullRunRolloutCollector(
+        expected_reward_names=names, expected_reward_weights=weights
+    )
+    assert list(collector.expected_reward_names) == names
+    assert list(collector.expected_reward_weights) == weights
+    assert collector.expected_reward_names == tuple(
+        CONTRACT["arms"][arm]["reward"]["functions"]
+    )
+
+
+def test_the_collector_defaults_reproduce_run_1():
+    """Arm A already published using the defaults; they must not have moved."""
+    from training.train_grpo import (
+        EXPECTED_REWARD_NAMES,
+        LOCKED_REWARD_WEIGHTS,
+        FullRunRolloutCollector,
+    )
+
+    collector = FullRunRolloutCollector()
+    assert collector.expected_reward_names == tuple(EXPECTED_REWARD_NAMES)
+    assert collector.expected_reward_weights == tuple(LOCKED_REWARD_WEIGHTS)
+    assert collector.expected_reward_weights == (1.0, 1.0, 2.0)
+
+
+def test_a_mismatched_reward_identity_fails_closed():
+    from training.train_grpo import FullRunRolloutCollector
+
+    with pytest.raises(ValueError, match="one reward weight per reward name"):
+        FullRunRolloutCollector(
+            expected_reward_names=["a", "b"], expected_reward_weights=[1.0]
+        )

@@ -618,10 +618,28 @@ def make_rollout_capturing_trainer_class(base_trainer_class: type) -> type:
 class FullRunRolloutCollector:
     """Preserve every shuffled 300-step rollout group before TRL overwrites it."""
 
-    def __init__(self, *, expected_steps: int = FULL_RUN_STEPS):
+    def __init__(
+        self,
+        *,
+        expected_steps: int = FULL_RUN_STEPS,
+        expected_reward_names: Sequence[str] = EXPECTED_REWARD_NAMES,
+        expected_reward_weights: Sequence[float] = LOCKED_REWARD_WEIGHTS,
+    ):
+        # The reward identity is a parameter rather than a module constant so
+        # that a second experimental arm with a different reward can use this
+        # exact collector. Two collectors would produce two record-building
+        # code paths, and rollout records that are not built by identical code
+        # are not safely comparable between arms. The defaults reproduce Run 1
+        # and Arm A byte for byte.
         if not isinstance(expected_steps, int) or not 1 <= expected_steps <= FULL_RUN_STEPS:
             raise ValueError("expected_steps must be between 1 and 300")
+        names = tuple(str(value) for value in expected_reward_names)
+        weights = tuple(float(value) for value in expected_reward_weights)
+        if not names or len(names) != len(weights):
+            raise ValueError("collector needs one reward weight per reward name")
         self.expected_steps = expected_steps
+        self.expected_reward_names = names
+        self.expected_reward_weights = weights
         self._groups: list[dict] = []
         self._seen_skus: set[str] = set()
 
@@ -669,12 +687,15 @@ class FullRunRolloutCollector:
             raise RuntimeError(f"rollout input SKU repeated across steps: {sku_id}")
 
         reward_names = list(getattr(trainer, "reward_func_names", ()))
-        if reward_names != list(EXPECTED_REWARD_NAMES):
-            raise RuntimeError("trainer reward names or order drifted")
+        if reward_names != list(self.expected_reward_names):
+            raise RuntimeError(
+                f"trainer reward names or order drifted: {reward_names} != "
+                f"{list(self.expected_reward_names)}"
+            )
         reward_weights = _tensor_like_to_list(
             getattr(trainer, "reward_weights", None), label="trainer reward weights"
         )
-        if tuple(float(value) for value in reward_weights) != LOCKED_REWARD_WEIGHTS:
+        if tuple(float(value) for value in reward_weights) != self.expected_reward_weights:
             raise RuntimeError("trainer reward weights drifted")
 
         logs = getattr(trainer, "_logs", None)
