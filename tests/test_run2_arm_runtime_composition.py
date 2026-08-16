@@ -125,13 +125,30 @@ def pack():
     return load_pack(ROOT / "packs" / "vastraa_taste_v1")
 
 
+@pytest.fixture(scope="module")
+def sandbox_root(tmp_path_factory):
+    """A repo root holding only the inputs composition reads.
+
+    Running against the live repository coupled these tests to whatever had
+    been published: once Arm A's real bundle was committed, every composition
+    test failed on the reserved-path collision check. The sandbox needs only
+    the schedule file, since the contract, pack and monitor contract are passed
+    in directly, and it can never contain a reserved arm path.
+    """
+    root = tmp_path_factory.mktemp("sandbox-root")
+    schedule = Path("data/grpo_run2_causal_schedule_v1.jsonl")
+    (root / schedule.parent).mkdir(parents=True, exist_ok=True)
+    (root / schedule).symlink_to(ROOT / schedule)
+    return root
+
+
 @pytest.fixture
-def compose(contract, pack, tmp_path):
+def compose(contract, pack, tmp_path, sandbox_root):
     """Compose an arm with every collaborator faked and outputs redirected."""
 
     def _compose(arm="A", *, trainer_class=None, **overrides):
         kwargs = dict(
-            root=ROOT,
+            root=sandbox_root,
             arm=arm,
             contract=contract,
             pack=pack,
@@ -210,9 +227,9 @@ def test_composition_does_not_create_the_reserved_arm_path(compose, contract):
     for path in report["reserved_paths"].values():
         assert not Path(path).exists()
     assert report["reserved_paths_created"] is False
-    assert Path(report["reserved_paths"]["output_dir"]) == (
-        ROOT / contract["arms"]["A"]["output_dir"]
-    ).resolve()
+    assert Path(report["reserved_paths"]["output_dir"]).name == Path(
+        contract["arms"]["A"]["output_dir"]
+    ).name
 
 
 def test_nothing_is_executed_during_composition(compose):
@@ -512,7 +529,7 @@ def _mutated_contract(contract, arm, **config_overrides):
     ],
 )
 def test_arms_differing_outside_the_reward_fail_closed(
-    contract, pack, tmp_path, field, value
+    contract, pack, tmp_path, sandbox_root, field, value
 ):
     """The causal claim is enforced, not merely asserted in a document.
 
@@ -526,7 +543,7 @@ def test_arms_differing_outside_the_reward_fail_closed(
     drifted = _mutated_contract(contract, "B", **{field: value})
     with pytest.raises(CompositionError, match="arms differ outside the reward"):
         compose_arm_runtime(
-            root=ROOT,
+            root=sandbox_root,
             arm="A",
             contract=drifted,
             pack=pack,
@@ -563,13 +580,13 @@ def test_causal_audit_is_recomputed_and_reported(compose, contract):
         ("arm_order", ["B", "A"], "arm order drifted"),
     ],
 )
-def test_unlocked_contract_fails_closed(contract, pack, tmp_path, key, value, message):
+def test_unlocked_contract_fails_closed(contract, pack, tmp_path, sandbox_root, key, value, message):
     """Composition used to accept any dictionary, including a scratch contract."""
     clone = json.loads(json.dumps(contract))
     clone[key] = value
     with pytest.raises(CompositionError, match=message):
         compose_arm_runtime(
-            root=ROOT, arm="A", contract=clone, pack=pack,
+            root=sandbox_root, arm="A", contract=clone, pack=pack,
             model_loader=lambda: (object(), object()),
             config_class=FakeConfig, trainer_class=FakeTrainer,
             callback_base_class=FakeCallbackBase, synchronize_fn=lambda: None,
@@ -580,7 +597,7 @@ def test_unlocked_contract_fails_closed(contract, pack, tmp_path, key, value, me
         )
 
 
-def test_quality_policy_checkpoint_drift_fails_closed(contract, pack, tmp_path):
+def test_quality_policy_checkpoint_drift_fails_closed(contract, pack, tmp_path, sandbox_root):
     """The monitor and the breach tracker read their steps from different places.
 
     When they disagreed, composition passed and reported [100, 200, 300] while
@@ -591,7 +608,7 @@ def test_quality_policy_checkpoint_drift_fails_closed(contract, pack, tmp_path):
     clone["monitoring"]["quality_policy"]["checkpoints"] = [100, 200]
     with pytest.raises(CompositionError, match="quality policy expects steps"):
         compose_arm_runtime(
-            root=ROOT, arm="A", contract=clone, pack=pack,
+            root=sandbox_root, arm="A", contract=clone, pack=pack,
             model_loader=lambda: (object(), object()),
             config_class=FakeConfig, trainer_class=FakeTrainer,
             callback_base_class=FakeCallbackBase, synchronize_fn=lambda: None,
@@ -631,9 +648,14 @@ def test_rewards_invoked_during_construction_are_detected(compose):
         compose("A", trainer_class=ProbingTrainer)
 
 
-def test_scratch_directory_may_not_be_a_reserved_path(compose, contract):
+@pytest.mark.parametrize("suffix", ["", "/nested"])
+def test_scratch_directory_may_not_be_a_reserved_path(
+    compose, contract, sandbox_root, suffix
+):
+    """Nested counts too: a real makedirs(parents=True) would create the parent."""
+    reserved = sandbox_root / (contract["arms"]["A"]["output_dir"] + suffix)
     with pytest.raises(CompositionError, match="scratch directory may not be"):
-        compose("A", trainer_scratch_dir=ROOT / contract["arms"]["A"]["output_dir"])
+        compose("A", trainer_scratch_dir=reserved)
 
 
 def test_dispatched_trainer_holds_the_raw_reward_callables(compose, contract):

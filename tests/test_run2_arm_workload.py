@@ -27,6 +27,7 @@ from tests.test_run2_arm_runtime_composition import (  # reuse the proven fakes
     fake_command_builder,
     forbidden_runner,
     plenty_of_gpu,
+    sandbox_root,  # noqa: F401 - a fixture, used by name
 )
 from verifier import load_pack
 
@@ -178,9 +179,9 @@ class TrainingFakeTrainer(FakeTrainer):
         return type("Out", (), {"training_loss": 0.42})()
 
 
-def _run(pack, tmp_path, trainer_class=TrainingFakeTrainer, **kw):
+def _run(pack, tmp_path, sandbox_root, trainer_class=TrainingFakeTrainer, **kw):
     return run_arm(
-        root=ROOT, arm="A", contract=CONTRACT, pack=pack,
+        root=sandbox_root, arm="A", contract=CONTRACT, pack=pack,
         model_loader=lambda: (object(), object()),
         config_class=FakeConfig, trainer_class=trainer_class,
         callback_base_class=FakeCallbackBase, synchronize_fn=lambda: None,
@@ -191,8 +192,8 @@ def _run(pack, tmp_path, trainer_class=TrainingFakeTrainer, **kw):
     )
 
 
-def test_smoke_run_completes_and_stays_in_scratch(pack, tmp_path):
-    manifest = _run(pack, tmp_path)
+def test_smoke_run_completes_and_stays_in_scratch(pack, tmp_path, sandbox_root):
+    manifest = _run(pack, tmp_path, sandbox_root)
     assert manifest["version"] == VERSION
     assert manifest["status"] == "arm_smoke_completed"
     assert manifest["smoke_mode"] is True
@@ -200,20 +201,20 @@ def test_smoke_run_completes_and_stays_in_scratch(pack, tmp_path):
     assert manifest["evidence"]["rollouts"] == 8
     assert manifest["composition"]["status"] == "arm_runtime_smoke_composed"
     # a smoke must never claim the reserved production path
-    assert not (ROOT / CONTRACT["arms"]["A"]["output_dir"]).exists()
+    assert not (sandbox_root / CONTRACT["arms"]["A"]["output_dir"]).exists()
     assert Path(manifest["manifest_path"]).exists()
 
 
-def test_a_training_exception_is_reported_not_swallowed(pack, tmp_path):
+def test_a_training_exception_is_reported_not_swallowed(pack, tmp_path, sandbox_root):
     class ExplodingTrainer(TrainingFakeTrainer):
         def train(self):
             raise RuntimeError("CUDA out of memory")
 
     with pytest.raises(WorkloadError, match="training raised RuntimeError"):
-        _run(pack, tmp_path, trainer_class=ExplodingTrainer)
+        _run(pack, tmp_path, sandbox_root, trainer_class=ExplodingTrainer)
 
 
-def test_a_successful_run_with_dead_instrumentation_is_not_published(pack, tmp_path):
+def test_a_successful_run_with_dead_instrumentation_is_not_published(pack, tmp_path, sandbox_root):
     class SilentProfilerTrainer(TrainingFakeTrainer):
         phases_fire = False
 
@@ -221,16 +222,16 @@ def test_a_successful_run_with_dead_instrumentation_is_not_published(pack, tmp_p
     # methods never ran has zero phase calls, which it rejects before our
     # phase-record check is reached. Either way nothing is published.
     with pytest.raises(WorkloadError, match="call counts drifted"):
-        _run(pack, tmp_path, trainer_class=SilentProfilerTrainer)
-    assert not (ROOT / CONTRACT["arms"]["A"]["output_dir"]).exists()
+        _run(pack, tmp_path, sandbox_root, trainer_class=SilentProfilerTrainer)
+    assert not (sandbox_root / CONTRACT["arms"]["A"]["output_dir"]).exists()
 
 
-def test_a_successful_run_with_missing_rollouts_is_not_published(pack, tmp_path):
+def test_a_successful_run_with_missing_rollouts_is_not_published(pack, tmp_path, sandbox_root):
     class ForgetfulTrainer(TrainingFakeTrainer):
         n_rollouts = 3
 
     with pytest.raises(WorkloadError, match="expected 8"):
-        _run(pack, tmp_path, trainer_class=ForgetfulTrainer)
+        _run(pack, tmp_path, sandbox_root, trainer_class=ForgetfulTrainer)
 
 
 # --- the checkpoint source, after the publication failure ---------------------

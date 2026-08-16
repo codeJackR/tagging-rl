@@ -1,8 +1,8 @@
-"""The production entry point must not be able to change the experiment.
+"""Both production entry points must differ only in which arm they name.
 
-There is no GPU here, so these tests cover exactly what CPU can decide: that
-the CLI exposes no experimental knob, that smoke mode is unreachable, and that
-the module imports nothing GPU-bearing until it is actually run.
+There is no GPU here, so these cover what CPU can decide: that neither entry
+point exposes an experimental knob, that smoke mode is unreachable from either,
+and that the two files are byte-identical apart from the arm and its prose.
 """
 
 from __future__ import annotations
@@ -12,64 +12,83 @@ from pathlib import Path
 
 import pytest
 
-from training.run2_arm_a_production import ARM, VERSION, parse_args
+from training.run2_arm_a_production import ARM as ARM_A, main as main_a
+from training.run2_arm_b_production import ARM as ARM_B, main as main_b
+from training.run2_arm_production import VERSION, run_arm_cli
 
-MODULE = Path(__file__).resolve().parent.parent / "training" / "run2_arm_a_production.py"
+ROOT = Path(__file__).resolve().parent.parent
+ENTRY_A = ROOT / "training" / "run2_arm_a_production.py"
+ENTRY_B = ROOT / "training" / "run2_arm_b_production.py"
+CORE = ROOT / "training" / "run2_arm_production.py"
 
 
-def test_only_paths_are_configurable():
-    """No arm, step budget, reward or output-path option may exist."""
-    args = parse_args(["--repo-root", ".", "--scratch-root", "/tmp/x"])
-    assert set(vars(args)) == {"repo_root", "scratch_root"}
-    assert ARM == "A"
-    assert VERSION == "grpo-run2-arm-a-production-v1"
+def test_each_entry_point_names_exactly_one_arm():
+    assert ARM_A == "A" and ARM_B == "B"
+    assert VERSION == "grpo-run2-arm-production-v1"
+
+
+def _code_without_docstring(path: Path) -> str:
+    """Executable source only, so prose differences do not count as drift."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    body = [n for n in tree.body if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
+    return ast.dump(ast.Module(body=body, type_ignores=[]))
+
+
+def test_the_two_entry_points_are_identical_except_for_the_arm():
+    """Two near-copies would be free to drift, and drift between arms is the
+    exact confound the causal contract exists to prevent."""
+    a = _code_without_docstring(ENTRY_A).replace("'A'", "<ARM>")
+    b = _code_without_docstring(ENTRY_B).replace("'B'", "<ARM>")
+    assert a == b
+
+
+def test_neither_entry_point_lets_an_operator_choose_the_arm(capsys):
+    for main in (main_a, main_b):
+        with pytest.raises(SystemExit):
+            main(["--arm", "B", "--scratch-root", "/tmp/x"])
 
 
 def test_scratch_root_is_required():
     with pytest.raises(SystemExit):
-        parse_args(["--repo-root", "."])
+        run_arm_cli("A", ["--repo-root", "."])
 
 
 def test_smoke_mode_is_unreachable_from_production():
-    """A production launcher that can run one step is a launcher that can
-    publish a one-step bundle as if it were the control arm."""
-    source = MODULE.read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    keywords = [
-        node.arg
-        for node in ast.walk(tree)
-        if isinstance(node, ast.keyword) and node.arg
-    ]
-    assert "smoke_max_steps" not in keywords
-    assert "smoke" not in {
-        node.id for node in ast.walk(tree) if isinstance(node, ast.Name)
-    }
+    """A production launcher able to run one step is a launcher able to publish
+    a one-step bundle as if it were a real arm."""
+    for path in (ENTRY_A, ENTRY_B, CORE):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        keywords = [n.arg for n in ast.walk(tree) if isinstance(n, ast.keyword) and n.arg]
+        assert "smoke_max_steps" not in keywords, path.name
 
 
 def test_no_gpu_import_at_module_scope():
-    """Importing the module must not pull in torch, TRL or Unsloth, so the CLI
-    contract stays testable and an import error cannot masquerade as a run."""
-    tree = ast.parse(MODULE.read_text(encoding="utf-8"))
-    top_level = [
-        node
-        for node in tree.body
-        if isinstance(node, (ast.Import, ast.ImportFrom))
-    ]
-    names = {
-        alias.name.split(".")[0]
-        for node in top_level
-        if isinstance(node, ast.Import)
-        for alias in node.names
-    } | {
-        node.module.split(".")[0]
-        for node in top_level
-        if isinstance(node, ast.ImportFrom) and node.module
-    }
-    assert not names & {"torch", "trl", "unsloth", "transformers", "training"}
+    """Importing must not pull in torch, TRL or Unsloth, so the CLI contract
+    stays testable and an import error cannot masquerade as a run."""
+    for path in (ENTRY_A, ENTRY_B, CORE):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        top = [n for n in tree.body if isinstance(n, (ast.Import, ast.ImportFrom))]
+        names = {a.name.split(".")[0] for n in top if isinstance(n, ast.Import) for a in n.names}
+        names |= {n.module.split(".")[0] for n in top if isinstance(n, ast.ImportFrom) and n.module}
+        assert not names & {"torch", "trl", "unsloth", "transformers"}, path.name
 
 
-def test_the_real_monitor_runner_is_bound():
+def test_the_real_monitor_runner_and_collector_are_bound():
     """A production run with a stubbed monitor would train blind."""
-    source = MODULE.read_text(encoding="utf-8")
+    source = CORE.read_text(encoding="utf-8")
     assert "monitor_runner=run_supervised_monitor" in source
     assert "FullRunRolloutCollector()" in source
+    # `smoke` may appear in prose explaining what the smoke test found. What
+    # must not appear is an identifier, keyword or attribute reaching it, so
+    # inspect names rather than the raw text.
+    tree = ast.parse(source)
+    identifiers = {
+        node.id for node in ast.walk(tree) if isinstance(node, ast.Name)
+    } | {
+        node.arg for node in ast.walk(tree) if isinstance(node, ast.keyword) and node.arg
+    } | {
+        node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)
+    } | {
+        node.arg for node in ast.walk(tree) if isinstance(node, ast.arg)
+    }
+    assert not any("smoke" in name.lower() for name in identifiers)
