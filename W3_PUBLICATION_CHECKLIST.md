@@ -126,12 +126,20 @@ redistributed and why.
 
 ### 4.3 W&B run visibility
 
-> **OPEN, and the last item blocking publication.** Requires the W&B UI:
-> project settings on `rushabhsp95-vastraa/tagging-rl`, Privacy, set Public.
-> Visibility is per project, not per run, so this exposes every run in the
-> project and the run list is worth reviewing first. The alternative is
-> dropping the two links; the committed CSV histories keep the claims intact
-> either way.
+> **DONE 2026-08-16.** The project is public and both runs resolve to an
+> anonymous caller: `s0ar902g` (`sft-combined`) and `iwsrgsn2`
+> (`sft-attention`), state `finished`, with full summary metrics.
+>
+> Verified by an unauthenticated GraphQL query rather than by loading the page.
+> The page check is worthless here: W&B serves the same shell HTML for public
+> and private runs, so its `og:` tags read identically either way, and an
+> earlier reading of them as evidence of privacy was simply wrong.
+>
+> Noted for anyone comparing: W&B reports `_runtime` 570 s and 527 s where the
+> post quotes 572.5 s and 530.2 s from the committed `run-summary.json`. Both
+> are correct and measure different windows, `wandb.init` to finish against
+> whole-script wall time. The difference is worth about two hundredths of a
+> cent.
 
 The post links two runs, `iwsrgsn2` (attention arm) and `s0ar902g` (combined
 arm). Both are currently private. The post's loss-curve claims are backed by
