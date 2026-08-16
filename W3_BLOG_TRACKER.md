@@ -776,3 +776,76 @@ the 72% anchor rests on 78 cells with intervals wide enough to be nearly
 uninformative per attribute; and the accuracy gap is documented rather than
 closed, since closing it needs an eval set labelled without the model in the
 loop.
+
+## 12. What section 11 means for W6, including one thing it does not mean
+
+W6 plans a four-row table (distill arm A, distill arm B, the W2 GRPO
+checkpoint, the teacher) scored on the frozen 300. Section 11 changes what that
+table can say, and it is worth separating the part that carries from the part
+that does not.
+
+### It does not carry the circularity
+
+Section 11's problem is that the production model **is** the labeller. W6 is an
+all-Qwen affair: a 1.5B student, a Qwen teacher, and the plan makes matching
+tokenizer families mandatory anyway. Qwen is not `gpt-5.6-luna`, so scoring
+Qwen arms against luna-derived labels is the same arrangement W2's SFT number
+already used, with the same caveat and no new defect. Nobody should read
+section 11 and conclude the frozen 300 is unusable. It is unusable **for
+grading luna**, which is a narrower claim.
+
+### It does carry the yardstick
+
+What follows W6 everywhere is the 72%. Every cell in that four-row table is
+agreement with a reference that is itself roughly 72% right on the only 78
+cells anyone checked. So the table can **rank** the arms against each other, and
+cannot state how good any of them is. That is the same rule blog #1 set for
+itself, applied one week later: a delta under a fixed evaluator, not an absolute.
+
+### The teacher decision is currently undecidable
+
+The plan's rule is: teacher = "your W2 GRPO checkpoint **if it beat SFT**, else
+LoRA-SFT Qwen2.5-7B-Instruct". That test cannot be run today.
+
+**No arm of run 2 has ever been scored on the frozen 300.** Only run 1
+(`grpo-first-300-frozen-eval-300-*`) has. Every Arm A and Arm B number in
+sections 121 to 124, including the whole paired comparison, comes from the
+checkpoint monitor's 360 dev products. Section 124 flagged this as a limitation;
+it is now also a blocker, because the plan's teacher branch depends on a
+comparison nobody has made.
+
+Applying the plan's own rule therefore needs one cheap step first: score Arm B's
+checkpoint-300 on the frozen 300. The adapter is archived and hash-verified, the
+harness exists, and the SFT frozen eval cost cents.
+
+Two outcomes, both worth knowing before the week starts:
+
+- **Arm B clearly beats SFT there** → the teacher is a 1.5B checkpoint already in
+  hand, and W6 is the cheap week the plan describes.
+- **It does not** → the teacher is a LoRA-SFT Qwen2.5-7B, which is training a
+  second model the plan budgets loosely, on top of the distillation itself.
+
+On the dev monitor the arms were tied on macro-F1 (0.8645 against a 0.8537
+baseline, a gap of 0.011), so the second branch is at least as likely as the
+first. That is a real cost sitting behind a measurement that has not been taken.
+
+### The hardware does not match any configuration the plan sizes
+
+The plan sizes VRAM for an 80GB A100 ("comfortably") with a 40GB fallback
+(teacher 4-bit, or student down to 0.5B). The box is a **24GB RTX 3090**, below
+both. Arm B's monitor peaked around 9.2GB with a 1.5B model, so there is real
+headroom, but a 7B teacher held in-process alongside a student and its optimizer
+is a different problem. The plan already requires a 50-step smoke run before
+committing, and on this hardware that smoke run stops being a formality.
+
+**Direct finding:** W6 is untouched by section 11's circularity because it is
+all-Qwen, but inherits the 72% yardstick, so its four-row table ranks rather
+than grades; its teacher rule is undecidable until Arm B is scored on the frozen
+300, which has never been done for either run-2 arm; and the 24GB box sits below
+the smallest configuration the plan sizes. **Intuition:** the causal experiment
+answered the question it was designed for on the set it was monitored on, and
+quietly never met the set it was supposed to be judged on. A monitoring signal
+became the result because it arrived first. **Limitation:** the tie on the dev
+monitor is 360 products and one seed, and a frozen-300 score could fall either
+way; the VRAM concern is arithmetic rather than a failed smoke run, and the
+plan's own smoke step is the thing that would settle it.
