@@ -1,0 +1,244 @@
+{
+  "abort_training": false,
+  "abortable_breached_keys": [],
+  "breached_keys": [
+    "representative_all:rule_violation_rate:greedy",
+    "representative_all:rule_violation_rate:sampled_mean",
+    "representative_all:vocab_validity:sampled_mean"
+  ],
+  "monitor_receipt": {
+    "checkpoint_adapter_sha256": "8613172aa90f22a04e3b85f1dc4b0239a72ab538d834731aa126a7629b201f44",
+    "command": [
+      "/venv/rl/bin/python",
+      "-m",
+      "training.run2_checkpoint_monitor_runtime",
+      "--repo-root",
+      "/workspace/tagging-rl",
+      "--contract",
+      "runs/grpo-run2-checkpoint-monitor-contract.json",
+      "--pack",
+      "packs/vastraa_taste_v1",
+      "--base-model",
+      "unsloth/Qwen2.5-1.5B-Instruct",
+      "--local-files-only",
+      "evaluate",
+      "--checkpoint",
+      "/workspace/arm-a-scratch/trainer/checkpoint-100",
+      "--output",
+      "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor/checkpoint-100",
+      "--mode",
+      "production"
+    ],
+    "elapsed_seconds": 2564.426070002024,
+    "ended_at": "2026-08-16T00:54:27.384826Z",
+    "expected_checkpoint_sha256": "8613172aa90f22a04e3b85f1dc4b0239a72ab538d834731aa126a7629b201f44",
+    "expected_mode": "production",
+    "manifest": {
+      "bytes": 7491,
+      "sha256": "f4d585addf844d9ad828c6388d80402fa8fd6ac640a75a519ce4c2af7d938e77"
+    },
+    "output_dir": "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor/checkpoint-100",
+    "quality_abort_threshold_applied": false,
+    "repo_root": "/workspace/tagging-rl",
+    "return_code": 0,
+    "spawn_error": null,
+    "started_at": "2026-08-16T00:11:42.958725Z",
+    "status": "checkpoint_monitor_accepted",
+    "streams": {
+      "stderr": {
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tail": "",
+        "tail_bytes": 0,
+        "tail_truncated": false
+      },
+      "stdout": {
+        "bytes": 130,
+        "sha256": "beafdf9001d9ab993d6346485a418f8d41ed3b50a747251d60f99c8d1a78bf18",
+        "tail": "{\"output\": \"/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor/checkpoint-100\", \"status\": \"checkpoint_monitor_complete\"}\n",
+        "tail_bytes": 130,
+        "tail_truncated": false
+      }
+    },
+    "termination": {
+      "kill_sent": false,
+      "terminate_sent": false
+    },
+    "timed_out": false,
+    "timeout_seconds": 3600,
+    "training_may_continue": true,
+    "version": "grpo-run2-checkpoint-monitor-control-v1"
+  },
+  "observations": [
+    {
+      "breached": false,
+      "decoding_mode": "greedy",
+      "direction": "lower",
+      "key": "representative_all:macro_f1:greedy",
+      "metric": "macro_f1",
+      "observed": 0.8576940754814237,
+      "threshold": 0.803680694742,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "sampled_mean",
+      "direction": "lower",
+      "key": "representative_all:macro_f1:sampled_mean",
+      "metric": "macro_f1",
+      "observed": 0.8517918005438899,
+      "threshold": 0.800390514225,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "greedy",
+      "direction": "lower",
+      "key": "representative_all:selective_macro_f1:greedy",
+      "metric": "selective_macro_f1",
+      "observed": 0.86086143994307,
+      "threshold": 0.817559235022,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "sampled_mean",
+      "direction": "lower",
+      "key": "representative_all:selective_macro_f1:sampled_mean",
+      "metric": "selective_macro_f1",
+      "observed": 0.8568019959030378,
+      "threshold": 0.818219983387,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "greedy",
+      "direction": "lower",
+      "key": "representative_all:coverage:greedy",
+      "metric": "coverage",
+      "observed": 0.9948068808828302,
+      "threshold": 0.876955533918,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "sampled_mean",
+      "direction": "lower",
+      "key": "representative_all:coverage:sampled_mean",
+      "metric": "coverage",
+      "observed": 0.992332035053554,
+      "threshold": 0.872776695878,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "greedy",
+      "direction": "lower",
+      "key": "representative_all:schema_validity:greedy",
+      "metric": "schema_validity",
+      "observed": 0.9972222222222222,
+      "threshold": 0.977222222222,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "sampled_mean",
+      "direction": "lower",
+      "key": "representative_all:schema_validity:sampled_mean",
+      "metric": "schema_validity",
+      "observed": 0.996875,
+      "threshold": 0.977222222222,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "greedy",
+      "direction": "lower",
+      "key": "representative_all:vocab_validity:greedy",
+      "metric": "vocab_validity",
+      "observed": 0.9361111111111111,
+      "threshold": 0.921666666667,
+      "view": "representative_all"
+    },
+    {
+      "breached": true,
+      "decoding_mode": "sampled_mean",
+      "direction": "lower",
+      "key": "representative_all:vocab_validity:sampled_mean",
+      "metric": "vocab_validity",
+      "observed": 0.9131944444444444,
+      "threshold": 0.915763888889,
+      "view": "representative_all"
+    },
+    {
+      "breached": true,
+      "decoding_mode": "greedy",
+      "direction": "upper",
+      "key": "representative_all:rule_violation_rate:greedy",
+      "metric": "rule_violation_rate",
+      "observed": 0.06666666666666667,
+      "threshold": 0.047777777778,
+      "view": "representative_all"
+    },
+    {
+      "breached": true,
+      "decoding_mode": "sampled_mean",
+      "direction": "upper",
+      "key": "representative_all:rule_violation_rate:sampled_mean",
+      "metric": "rule_violation_rate",
+      "observed": 0.08819444444444445,
+      "threshold": 0.054722222222,
+      "view": "representative_all"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "greedy",
+      "direction": "lower",
+      "key": "easy_retention_6_to_8_of_8:macro_f1:greedy",
+      "metric": "macro_f1",
+      "observed": 0.9837036177860148,
+      "threshold": 0.938175774842,
+      "view": "easy_retention_6_to_8_of_8"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "sampled_mean",
+      "direction": "lower",
+      "key": "easy_retention_6_to_8_of_8:macro_f1:sampled_mean",
+      "metric": "macro_f1",
+      "observed": 0.9717654527726994,
+      "threshold": 0.932220756897,
+      "view": "easy_retention_6_to_8_of_8"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "greedy",
+      "direction": "lower",
+      "key": "easy_retention_6_to_8_of_8:coverage:greedy",
+      "metric": "coverage",
+      "observed": 1.0,
+      "threshold": 0.897724687144,
+      "view": "easy_retention_6_to_8_of_8"
+    },
+    {
+      "breached": false,
+      "decoding_mode": "sampled_mean",
+      "direction": "lower",
+      "key": "easy_retention_6_to_8_of_8:coverage:sampled_mean",
+      "metric": "coverage",
+      "observed": 0.9995733788395904,
+      "threshold": 0.896587030717,
+      "view": "easy_retention_6_to_8_of_8"
+    }
+  ],
+  "recorded_only_breached_keys": [
+    "representative_all:rule_violation_rate:greedy",
+    "representative_all:rule_violation_rate:sampled_mean",
+    "representative_all:vocab_validity:sampled_mean"
+  ],
+  "repeated_consecutive_breach_keys": [],
+  "single_checkpoint_abort": false,
+  "status": "warn",
+  "step": 100,
+  "version": "grpo-run2-causal-quality-policy-v1"
+}
