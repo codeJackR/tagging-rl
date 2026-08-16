@@ -7503,3 +7503,82 @@ and calibrated abstention and does not obviously buy accuracy. **Limitation:**
 one seed per arm, no replication, and the predeclared endpoint is checkpoint
 300, which does not exist yet; the checkpoint-100 to 200 drift toward baseline
 is two points and could be noise.
+
+## 123. The dead-step prediction was half right, and the wrong half is the interesting one
+
+Arm B finished its 300 training steps. Both of section 120's predictions can now
+be tested, because TRL logs the exact quantity at issue: `frac_reward_zero_std`,
+the share of groups in a step whose rewards had zero variance. In this
+configuration it is binary per step, one prompt of eight completions, so Arm A's
+logged mean of 0.4167 is exactly 125/300 and matches the count section 120
+derived independently from the rollouts. The same parser reproducing that number
+is what licenses using it for Arm B.
+
+| zero-variance steps | Arm A (original 1:1:2) | Arm B (candidate UA) |
+|---|---:|---:|
+| steps 1-100 | 36 | **4** |
+| steps 101-200 | 43 | **7** |
+| steps 201-300 | 46 | **11** |
+| **total of 300** | **125 (41.7%)** | **22 (7.3%)** |
+
+### Prediction 1: confirmed, and by more than was forecast
+
+Section 120 predicted fewer than 125 dead steps, with an offline forecast of
+13.5% against 48.5% on replayed rollouts, a 3.6x reduction. The realised
+reduction is **5.7x**: 22 steps against 125, z = 9.8. This is not a marginal
+result and it is the one the whole run 2 design rested on.
+
+Put plainly: under the original reward, **125 of 300 optimisation steps produced
+no gradient at all**. A GRPO step whose group has zero reward variance yields
+all-zero advantages and updates nothing. Two fifths of the compute bought
+nothing. Under UA that falls to 22.
+
+### Prediction 2: falsified, in the direction it was predicted against
+
+Section 120 also predicted a *flatter* curve, reasoning that a reward grading
+fifteen fields separately would keep resolving distinctions as the policy
+improved, so its dead-step count "should not climb the same way".
+
+It climbed **faster** in relative terms. Arm A went 36 to 46, a factor of 1.28,
+with decelerating increments of +7 then +3. Arm B went 4 to 11, a factor of
+2.75, with **accelerating** increments of +3 then +4.
+
+The honest qualification: neither within-run trend is statistically established.
+Arm B's first block against its third gives z = 1.88 (p = 0.06) and Arm A's
+gives z = 1.44 (p = 0.15). Both are suggestive and neither is significant at
+100 steps a block. What is beyond doubt is the between-arm difference, not
+either arm's internal slope.
+
+So the claim that survives is the weaker one: **the dense reward did not stop
+the climb, and there is no evidence it even slowed it proportionally.** The
+mechanism section 120 proposed, that dense grading keeps finding distinctions,
+is not what governs. What governs is convergence. As the policy converges its
+eight completions become near-identical, and near-identical completions score
+identically under *any* reward, dense or sparse. UA delays saturation by a large
+factor and does not prevent it, because the saturation is a property of the
+policy collapsing, not of the reward's resolution.
+
+That reframes what a dense reward buys. It is not immunity from the dead-group
+problem. It is a much larger budget of useful steps before the problem arrives,
+which for a 300-step run is the difference between 175 useful steps and 278.
+
+### Why this was worth writing down in advance
+
+Prediction 2 was wrong, and it was wrong in a way that is only visible because
+it was committed to text before the data existed. Read after the fact, "Arm B
+had 22 dead steps against Arm A's 125" is an unambiguous success and the
+accelerating curve inside it is easy not to mention. The prediction is what
+makes the miss legible.
+
+**Direct finding:** UA cut zero-variance steps from 125/300 to 22/300, a 5.7x
+reduction against a 3.6x forecast, while its dead-step count climbed
+proportionally faster than Arm A's (2.75x against 1.28x) rather than flatter as
+predicted; neither within-run slope is significant, the between-arm difference
+is overwhelming. **Intuition:** a dense reward does not defeat reward saturation
+in GRPO, it postpones it, because the thing that eventually kills variance is
+the policy converging onto one answer rather than the reward being unable to
+tell answers apart. **Limitation:** one seed per arm; the block trends rest on
+100 steps each and neither reaches significance; and `frac_reward_zero_std` is
+read from the training log rather than recomputed from the bundle, which is
+cross-checked against Arm A's independently derived 125 but not yet against Arm
+B's own rollouts.
