@@ -46,6 +46,12 @@ from committed data rather than being artefacts of one session.
 
 ### 4.1 Local paths in four committed artifacts
 
+> **DECIDED 2026-08-16: option 1, accept.** Re-issue was costed and rejected:
+> `cb-class-weights.json` alone is hash-pinned in 12 places including four
+> Python source files, and those pinning artifacts are themselves pinned by
+> further contracts. The exposure is a macOS username and a directory layout.
+> The repository is public with these paths intact.
+
 Four provenance files contain absolute paths of the form
 `/Users/<username>/Documents/Study/...`:
 
@@ -76,6 +82,21 @@ Three options, in increasing cost:
 
 ### 4.2 Merchant text redistribution
 
+> **DECIDED 2026-08-16: option 1, publish without the corpus, with one
+> amendment.** Nine files are untracked and ignored; their labels ship as
+> `data/eval_300/eval-labels.jsonl` via `tools/export_eval_labels.py`. All 19 of
+> the post's claim tests pass against publishable data, and a clone reports
+> 898 passed / 181 skipped / 0 failed.
+>
+> **The amendment, and it is a real one:** the corpus remains in git history
+> from `e018a5a` onward, and the repository was published with that history
+> intact rather than rewritten. A rewrite would have changed every commit hash
+> from W1 forward, including the lock commits `8bff4c6` and `4c3e986` that the
+> post cites as its proof of pre-registration. So the corpus is reachable by
+> `git checkout e018a5a`. The untracking states the position and keeps the
+> default clone clean; it does not restrict access, and this document should not
+> be read as claiming otherwise.
+
 `data/train_weak.jsonl` contains **3,600 product listings** with title, brand,
 category, description, tags and image URL, collected from public Shopify
 endpoints.
@@ -105,6 +126,13 @@ redistributed and why.
 
 ### 4.3 W&B run visibility
 
+> **OPEN, and the last item blocking publication.** Requires the W&B UI:
+> project settings on `rushabhsp95-vastraa/tagging-rl`, Privacy, set Public.
+> Visibility is per project, not per run, so this exposes every run in the
+> project and the run list is worth reviewing first. The alternative is
+> dropping the two links; the committed CSV histories keep the claims intact
+> either way.
+
 The post links two runs, `iwsrgsn2` (attention arm) and `s0ar902g` (combined
 arm). Both are currently private. The post's loss-curve claims are backed by
 exported CSVs committed to the repository, so the links are corroboration rather
@@ -115,6 +143,11 @@ histories. Either is defensible; leaving private links in a published post is
 not, because a reader clicking them gets a login wall rather than evidence.
 
 ### 4.4 Repository visibility itself
+
+> **DONE 2026-08-16.** https://github.com/codeJackR/tagging-rl is public.
+> A full-history credential scan across all 152 commits was clean before the
+> flip: no key patterns in any blob, and the only secret-shaped file ever
+> committed is the `.env.example` placeholder.
 
 Making the repository public is the precondition for every relative link in the
 post to resolve. It should be the last action before publishing, after 4.1 and
@@ -135,3 +168,18 @@ Nothing in steps 1 through 5 requires further engineering.
 ## 6. Explicitly not done
 
 Publication. The post is finished, verified against its evidence, and waiting.
+
+## 7. One exposure this document originally missed
+
+The W&B entity is `rushabhsp95-vastraa`, which embeds the local-part of the
+author's email address. It appears in the post at lines 384 and 385, in
+`W2_BLOG_BRIEF.md`, and in `runs/sft-attention-2epoch/README.md`.
+
+It is worth separating from §4.1, which this document did cover. Git commit
+metadata uses `rp7@mac.lan`, so the W&B string is the **only** place the real
+address becomes derivable from this repository.
+
+> **DECIDED 2026-08-16: accept.** The post is published under the author's own
+> name, so attribution is intended; the realistic downside is scraper spam
+> rather than any account exposure. Renaming the entity would break run URLs
+> recorded inside committed artifacts, which is disproportionate to the risk.
