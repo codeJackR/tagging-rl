@@ -1,0 +1,162 @@
+{
+  "cost": {
+    "caveat": "From API-reported token usage, including retries. Cost per SKU covers all 1 self-consistency passes; the single-pass figure is what tagging alone would cost without confidence measurement.",
+    "cost_per_sku_single_pass_usd": 0.004169,
+    "cost_per_sku_usd": 0.004169,
+    "requests": 300,
+    "total_usd": 1.2508
+  },
+  "escalation": {
+    "cells": 4365,
+    "escalated_cells": 0,
+    "escalation_rate": 0.0,
+    "k": 1,
+    "per_attribute": {
+      "closure": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "collar_type": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "colour_primary": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "details": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "fit": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "garment_category": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "garment_length": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "material": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "neckline": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "occasion": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "pattern": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "silhouette": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "sleeve_length": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "sleeve_style": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "waistline": {
+        "cells": 291,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      }
+    },
+    "per_attribute_worst_first": [
+      "garment_category",
+      "silhouette",
+      "fit",
+      "garment_length",
+      "sleeve_length",
+      "sleeve_style",
+      "neckline",
+      "collar_type",
+      "waistline",
+      "closure",
+      "pattern",
+      "details",
+      "material",
+      "colour_primary",
+      "occasion"
+    ],
+    "product_touch_rate": 0.0,
+    "products": 291,
+    "products_with_any_escalation": 0,
+    "threshold": 1.0,
+    "version": "production-escalation-v1"
+  },
+  "escalation_threshold_curve": [
+    {
+      "cells": 4365,
+      "escalated_cells": 0,
+      "escalation_rate": 0.0,
+      "product_touch_rate": 0.0,
+      "threshold": 1.0
+    }
+  ],
+  "generated_at_utc": "2026-08-16T18:44:45Z",
+  "inputs": {
+    "k": 1,
+    "model": "provider default",
+    "pack": "vastraa_taste_v1",
+    "price_per_mtok": {
+      "completion": 10.0,
+      "prompt": 1.25
+    },
+    "products": 300,
+    "source": "data/eval_300/eval.jsonl",
+    "threshold": 1.0
+  },
+  "limitations": [
+    "Products come from the corpus already collected. The planned Shopify sources were unavailable: 16 of 20 candidate stores prohibit the access, none approve it.",
+    "These products were seen during SFT training, so any comparison with their stored labels measures agreement with weak labels, not production accuracy.",
+    "Agreement is not correctness: five samples can agree on the same wrong answer, so the escalation rate bounds review labour rather than error."
+  ],
+  "performance": {
+    "caveat": "Sequential, single process, no concurrency. Throughput is a floor rather than a capability claim, and is derived from summed request latencies rather than wall clock so that it survives a resume.",
+    "latency_max_seconds": 77.549,
+    "latency_p50_seconds": 3.033,
+    "latency_p95_seconds": 4.213,
+    "products_per_minute": 17.15,
+    "request_seconds": 1049.5,
+    "requests_per_minute": 17.15,
+    "resumed_passes": [],
+    "wall_seconds": 2142.7
+  },
+  "quality_first_pass": {
+    "caveat": "Gate pass rate is not accuracy against ground truth. It is the share of records that are structurally valid, in-vocabulary and rule-consistent. A confidently wrong record passes the gate.",
+    "failed": 0,
+    "gate_pass_rate": 0.72,
+    "rule_violations": 79,
+    "schema_validity": 0.97,
+    "scored": 300,
+    "vocab_validity": 0.97
+  },
+  "version": "production-run-report-v1"
+}

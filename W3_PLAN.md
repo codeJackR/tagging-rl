@@ -193,6 +193,16 @@ sample states its sample size.
 
 **Stop condition:** the report exists with all five numbers and their caveats.
 
+> **Amended 2026-08-16.** Four of the five exist. **A publishable accuracy
+> figure cannot be produced from this repository**: every labelled set,
+> including the frozen 300, was pre-labelled by `gpt-5.6-luna`, which is also
+> the production model, and 277 of 300 frozen gold records are that model's
+> verbatim output. The only human anchor is the 78 adjudicated cells in
+> `data/reliability.json`, which marks itself `usable: false` and puts the label
+> source at 72% accurate. Gate pass rate is reported in accuracy's place and is
+> not a substitute for it. Closing this needs an eval set labelled without the
+> model in the loop. See tracker section 11.
+
 ## 9. W3.5 — Blog #1 prepared, not published
 
 Publication is manual and out of scope. This step makes it a single decision
@@ -232,6 +242,7 @@ Checklist to complete:
 | 2026-08-16 | Blog #1 prepared but not published | publication is a human decision and was excluded from this scope |
 | 2026-08-16 | Do not re-run to fix the truncation defect | $6.18 of the $10 ceiling is spent; re-running costs $6.18 more and would desync the committed report from the code |
 | 2026-08-16 | Report throughput from summed request latencies | wall clock is meaningless on a resumed run and reported 1,416,888 products/min |
+| 2026-08-16 | Do not report a production accuracy figure | the production model is the labeller of every eval set in the repo; any such figure would be circular |
 
 ## 12. Live checklist
 
@@ -243,3 +254,8 @@ Checklist to complete:
 
 Carried into W4: raise `max_tokens`, record `finish_reason`, and retry a
 truncation as a budget failure rather than scoring it as a model error.
+
+Open and **not** closeable with current data: a production accuracy number. It
+requires an evaluation set labelled independently of the model under test, by
+blind hand-labelling or by a different model family. Everything here traces to
+one W1 decision to pre-label all four sets with a single frontier model.

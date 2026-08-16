@@ -652,3 +652,127 @@ that stops, because only one of them asks to be looked at. **Limitation:** three
 of the four defects were caught by reading an artifact, which is not a repeatable
 process; each now has a test, but the class of defect that produces a plausible
 wrong number has no general guard in this repo.
+
+## 11. The accuracy number cannot be produced, and finding out why produced a better one
+
+W3.4 was closed without the "accuracy" the plan asks for. The stated reason was
+that the demo products had been seen during SFT training. That reason was
+incomplete, and the real one is structural.
+
+### Every label in this project came from the model we would be grading
+
+`data/eval_300` carries `provenance.labeler = "gpt-5.6-luna@prelabel-v1"`.
+`production/run_report.py` builds an `OpenAIProvider`, whose
+`default_model` is `"gpt-5.6-luna"`. **The production model is the labeller.**
+
+Worse, the frozen set is barely independent of it. 111 of 300 rows were
+reviewed, and review changed **23**. So 277 of 300 gold records are verbatim
+what this model already said.
+
+The tell was available before spending anything: scoring the stored frontier
+snapshots against the gold they were derived from returns **macro-F1 0.9915**.
+That is not a ceiling. It is a model agreeing with itself, and any "accuracy"
+computed the same way inherits the same circularity.
+
+`probe_100`, `eval_candidates` and all 4,000 raw rows carry the same labeller.
+
+### There is a human anchor, and it is 78 cells wide
+
+An earlier draft of this section said no independently labelled data exists.
+That was wrong, and `data/reliability.json` is the correction.
+
+**78 cells across 111 rows and 11 attributes were adjudicated by a human**, with
+a second model family used for cross-checking. That is 1.7% of the frozen set's
+4,500 cells, and the file marks itself `usable: false` for exactly the reason
+you would expect: per-attribute counts run as low as `fit` n=2 and `closure`
+n=3, with confidence intervals like 0.21 to 0.94.
+
+What those 78 cells do support is a single blunt number:
+
+> **The label source is about 72% accurate against human judgement.**
+> `macro_accuracy 0.72`, `micro_accuracy 0.7051`, over 78 cells.
+
+That reframes the whole comparison. The production model agrees with gold at
+macro-F1 0.894 — but gold is itself roughly 72% right. Agreement with a
+reference that wrong cannot be read as accuracy, in either direction: the model
+is penalised for being right where the label is wrong, and rewarded for
+reproducing the label's mistakes, which it is unusually likely to do because it
+wrote them.
+
+So the accurate statement is narrower than "no accuracy number is possible". It
+is: **the only human-anchored measurement in this project is 78 cells wide,
+declares itself unusable, and says the yardstick is 72% accurate.** A production
+accuracy figure worth publishing needs an eval set labelled without the model in
+the loop, and that does not exist here.
+
+This does not retroactively damage the SFT number. Qwen is a different model
+family, so 0.641 measures agreement-with-luna, which is what blog #1 already
+says it is. The circularity only bites when the model under test *is* the
+labeller.
+
+### What the run measured instead, and why it is worth more
+
+Holding the model and the 300 products fixed and changing only the path:
+
+| frozen 300 | SFT Qwen 1.5B, unconstrained | **luna unconstrained** | **luna constrained** |
+|---|---:|---:|---:|
+| vocabulary validity | 0.887 | **1.000** | **1.000** |
+| schema validity | 1.000 | not recorded | 0.970 |
+| rule violations | 12 | **6** | **79** |
+| ... of which `applies_to:waistline` | 0 | **0** | **60** |
+| macro-F1 | 0.641 | 0.9915 † | 0.8944 † |
+
+† circular for luna, since the gold is largely its own output. Not accuracy, and
+not quoted as such. **The rule-violation row is not circular**: violations are
+computed by the verifier against the pack's rules and never touch a gold label.
+
+**Turning constrained decoding on multiplied rule violations by 13x, in the same
+model, on the same products.** The waistline applicability failure goes from
+zero occurrences to 60.
+
+And the benefit it was turned on for did not materialise here at all.
+**Vocabulary validity was already 1.000 unconstrained.** For a frontier model
+that emits legal vocabulary anyway, the grammar on this pack is pure cost: it
+guarantees a property already held, and buys an applicability failure by putting
+`none` inside the enum for every product including the ones where the field
+cannot apply.
+
+The earlier version of this finding compared against the SFT Qwen model, which
+confounded model with decoding path. This is the controlled version.
+
+One honest limitation on the attribution: the two paths differ in **both**
+decoding mode and prompt (`prelabel-v1` against the production renderer), so the
+13x belongs to the production path as a whole. The mechanism narrows it: 60 of
+the 79 violations are one enum offering a value the schema cannot condition on,
+which is a property of constrained decoding rather than of prompt wording.
+
+### The rest of the run
+
+Cost per SKU **$0.004169** and p95 **4.21 s**, both within a few percent of the
+demo run's $0.004117 and 3.90 s, on a different product set. Schema validity
+0.970, with 9 unparseable records, the same `max_tokens` truncation defect
+section 9 recorded and did not fix. The frozen set's checksum verified
+(`freeze_ok: true`).
+
+The escalation rate reads 0.0 and **must not be quoted**: this run used k=1, so
+every cell is trivially unanimous. Escalation needs k>1 and was measured on the
+demo run.
+
+Worst attribute by macro-F1 is `waistline` at 0.725 with exact match **0.448**,
+which is the same defect surfacing in a third independent view.
+
+**Direct finding:** no publishable production-accuracy number exists here,
+because every labelled set was pre-labelled by the model under test, 277 of 300
+frozen gold records are that model's verbatim output, and the only human anchor
+is 78 cells that mark themselves unusable and put the label source at 72%
+accurate; the run done to discover this instead produced a controlled comparison
+showing constrained decoding raising rule violations from 6 to 79 in one model
+on one product set, with vocabulary validity already at 1.000 without it.
+**Intuition:** a measuring stick built by the thing being measured cannot measure
+it, and the frontier's 0.9915 "ceiling" was that fact sitting in plain sight.
+**Limitation:** the two paths differ in prompt as well as decoding, so the 13x
+belongs to the production path as a whole; one model, one pack, 300 products;
+the 72% anchor rests on 78 cells with intervals wide enough to be nearly
+uninformative per attribute; and the accuracy gap is documented rather than
+closed, since closing it needs an eval set labelled without the model in the
+loop.

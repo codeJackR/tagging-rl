@@ -179,6 +179,33 @@ def test_the_weak_label_caveat_survives_every_edit(post):
     assert "delta" in post.lower() or "comparison" in post.lower()
 
 
+def test_the_review_count_matches_the_reliability_artifact(post):
+    """The 78 was asserted as a string only, which is a test that passes whether
+    or not the number is true. It comes from `data/reliability.json`, so check
+    it there — and check the denominator is the frozen set, not a coincidence."""
+    reliability = load(ROOT / "data" / "reliability.json")
+    assert reliability["reviewed_cells"] == 78
+    assert f"{reliability['reviewed_cells']}" in post
+
+    gold = [line for line in (ROOT / "data" / "eval_300" / "eval.jsonl")
+            .read_text(encoding="utf-8").splitlines() if line.strip()]
+    pack_fields = len(json.loads(gold[0])["labels"])
+    assert len(gold) * pack_fields == 4500, "the 4,500 denominator has drifted"
+
+
+def test_the_post_never_calls_a_score_against_these_labels_accuracy(post):
+    """The labels came from `gpt-5.6-luna` and the reliability artifact puts that
+    source at 72% against human judgement, so no figure here is accuracy. The
+    post says so; this stops an edit from quietly dropping it."""
+    reliability = load(ROOT / "data" / "reliability.json")
+    assert reliability["frontier_baseline"]["macro_accuracy"] < 0.8, (
+        "the label source is no longer weak enough for this caveat to be needed"
+    )
+    lowered = post.lower()
+    assert "gpt-5.6-luna" in lowered, "the label source must stay named"
+    assert "not real-world accuracy" in lowered or "not a production-accuracy claim" in lowered
+
+
 def test_the_limitations_section_still_lists_every_known_limitation(post):
     lowered = post.lower()
     for required in (
