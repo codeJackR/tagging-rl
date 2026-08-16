@@ -17,19 +17,19 @@
       "sha256": "30e3ea8681ca80de5737cc5928b8a755e8b14cd36f6c0a67e00385a8408be38a"
     },
     "comparison_document": {
-      "bytes": 8601,
+      "bytes": 8591,
       "path": "W2_GRPO_RUN2_COMPARISON_CONTRACT.md",
-      "sha256": "36663c642bdae0ef41055b7c4543b19413b34099139458911ed5c3a23de0734a"
+      "sha256": "136c61f60a34694085866093a5287b48b899a527199d9c28996dcefc45bd4060"
     },
     "numeric_scale_contract": {
-      "bytes": 9007,
+      "bytes": 8997,
       "path": "W2_GRPO_RUN2_REWARD_SCALES.md",
-      "sha256": "7a0a3ad8233e347168c68f8d48e9e3397c16fbc8acd428cd64e059252d7a2c10"
+      "sha256": "74ce396afe913119f1557b07cb0a67e62d84df9f8048a9222b66da05f586a757"
     },
     "ordinal_payoff_contract": {
-      "bytes": 13526,
+      "bytes": 13516,
       "path": "W2_GRPO_RUN2_REWARD_PAYOFFS.md",
-      "sha256": "ad50b23923992d8f888657de9ffff5be93d87a39b31d9cbe39c6fc0a86456db7"
+      "sha256": "0b0ccc2088e56942fbeec941a36bd4c7edc54e4abcc8aa923829439c6d039d09"
     },
     "original_reward_replay": {
       "bytes": 41092,
