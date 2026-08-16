@@ -231,3 +231,47 @@ def test_a_successful_run_with_missing_rollouts_is_not_published(pack, tmp_path)
 
     with pytest.raises(WorkloadError, match="expected 8"):
         _run(pack, tmp_path, trainer_class=ForgetfulTrainer)
+
+
+# --- the checkpoint source, after the publication failure ---------------------
+
+
+def test_monitored_checkpoints_come_from_quality_decisions(tmp_path):
+    """Not from a trainer attribute, and not from the filesystem.
+
+    The real GRPOTrainer has no `saved_checkpoints`; reading one defaulted to []
+    and rejected a run that saved all three. Listing checkpoint directories
+    fails differently: `save_total_limit=2` evicts checkpoint-100 once 300 is
+    written, so only two would ever survive a completed run.
+    """
+    from training.run2_arm_workload import _monitored_checkpoints
+
+    quality = tmp_path / "quality"
+    quality.mkdir()
+    for step in (100, 200, 300):
+        (quality / f"checkpoint-{step}.quality.json").write_text("{}")
+    (quality / "checkpoint-100.resource-block.json").write_text("{}")  # ignored
+
+    assert _monitored_checkpoints(quality) == [100, 200, 300]
+
+
+def test_missing_quality_root_reports_no_checkpoints(tmp_path):
+    """Smoke mode never registers the monitor, so the directory never exists."""
+    from training.run2_arm_workload import _monitored_checkpoints
+
+    assert _monitored_checkpoints(tmp_path / "absent") == []
+
+
+def test_a_run_missing_one_checkpoint_evaluation_fails_closed(tmp_path):
+    from training.run2_arm_workload import _monitored_checkpoints
+
+    quality = tmp_path / "quality"
+    quality.mkdir()
+    for step in (100, 200):
+        (quality / f"checkpoint-{step}.quality.json").write_text("{}")
+    observed = _monitored_checkpoints(quality)
+    assert observed == [100, 200]
+    with pytest.raises(WorkloadError, match=r"do not match \[100, 200, 300\]"):
+        validate_training_result(
+            good_result(300, checkpoints=observed), steps=300, smoke=False
+        )

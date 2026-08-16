@@ -51,6 +51,18 @@ class WorkloadError(RuntimeError):
     """Raised when an arm run cannot be completed or its evidence is incomplete."""
 
 
+def _monitored_checkpoints(quality_root: Path) -> list[int]:
+    """Steps whose checkpoint was both saved and evaluated by the monitor."""
+    if not quality_root.is_dir():
+        return []
+    steps = []
+    for path in quality_root.glob("checkpoint-*.quality.json"):
+        stem = path.name.removeprefix("checkpoint-").removesuffix(".quality.json")
+        if stem.isdigit():
+            steps.append(int(stem))
+    return sorted(steps)
+
+
 def _phase_records(phase_profiler: Any, steps: int) -> list[Any]:
     """Take the profiler's records, converting its validation into ours.
 
@@ -282,7 +294,14 @@ def run_arm(
             if rollout_collector is not None
             else list(getattr(trainer, "collected_rollouts", []))
         ),
-        "checkpoints": list(getattr(trainer, "saved_checkpoints", [])),
+        # From the quality decisions on disk, not a trainer attribute. The real
+        # GRPOTrainer has no `saved_checkpoints`, so reading one defaulted to []
+        # and rejected a run that had saved all three correctly. The filesystem
+        # is not usable either: `save_total_limit=2` evicts checkpoint-100 once
+        # 300 is written, so the surviving directories under-report. Each
+        # quality file is written atomically when its checkpoint was saved AND
+        # evaluated, which is the stronger claim anyway.
+        "checkpoints": _monitored_checkpoints(root / spec["quality_root"]),
     }
     evidence = validate_training_result(result, steps=steps, smoke=smoke)
 
