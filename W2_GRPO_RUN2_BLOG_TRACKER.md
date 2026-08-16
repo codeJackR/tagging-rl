@@ -7115,3 +7115,127 @@ tags so much as sloppier about the constraints between them. If that holds at
 step 300, the regression Run 1 measured is more specifically a compliance
 failure than a general quality failure, and Arm B's per-violation cost is aimed
 at precisely the right thing.
+
+## 117. The third launch trained perfectly and then refused to publish itself
+
+Under the amended policy Arm A ran to completion: 300 of 300 optimizer steps,
+all three checkpoints saved, all three monitor evaluations finished, every
+quality decision written. Then the workload rejected its own run:
+
+```text
+WorkloadError: checkpoints [] do not match [100, 200, 300]
+```
+
+The validator read `getattr(trainer, "saved_checkpoints", [])`. No such
+attribute exists on a real `GRPOTrainer`; it exists only on the test fake. In
+production the default fired, the list came back empty, and a run that had done
+everything correctly was refused at the last gate.
+
+### The same defect, for the fifth time
+
+This is one bug wearing five costumes: **asserting against an interface that
+only the fake has.**
+
+| # | invented interface | found by |
+|---|---|---|
+| 1 | `config.settings` | GPU-host introspection during review |
+| 2 | `trainer.received_kwargs` | adversarial review, round 2 |
+| 3 | `trainer.collected_phase_records` | the one-step GPU smoke |
+| 4 | rollout field `reward` | the one-step GPU smoke |
+| 5 | `trainer.saved_checkpoints` | a completed 2.5-hour production run |
+
+The cost rose each time it was missed. The first three were caught for free or
+for a minute of GPU. The fifth cost a full run. After the second occurrence the
+correct move was to audit every attribute read in the file at once; instead each
+was fixed as it surfaced, which is how a known failure mode survives to bite
+again at the most expensive possible moment.
+
+That audit has now been done. Of fourteen attribute reads across the workload
+and composition, **twelve were already verified empirically** by the
+construction smoke, which reported real values for `reward_funcs`,
+`callback_handler`, `train_dataset`, `accelerator`, `state.global_step` and the
+rest. The two never verified are the two that were invented:
+`saved_checkpoints`, fixed here, and `collected_rollouts`, which is unreachable
+in production because a collector is always supplied.
+
+### Where checkpoint evidence should come from
+
+The obvious replacement, listing checkpoint directories, is wrong in a different
+way. `save_total_limit=2` evicts checkpoint-100 once checkpoint-300 is written,
+so a *successfully completed* run only ever keeps two directories on disk. A
+filesystem check would under-report by exactly one and reject every good run.
+
+Checkpoints are now read from the monitor's own quality decisions. Each is
+written atomically at the moment its checkpoint was **saved and evaluated**,
+which is a stronger claim than a directory existing, and it survives eviction
+because it is a separate small file.
+
+Direct finding: a validation gate can reject a perfect run, and the class of
+defect that causes it is worth eliminating in one sweep rather than one
+sighting at a time. Intuition: the inspector kept asking to see a document that
+this building never issues, and each time was told to ask for a different one
+rather than to check which documents exist. Limitation: the audit covers
+attribute reads; other fake-versus-real divergences, such as method call
+signatures or exception types, were not swept the same way.
+
+## 118. What the unpublished run measured anyway
+
+The bundle was never written, but the process log preserved every step, and the
+number it contains is the one Arm B exists to improve.
+
+**125 of 300 steps produced zero reward variance: 41.7%.** Two steps in five
+taught the policy nothing at all.
+
+Comparison across everything measured so far:
+
+| | zero-variance rate | policy |
+|---|---:|---|
+| offline forecast, full training scope | 48.5% | starting SFT, static |
+| Run 1, original pool | 32.7% | changing |
+| **Arm A, corrected pool** | **41.7%** | changing |
+| offline forecast for Candidate UA | 13.5% | starting SFT, static |
+
+### The rate rises as the model improves
+
+Split by 100-step block, the run shows something the offline replay
+structurally could not:
+
+| block | mean reward | golden agreement | dead steps |
+|---|---:|---:|---:|
+| steps 1-100 | 3.145 | 0.585 | **36** |
+| steps 101-200 | 3.345 | 0.696 | **43** |
+| steps 201-300 | 3.250 | 0.651 | **46** |
+
+Reward and agreement rise, and the dead-step count rises with them. This is not
+a coincidence, it is the mechanism: a binary whole-record reward gives a group
+of eight completions only a handful of possible scores, so **the better the
+policy gets, the more often all eight land on the same one.** Success erases the
+very signal that produced it.
+
+That also explains why the offline forecast could not have predicted 41.7%. The
+replay scored the *starting* policy, frozen. Every number it produces is a
+snapshot at step zero. The tracker's earlier instruction not to compare offline
+statistics with Run 1's changing-policy rate was correct, and this run shows why:
+the statistic is not a constant of the reward, it is a function of how good the
+policy currently is.
+
+### What this predicts for Arm B, and what it does not
+
+Candidate UA's offline forecast is 13.5% against the original reward's 48.5%, a
+3.6x reduction measured on the same rollouts at the same policy. If the dense
+reward's advantage is a property of its resolution, that ratio should survive
+into training and Arm B should sit far below Arm A's 41.7%.
+
+The saturation mechanism predicts something further and more useful: because UA
+scores each of fifteen fields separately rather than the record as a whole, a
+policy that improves should keep finding new distinctions to be graded on. Its
+dead-step curve should therefore stay flatter than Arm A's 36 to 46 climb, not
+merely start lower. If instead UA also climbs steeply, the reward has a
+saturation ceiling of its own and the fix is partial.
+
+Direct finding: the original reward's dead-step rate is not a fixed 32.7% or
+48.5%; it grew from 36% to 46% within a single run as the policy improved.
+Intuition: the exam got easier faster than the student got better, until most
+of the class was tying at full marks and the teacher could no longer tell anyone
+apart. Limitation: one run, one seed, and the block boundaries coincide with
+checkpoint pauses, so block effects and time effects are not separable here.
