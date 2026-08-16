@@ -199,7 +199,8 @@ sample states its sample size.
 > the production model, and 277 of 300 frozen gold records are that model's
 > verbatim output. The only human anchor is the 78 adjudicated cells in
 > `data/reliability.json`, which marks itself `usable: false` and puts the label
-> source at 72% accurate. Gate pass rate is reported in accuracy's place and is
+> source no higher than a 0.72-to-0.96 band, measured only at its lower edge.
+> Gate pass rate is reported in accuracy's place and is
 > not a substitute for it. Closing this needs an eval set labelled without the
 > model in the loop. See tracker section 11.
 

@@ -687,13 +687,23 @@ a second model family used for cross-checking. That is 1.7% of the frozen set's
 you would expect: per-attribute counts run as low as `fit` n=2 and `closure`
 n=3, with confidence intervals like 0.21 to 0.94.
 
-What those 78 cells do support is a single blunt number:
+What those 78 cells do support is a single blunt number, and the README states
+its shape more carefully than an earlier draft of this section did:
 
-> **The label source is about 72% accurate against human judgement.**
+> **On contested cells the label source is right about 72% of the time.**
 > `macro_accuracy 0.72`, `micro_accuracy 0.7051`, over 78 cells.
 
+That is a **lower bound, not an estimate.** The 78 were selected for difficulty:
+they are the cells where `gpt-5.6-luna` and `gemini-3.6-flash` disagreed, the
+contested 14%. Accuracy on cells where both families agreed was never measured,
+so overall accuracy sits somewhere in **0.72 to ~0.96** depending on what
+agreement is worth. This section originally quoted 0.72 as a flat point estimate
+of label quality, which understated the yardstick; the README had it right from
+W1 and this is the correction.
+
 That reframes the whole comparison. The production model agrees with gold at
-macro-F1 0.894 — but gold is itself roughly 72% right. Agreement with a
+macro-F1 0.894 — but gold is right somewhere between 72% and ~96%, and only
+the lower end is measured. Agreement with a
 reference that wrong cannot be read as accuracy, in either direction: the model
 is penalised for being right where the label is wrong, and rewarded for
 reproducing the label's mistakes, which it is unusually likely to do because it
@@ -701,7 +711,7 @@ wrote them.
 
 So the accurate statement is narrower than "no accuracy number is possible". It
 is: **the only human-anchored measurement in this project is 78 cells wide,
-declares itself unusable, and says the yardstick is 72% accurate.** A production
+declares itself unusable, and bounds the yardstick below at 72%.** A production
 accuracy figure worth publishing needs an eval set labelled without the model in
 the loop, and that does not exist here.
 
@@ -764,8 +774,8 @@ which is the same defect surfacing in a third independent view.
 **Direct finding:** no publishable production-accuracy number exists here,
 because every labelled set was pre-labelled by the model under test, 277 of 300
 frozen gold records are that model's verbatim output, and the only human anchor
-is 78 cells that mark themselves unusable and put the label source at 72%
-accurate; the run done to discover this instead produced a controlled comparison
+is 78 contested cells that mark themselves unusable and bound the label source
+below at 72%; the run done to discover this instead produced a controlled comparison
 showing constrained decoding raising rule violations from 6 to 79 in one model
 on one product set, with vocabulary validity already at 1.000 without it.
 **Intuition:** a measuring stick built by the thing being measured cannot measure
@@ -797,8 +807,8 @@ grading luna**, which is a narrower claim.
 ### It does carry the yardstick
 
 What follows W6 everywhere is the 72%. Every cell in that four-row table is
-agreement with a reference that is itself roughly 72% right on the only 78
-cells anyone checked. So the table can **rank** the arms against each other, and
+agreement with a reference bounded below at 72% right on the only 78 cells
+anyone checked, all of them selected for difficulty. So the table can **rank** the arms against each other, and
 cannot state how good any of them is. That is the same rule blog #1 set for
 itself, applied one week later: a delta under a fixed evaluator, not an absolute.
 

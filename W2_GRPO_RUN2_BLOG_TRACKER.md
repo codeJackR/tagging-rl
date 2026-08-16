@@ -7768,6 +7768,7 @@ the more interesting question wrongly, because the set it was watched on was not
 the set it was meant to be judged on, and nobody noticed until the two were put
 side by side. A monitoring signal became the headline because it arrived four
 sections earlier. **Limitation:** one seed per arm; the frozen 300's labels are
-weak and its own reliability artifact puts the label source near 72%, so these
+weak and its own reliability artifact bounds the label source below at 72% on
+contested cells, so these
 are deltas under a fixed evaluator rather than accuracy; and this is a third
 scoring use of a set that was frozen to be scored sparingly.

@@ -9,21 +9,84 @@ Plan: `~/Downloads/rl-catalog-plan-stepwise.html`
 
 ## Status
 
+**1,076 tests green.**
+
 | Week | Step | State |
 |---|---|---|
 | W1 | 1 · Adapt Fashionpedia's ontology | **done** — `packs/vastraa_taste_v1/vocab.yaml` |
-| W1 | 2 · Schema pack format (Pydantic + vocab + rules) | **done** — `verifier/`, 102 tests green |
-| W1 | 3 · Eval set (300, frozen) + train set (3–5k, weak) | **machinery built** — blocked on feed + API key |
-| W1 | 4 · Eval harness v0 | **done** — `python -m evalharness.report`, 122 tests green |
+| W1 | 2 · Schema pack format (Pydantic + vocab + rules) | **done** — `verifier/` |
+| W1 | 3 · Eval set (300, frozen) + train set (3–5k, weak) | **done** — `data/eval_300/`, `data/train_weak.jsonl` |
+| W1 | 4 · Eval harness v0 | **done** — `python -m evalharness.report` |
+| W2 | 1 · LoRA-SFT baseline | **done** — 0.6411 macro-F1, two-arm LoRA ablation |
+| W2 | 2 · Reward as a function over the verifier | **done** — same module as the gate |
+| W2 | 3 · Run unconstrained, collect the hacks | **done** — 3 documented with before/after |
+| W2 | 4 · Shape, re-run, compare | **done** — pre-registered causal experiment, arms A/B |
+| W3 | 1 · Verifier library + service | **done** — `service/`, equivalence test on 120 real outputs |
+| W3 | 2 · Constrained-decoding production path | **done** — `production/tagger.py` |
+| W3 | 3 · Self-consistency confidence + escalation | **done** — `production/escalation.py`, threshold curve |
+| W3 | 4 · Corpus run + report | **done** — 300 products, 1,500 requests, $6.18 |
+| W3 | 5 · Publish blog #1 | **drafted, not published** — `blog/01-*.md`, 16 claim-tests green |
+| W4–5 | Tool-use agent + abstention λ sweep | not started |
+| W6 | On-policy self-distillation | not started |
+
+Two things W3 could not close, both recorded rather than worked around:
+**accuracy** (every labelled set was pre-labelled by the production model, so any
+figure would be circular) and **an unfamiliar catalog** (16 of 20 candidate
+stores prohibit the access; 0 approved).
 
 ## Results
 
-| model | macro-F1 | validity | rule viol. | cost/SKU |
-|---|---|---|---|---|
-| Qwen2.5-1.5B zero-shot | 0.1969 ‡ | 62.7% | 1,204 | — |
-| frontier (ceiling) | 0.9915 † | — | 6 | ~$0.005 |
-| SFT baseline (W2) | | | | |
-| GRPO (W2) | | | | |
+All rows are the **same frozen 300**, scored by the same harness
+(`python -m evalharness.report`). Deltas across rows are meaningful; absolute
+levels are not — see the two footnotes.
+
+| model | macro-F1 | schema | vocab | rule viol. | cost/SKU |
+|---|---|---|---|---|---|
+| Qwen2.5-1.5B zero-shot | 0.1969 ‡ | 62.7% | 0.0% | 1,204 | — |
+| **SFT baseline (W2)** | **0.6411** | 100% | 88.7% | 12 | ~$0.00003 § |
+| GRPO arm A — original `1:1:2` reward (W2) | 0.6247 | 100% | 88.3% | 33 | ~$0.00003 § |
+| GRPO arm B — unknown-aware reward (W2) | 0.6315 | 100% | 88.3% | **8** | ~$0.00003 § |
+| frontier, unconstrained — *wrote these labels* | 0.9915 † | — | 100% | 6 | — |
+| frontier, production path (W3) | 0.8944 † | 97.0% | 100% | 79 | $0.0042 |
+
+**Neither GRPO arm beat the SFT baseline.** Paired bootstrap over the frozen
+rows, 5,000 replicates, 95% intervals: arm A −0.0164 `[−0.0287, −0.0040]`, arm B
+−0.0097 `[−0.0170, −0.0020]`. Both intervals exclude zero.
+
+What the causal experiment *does* show — the arms differ only in the reward
+function, everything else pinned by hash:
+
+- **Arm B ties arm A on macro-F1** (+0.0067, `[−0.0033, +0.0170]`)
+- **Arm B is decisively better on what it chooses to answer**: selective
+  macro-F1 +0.0487, `[+0.0276, +0.0624]`
+- **Arm B breaks a quarter as many rules** — 8 against 33, and fewer than the
+  SFT model it started from (12)
+- It gets there by answering *less*: coverage 0.9347 against arm A's 0.9699.
+  The unknown-aware reward makes abstention free, and macro-F1 charges for it.
+
+The two GRPO rows cost **$0.36 each** to train. The whole causal experiment,
+two 300-step runs with three quality monitors apiece, came to **$0.72**.
+
+### The two frontier rows are the same model, and that is the point
+
+Constrained decoding takes its rule violations from **6 to 79**. Both rows are
+`gpt-5.6-luna` on the same 300 products; only the decoding path and prompt
+differ. 60 of those 79 are one rule: the model writes `"none"` for a t-shirt's
+waistline where the schema requires `null`.
+
+Vocabulary validity was **already 100% without the grammar**. So on this pack
+constrained decoding guarantees a property the model already had, and buys an
+applicability failure by offering `none` in the enum for products where the
+field cannot apply. A JSON Schema enum is per-field; applicability is
+cross-field. The grammar cannot express the rule it is breaking.
+
+That is the argument for the verifier serving both consumers: it catches what
+the decoder structurally cannot.
+
+**§ Local inference cost** is rented-GPU time, not an API price, and is derived
+from the one generation run that recorded wall time: 245 s for 300 rows on an
+RTX 3090 at $0.144/hr. Training is excluded. The frontier row is a measured API
+bill from the W3 corpus run.
 
 **† The ceiling is inflated by construction — do not read it as frontier accuracy.**
 Of 4,500 eval cells, **78 were independently reviewed by a human (1.7%)**. On the
