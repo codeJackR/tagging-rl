@@ -7419,3 +7419,87 @@ each broken rule stopped breaking rules, which is the least surprising result in
 the project and the first one that arrived on time. **Limitation:** one
 checkpoint, one seed, one arm; the predeclared endpoint is checkpoint 300 and
 the flatness prediction cannot be tested until the bundle exists.
+
+## 122. Checkpoint 200 holds the compliance result and complicates the rest
+
+Arm B's second monitor returned `pass` again, with zero breaches of any kind.
+That answers the first of section 121's two open questions: the compliance
+result was not a checkpoint-100 fluke.
+
+It also makes the honest reading harder, so here is the full board against the
+SFT policy both arms started from, all greedy, all on the same 360 held-out dev
+products.
+
+| greedy, 360 dev products | SFT baseline | A @100 | A @200 | A @300 | B @100 | B @200 |
+|---|---:|---:|---:|---:|---:|---:|
+| macro-F1 | 0.8537 | 0.8577 | 0.8616 | 0.8618 | 0.8589 | 0.8522 |
+| selective macro-F1 | 0.8676 | 0.8609 | 0.8637 | 0.8649 | **0.8839** | 0.8683 |
+| coverage | 0.9770 | 0.9948 | 0.9968 | 0.9955 | 0.9666 | 0.9757 |
+| vocabulary validity | 0.9417 | 0.9361 | 0.9389 | 0.9444 | **0.9861** | **0.9556** |
+| rule-violation rate | 0.0278 | 0.0667 | 0.0556 | 0.0583 | **0.0222** | 0.0278 |
+| ... as a multiple of baseline | 1.00x | 2.40x | 2.00x | 2.10x | **0.80x** | **1.00x** |
+| quality status | — | `warn` | `warn` | `warn` | `pass` | `pass` |
+
+### The two arms moved in opposite directions, and not on the axis expected
+
+Read the coverage and selective-F1 rows together. They are the same measurement
+split two ways: how often the policy answers, and how often it is right when it
+does.
+
+Arm A answered **more** than the SFT policy at every checkpoint (0.9948 to
+0.9968 against 0.9770) and was **less** right per answer (0.8609 to 0.8649
+against 0.8676). Its macro-F1 gain over baseline is therefore not an accuracy
+gain. It is a volume gain: the same hit rate applied to more attempts.
+
+That is the original reward working as written rather than misfiring. Its
+sparse term scores whole-record agreement against a gold record, and an
+abstention cannot agree with a labelled gold field. Abstaining is scored like
+being wrong, so the cheapest way to raise the reward is to stop abstaining.
+Guessing more breaks more rules, which is the 2.0x to 2.4x row, and drags
+vocabulary validity below baseline at two of three checkpoints.
+
+Arm B at checkpoint 100 pushed the other way, exactly as the UA reward's
+`correct +1 / abstain 0 / wrong -1` schedule prices it: coverage below baseline,
+selective F1 well above it. Answer less, be right more.
+
+### What checkpoint 200 does not support
+
+By step 200 Arm B has drifted back toward the policy it started from on four of
+five metrics: coverage 0.9757 against a baseline of 0.9770, selective F1 0.8683
+against 0.8676, rule violations 0.0278 against 0.0278, and macro-F1 0.8522
+against 0.8537, which is **below** baseline.
+
+So two claims need separating, because they are not equally supported:
+
+- **Arm B beats Arm A.** Strongly supported. Rule violations 1.00x against
+  2.10x, vocabulary validity 0.9556 against 0.9444, `pass` against `warn`, at
+  equal macro-F1. This is the comparison the experiment was built to make and
+  the arms differ only in the reward.
+- **Arm B beats doing no RL at all.** Weakly supported at step 200. Its only
+  clear gain over the SFT baseline is vocabulary validity. Everything else is at
+  or slightly below it.
+
+The trend from 100 to 200 is toward baseline on four of five metrics. If that
+continues, checkpoint 300 lands on approximately "no change from SFT" - a
+policy that did not degrade rather than one that improved. That is a real
+possible outcome and it is worth writing down before the number exists, because
+it is the outcome easiest to describe as a success after the fact.
+
+### Still open
+
+The dead-step question from section 120 is unchanged and remains the more
+interesting one. The rollout collector buffers in memory and writes
+`rollouts.jsonl` only when the bundle publishes, so neither prediction - fewer
+than Arm A's 125 zero-variance steps, and a flatter curve than its 36 to 43 to
+46 climb - can be tested until Arm B reaches 300.
+
+**Direct finding:** Arm B's second checkpoint passes every guardrail with
+rule violations at 1.00x baseline against Arm A's 2.10x, but by step 200 it sits
+at or marginally below the SFT baseline on macro-F1, coverage and selective F1.
+**Intuition:** the two rewards are not better and worse versions of the same
+objective; they buy different things. The original reward buys coverage and pays
+for it in compliance, because abstention scores like error. UA buys compliance
+and calibrated abstention and does not obviously buy accuracy. **Limitation:**
+one seed per arm, no replication, and the predeclared endpoint is checkpoint
+300, which does not exist yet; the checkpoint-100 to 200 drift toward baseline
+is two points and could be noise.
