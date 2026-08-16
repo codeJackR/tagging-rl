@@ -1,0 +1,234 @@
+{
+  "arm": "B",
+  "composition": {
+    "arm": "B",
+    "boundaries": {
+      "callback_lifecycle_started": false,
+      "monitor_process_started": false,
+      "optimizer_constructed": false,
+      "optimizer_steps": 0,
+      "rewards_observed_called": 0,
+      "training_dispatched": false
+    },
+    "callback_binding": {
+      "callback_classes": [
+        "FullRunPhaseProfilerTrainerCallback",
+        "Run2CausalMonitorTrainerCallback"
+      ],
+      "callback_lifecycle_invoked_by_contract": false,
+      "causal_monitor_built_but_unregistered": false,
+      "causal_monitor_present": true,
+      "monitor_checkpoint_steps": [
+        100,
+        200,
+        300
+      ],
+      "monitor_paths_created": false,
+      "monitor_runner_invoked_by_contract": false,
+      "profiler_present": true,
+      "registered_callback_classes": [
+        "DefaultFlowCallback",
+        "ProgressCallback",
+        "FullRunPhaseProfilerTrainerCallback",
+        "Run2CausalMonitorTrainerCallback"
+      ],
+      "required_callbacks_retained": true,
+      "retained_by_identity": true
+    },
+    "causal_difference_audit": {
+      "all_other_trainer_settings_equal": true,
+      "beta_equal_and_explicitly_zero": true,
+      "intended_causal_difference": "reward definition",
+      "noncausal_bookkeeping_differences": [
+        "output_dir",
+        "run_name"
+      ],
+      "reward_difference": {
+        "A": {
+          "functions": [
+            "format_validity_reward",
+            "vocab_rule_compliance_reward",
+            "golden_agreement_reward"
+          ],
+          "implementation": "training/rewards.py",
+          "policy": "original_1_1_2",
+          "weights": [
+            1.0,
+            1.0,
+            2.0
+          ]
+        },
+        "B": {
+          "functions": [
+            "candidate_ua_reward"
+          ],
+          "implementation": "training/run2_rewards.py",
+          "policy": "candidate_ua",
+          "weights": [
+            1.0
+          ]
+        }
+      },
+      "trainer_config_differences": {
+        "output_dir": {
+          "A": "runs/grpo-run2-arm-a-original",
+          "B": "runs/grpo-run2-arm-b-ua"
+        },
+        "run_name": {
+          "A": "grpo-run2-arm-a-original",
+          "B": "grpo-run2-arm-b-ua"
+        }
+      }
+    },
+    "config_binding": {
+      "generation_batch_size": 8,
+      "prompts_per_generation_batch": 1,
+      "settings": {
+        "adam_beta1": 0.9,
+        "adam_beta2": 0.999,
+        "adam_epsilon": 1e-08,
+        "beta": 0.0,
+        "bf16": true,
+        "data_seed": 42,
+        "epsilon": 0.2,
+        "epsilon_high": 0.28,
+        "fp16": false,
+        "gradient_accumulation_steps": 1,
+        "gradient_checkpointing": true,
+        "learning_rate": 5e-06,
+        "log_completions": false,
+        "logging_first_step": true,
+        "logging_steps": 1,
+        "logging_strategy": "steps",
+        "loss_type": "dapo",
+        "lr_scheduler_type": "cosine",
+        "mask_truncated_completions": true,
+        "max_completion_length": 170,
+        "max_grad_norm": 1.0,
+        "max_prompt_length": 600,
+        "max_steps": 300,
+        "num_completions_to_print": 8,
+        "num_generations": 8,
+        "num_iterations": 1,
+        "optim": "adamw_8bit",
+        "output_dir": "/workspace/arm-b-scratch/trainer",
+        "per_device_train_batch_size": 8,
+        "remove_unused_columns": false,
+        "repetition_penalty": 1.0,
+        "report_to": [],
+        "reward_weights": [
+          1.0
+        ],
+        "run_name": "grpo-run2-arm-b-ua",
+        "save_only_model": true,
+        "save_steps": 100,
+        "save_strategy": "steps",
+        "save_total_limit": 2,
+        "scale_rewards": "group",
+        "seed": 42,
+        "shuffle_dataset": false,
+        "steps_per_generation": 1,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "use_vllm": false,
+        "warmup_ratio": 0.1,
+        "weight_decay": 0.001
+      },
+      "settings_match_contract": true
+    },
+    "contract_lineage": {
+      "expected_execution_code_commit_from_contract": "e24e0b4d94cb76870d736abdd4d45b8f890de67b",
+      "status": "locked_no_gpu_training_dispatched",
+      "version": "grpo-run2-causal-gpu-experiment-v1"
+    },
+    "dataset_binding": {
+      "columns": [
+        "gold",
+        "prompt",
+        "sku_id"
+      ],
+      "order_survived_materialization": true,
+      "ordered_sku_sha256": "7a73e21387b344ee67606008b41f3c57c04da7a7345dfb5fdc10a0cb07f344f6",
+      "path": "data/grpo_run2_causal_schedule_v1.jsonl",
+      "retained_by_identity": true,
+      "rows": 300,
+      "trainer_shuffle": false,
+      "unique_skus": 300
+    },
+    "phase_profiler_attached": true,
+    "profiler_binding": {
+      "accelerator_backward_wrapped": true,
+      "instrumented_phases": [
+        "forward_loss",
+        "generation",
+        "reward"
+      ],
+      "optimizer_instrumented": false
+    },
+    "reserved_paths": {
+      "control_dir": "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-control",
+      "failure_dir": "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-failed",
+      "monitor_root": "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-monitor",
+      "output_dir": "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua",
+      "quality_root": "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-monitor-quality"
+    },
+    "reserved_paths_created": false,
+    "reward_binding": {
+      "callable_modules": [
+        "training.run2_rewards"
+      ],
+      "callable_names": [
+        "candidate_ua_reward"
+      ],
+      "observed_reward_calls": {
+        "candidate_ua_reward": 0
+      },
+      "policy": "candidate_ua",
+      "reward_calls_measured": true,
+      "weights": [
+        1.0
+      ]
+    },
+    "role": "dense_reward_treatment",
+    "smoke_mode": false,
+    "status": "arm_runtime_composed_no_training_dispatched",
+    "step_schedule": {
+      "checkpointing": "epoch/steps",
+      "max_steps": 300
+    },
+    "trainer_binding": {
+      "config_retained": true,
+      "global_step": 0,
+      "lr_scheduler_constructed": false,
+      "model_present": true,
+      "model_retained_by_identity": true,
+      "optimizer_constructed": false,
+      "reference_model_constructed": false,
+      "reward_callables_retained": true,
+      "reward_order_preserved": true,
+      "reward_weights_preserved": true,
+      "tokenizer_retained": true
+    },
+    "trainer_scratch_dir": "/workspace/arm-b-scratch/trainer",
+    "version": "grpo-run2-arm-runtime-composition-v1"
+  },
+  "evidence": {
+    "checkpoints": [
+      100,
+      200,
+      300
+    ],
+    "distinct_rewards": 141,
+    "phase_records": 300,
+    "rollouts": 2400,
+    "steps": 300,
+    "training_loss": 0.0002866237411047804,
+    "zero_variance_groups": 22
+  },
+  "published_to": "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua",
+  "role": "dense_reward_treatment",
+  "smoke_mode": false,
+  "status": "arm_run_completed",
+  "version": "grpo-run2-arm-workload-v1",
+  "wall_seconds": 8969.436593133956
+}

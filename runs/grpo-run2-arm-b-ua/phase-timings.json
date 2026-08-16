@@ -1,0 +1,6002 @@
+[
+  {
+    "accounted_seconds": 17.162441317923367,
+    "other_seconds": 0.11438151507172734,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.7026044270023704,
+      "forward_loss": 11.049387794919312,
+      "generation": 5.209841407020576,
+      "optimizer": 0.06381578498985618,
+      "reward": 0.13679190399125218
+    },
+    "step": 1,
+    "step_wall_seconds": 17.276822832995094
+  },
+  {
+    "accounted_seconds": 6.475018445169553,
+    "other_seconds": 0.038481769734062254,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19470270699821413,
+      "forward_loss": 2.1419352320954204,
+      "generation": 4.1134952689753845,
+      "optimizer": 0.02188970206771046,
+      "reward": 0.002995535032823682
+    },
+    "step": 2,
+    "step_wall_seconds": 6.513500214903615
+  },
+  {
+    "accounted_seconds": 5.421996099175885,
+    "other_seconds": 0.03898313676472753,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.22030776098836213,
+      "forward_loss": 0.9532729780767113,
+      "generation": 4.223045515012927,
+      "optimizer": 0.022177781094796956,
+      "reward": 0.00319206400308758
+    },
+    "step": 3,
+    "step_wall_seconds": 5.460979235940613
+  },
+  {
+    "accounted_seconds": 4.36968954699114,
+    "other_seconds": 0.037513794959522784,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18227327906060964,
+      "forward_loss": 0.1001987149938941,
+      "generation": 4.062095087952912,
+      "optimizer": 0.02214076998643577,
+      "reward": 0.0029816949972882867
+    },
+    "step": 4,
+    "step_wall_seconds": 4.407203341950662
+  },
+  {
+    "accounted_seconds": 4.22516009316314,
+    "other_seconds": 0.03698689490556717,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18646045797504485,
+      "forward_loss": 0.10125327005516738,
+      "generation": 3.912384028080851,
+      "optimizer": 0.022026662016287446,
+      "reward": 0.003035675035789609
+    },
+    "step": 5,
+    "step_wall_seconds": 4.262146988068707
+  },
+  {
+    "accounted_seconds": 5.006822774885222,
+    "other_seconds": 0.03814605111256242,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.22093949804548174,
+      "forward_loss": 0.45484355092048645,
+      "generation": 4.3057520020520315,
+      "optimizer": 0.021996220923028886,
+      "reward": 0.0032915029441937804
+    },
+    "step": 6,
+    "step_wall_seconds": 5.044968825997785
+  },
+  {
+    "accounted_seconds": 4.147275615017861,
+    "other_seconds": 0.03765060193836689,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1895436029881239,
+      "forward_loss": 0.10416355496272445,
+      "generation": 3.8286286490038037,
+      "optimizer": 0.02212117100134492,
+      "reward": 0.0028186370618641376
+    },
+    "step": 7,
+    "step_wall_seconds": 4.184926216956228
+  },
+  {
+    "accounted_seconds": 4.435428404947743,
+    "other_seconds": 0.03727167705073953,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1895364619558677,
+      "forward_loss": 0.10434596403501928,
+      "generation": 4.116444634040818,
+      "optimizer": 0.022029710933566093,
+      "reward": 0.0030716339824721217
+    },
+    "step": 8,
+    "step_wall_seconds": 4.472700081998482
+  },
+  {
+    "accounted_seconds": 4.560345475911163,
+    "other_seconds": 0.03794252313673496,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19805650098714978,
+      "forward_loss": 0.10711327998433262,
+      "generation": 4.230124040041119,
+      "optimizer": 0.02189691097009927,
+      "reward": 0.003154743928462267
+    },
+    "step": 9,
+    "step_wall_seconds": 4.598287999047898
+  },
+  {
+    "accounted_seconds": 4.553183019976132,
+    "other_seconds": 0.038266031071543694,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20266291697043926,
+      "forward_loss": 0.10832299396861345,
+      "generation": 4.217088123084977,
+      "optimizer": 0.02212880097795278,
+      "reward": 0.0029801849741488695
+    },
+    "step": 10,
+    "step_wall_seconds": 4.591449051047675
+  },
+  {
+    "accounted_seconds": 4.466693256050348,
+    "other_seconds": 0.03837978094816208,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20208760001696646,
+      "forward_loss": 0.10946063802111894,
+      "generation": 4.130000412929803,
+      "optimizer": 0.02221452002413571,
+      "reward": 0.002930085058324039
+    },
+    "step": 11,
+    "step_wall_seconds": 4.50507303699851
+  },
+  {
+    "accounted_seconds": 4.481716759037226,
+    "other_seconds": 0.03772793593816459,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19171678088605404,
+      "forward_loss": 0.10451770306099206,
+      "generation": 4.160301310010254,
+      "optimizer": 0.022126020048744977,
+      "reward": 0.003054945031180978
+    },
+    "step": 12,
+    "step_wall_seconds": 4.519444694975391
+  },
+  {
+    "accounted_seconds": 4.332729295943864,
+    "other_seconds": 0.03794256306719035,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20162958302535117,
+      "forward_loss": 0.10630413400940597,
+      "generation": 3.9995077239582315,
+      "optimizer": 0.02217929996550083,
+      "reward": 0.0031085549853742123
+    },
+    "step": 13,
+    "step_wall_seconds": 4.370671859011054
+  },
+  {
+    "accounted_seconds": 4.50374574912712,
+    "other_seconds": 0.03814561082981527,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20522086508572102,
+      "forward_loss": 0.10892542090732604,
+      "generation": 4.164326018071733,
+      "optimizer": 0.022253420087508857,
+      "reward": 0.0030200249748304486
+    },
+    "step": 14,
+    "step_wall_seconds": 4.541891359956935
+  },
+  {
+    "accounted_seconds": 4.694542752811685,
+    "other_seconds": 0.03833342017605901,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2204796290025115,
+      "forward_loss": 0.11538591899443418,
+      "generation": 4.333369279978797,
+      "optimizer": 0.022183729917742312,
+      "reward": 0.0031241949182003736
+    },
+    "step": 15,
+    "step_wall_seconds": 4.732876172987744
+  },
+  {
+    "accounted_seconds": 4.539522278006189,
+    "other_seconds": 0.03826259891502559,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19884806300979108,
+      "forward_loss": 0.10707164299674332,
+      "generation": 4.208241109969094,
+      "optimizer": 0.022168718045577407,
+      "reward": 0.0031927439849823713
+    },
+    "step": 16,
+    "step_wall_seconds": 4.577784876921214
+  },
+  {
+    "accounted_seconds": 4.138001687941141,
+    "other_seconds": 0.03814352804329246,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19013086694758385,
+      "forward_loss": 0.10407626803498715,
+      "generation": 3.8189981679897755,
+      "optimizer": 0.021955178934149444,
+      "reward": 0.002841206034645438
+    },
+    "step": 17,
+    "step_wall_seconds": 4.176145215984434
+  },
+  {
+    "accounted_seconds": 4.511193868936971,
+    "other_seconds": 0.037958269007503986,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2011615609517321,
+      "forward_loss": 0.10783670993987471,
+      "generation": 4.177174333017319,
+      "optimizer": 0.021881771041080356,
+      "reward": 0.0031394939869642258
+    },
+    "step": 18,
+    "step_wall_seconds": 4.549152137944475
+  },
+  {
+    "accounted_seconds": 4.532582520856522,
+    "other_seconds": 0.03788255015388131,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2032407809747383,
+      "forward_loss": 0.10772186995018274,
+      "generation": 4.196614845888689,
+      "optimizer": 0.02201823005452752,
+      "reward": 0.0029867939883843064
+    },
+    "step": 19,
+    "step_wall_seconds": 4.570465071010403
+  },
+  {
+    "accounted_seconds": 4.08318130497355,
+    "other_seconds": 0.037476783036254346,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18229364603757858,
+      "forward_loss": 0.09714384202379733,
+      "generation": 3.7789404609939083,
+      "optimizer": 0.022036429960280657,
+      "reward": 0.0027669259579852223
+    },
+    "step": 20,
+    "step_wall_seconds": 4.1206580880098045
+  },
+  {
+    "accounted_seconds": 4.631556586129591,
+    "other_seconds": 0.03816596977412701,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20092461304739118,
+      "forward_loss": 0.10716261202469468,
+      "generation": 4.2972644730471075,
+      "optimizer": 0.023139953962527215,
+      "reward": 0.003064934047870338
+    },
+    "step": 21,
+    "step_wall_seconds": 4.669722555903718
+  },
+  {
+    "accounted_seconds": 4.544358393875882,
+    "other_seconds": 0.03785313211847097,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18966291891410947,
+      "forward_loss": 0.10278911399655044,
+      "generation": 4.226312519982457,
+      "optimizer": 0.02248744701500982,
+      "reward": 0.003106393967755139
+    },
+    "step": 22,
+    "step_wall_seconds": 4.582211525994353
+  },
+  {
+    "accounted_seconds": 4.619574278942309,
+    "other_seconds": 0.03802142012864351,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20067083404865116,
+      "forward_loss": 0.10857357492204756,
+      "generation": 4.285111446049996,
+      "optimizer": 0.022150339907966554,
+      "reward": 0.003068084013648331
+    },
+    "step": 23,
+    "step_wall_seconds": 4.657595699070953
+  },
+  {
+    "accounted_seconds": 4.609733428107575,
+    "other_seconds": 0.03795350098516792,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20583430805709213,
+      "forward_loss": 0.11042450601235032,
+      "generation": 4.2682815809967,
+      "optimizer": 0.022064919001422822,
+      "reward": 0.0031281140400096774
+    },
+    "step": 24,
+    "step_wall_seconds": 4.6476869290927425
+  },
+  {
+    "accounted_seconds": 4.545327672734857,
+    "other_seconds": 0.03791237133555114,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1885042239446193,
+      "forward_loss": 0.10358452098444104,
+      "generation": 4.227886094944552,
+      "optimizer": 0.0220658389152959,
+      "reward": 0.0032869939459487796
+    },
+    "step": 25,
+    "step_wall_seconds": 4.583240044070408
+  },
+  {
+    "accounted_seconds": 6.4143177550286055,
+    "other_seconds": 0.03863368590828031,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20163421903271228,
+      "forward_loss": 1.8199939869809896,
+      "generation": 4.367246547015384,
+      "optimizer": 0.022192397969774902,
+      "reward": 0.0032506040297448635
+    },
+    "step": 26,
+    "step_wall_seconds": 6.452951440936886
+  },
+  {
+    "accounted_seconds": 4.592032733140513,
+    "other_seconds": 0.03822429687716067,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2017121589742601,
+      "forward_loss": 0.10760640108492225,
+      "generation": 4.257526419009082,
+      "optimizer": 0.02194710006006062,
+      "reward": 0.0032406540121883154
+    },
+    "step": 27,
+    "step_wall_seconds": 4.630257030017674
+  },
+  {
+    "accounted_seconds": 4.582352440920658,
+    "other_seconds": 0.03756093210540712,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18532355106435716,
+      "forward_loss": 0.10194670897908509,
+      "generation": 4.269907517009415,
+      "optimizer": 0.02210342895705253,
+      "reward": 0.003071234910748899
+    },
+    "step": 28,
+    "step_wall_seconds": 4.6199133730260655
+  },
+  {
+    "accounted_seconds": 4.629057926009409,
+    "other_seconds": 0.03805844101589173,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1984899549279362,
+      "forward_loss": 0.10688504402060062,
+      "generation": 4.298465954023413,
+      "optimizer": 0.022179697989486158,
+      "reward": 0.0030372750479727983
+    },
+    "step": 29,
+    "step_wall_seconds": 4.667116367025301
+  },
+  {
+    "accounted_seconds": 4.51534306909889,
+    "other_seconds": 0.038070998969487846,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18847282498609275,
+      "forward_loss": 0.10314943303819746,
+      "generation": 4.198188238078728,
+      "optimizer": 0.022322349017485976,
+      "reward": 0.0032102239783853292
+    },
+    "step": 30,
+    "step_wall_seconds": 4.553414068068378
+  },
+  {
+    "accounted_seconds": 4.480650512035936,
+    "other_seconds": 0.03810982103459537,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2018840879900381,
+      "forward_loss": 0.10669701499864459,
+      "generation": 4.146715337061323,
+      "optimizer": 0.022287247935310006,
+      "reward": 0.0030668240506201982
+    },
+    "step": 31,
+    "step_wall_seconds": 4.5187603330705315
+  },
+  {
+    "accounted_seconds": 5.387291150051169,
+    "other_seconds": 0.03846814786083996,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.635689334012568,
+      "forward_loss": 0.565458876080811,
+      "generation": 4.160964676993899,
+      "optimizer": 0.02211580891162157,
+      "reward": 0.0030624540522694588
+    },
+    "step": 32,
+    "step_wall_seconds": 5.425759297912009
+  },
+  {
+    "accounted_seconds": 4.5681224869331345,
+    "other_seconds": 0.03808125911746174,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20011237694416195,
+      "forward_loss": 0.10758735099807382,
+      "generation": 4.235065096989274,
+      "optimizer": 0.02235241699963808,
+      "reward": 0.003005245001986623
+    },
+    "step": 33,
+    "step_wall_seconds": 4.606203746050596
+  },
+  {
+    "accounted_seconds": 4.24482189794071,
+    "other_seconds": 0.0382076189853251,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18889191397465765,
+      "forward_loss": 0.10314511298201978,
+      "generation": 3.927644197945483,
+      "optimizer": 0.022341018076986074,
+      "reward": 0.002799654961563647
+    },
+    "step": 34,
+    "step_wall_seconds": 4.283029516926035
+  },
+  {
+    "accounted_seconds": 4.491240314906463,
+    "other_seconds": 0.037490402115508914,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20163368002977222,
+      "forward_loss": 0.10923606297001243,
+      "generation": 4.155127467936836,
+      "optimizer": 0.022171210031956434,
+      "reward": 0.0030718939378857613
+    },
+    "step": 35,
+    "step_wall_seconds": 4.528730717021972
+  },
+  {
+    "accounted_seconds": 4.312633769237436,
+    "other_seconds": 0.037733801756985486,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18688730301801115,
+      "forward_loss": 0.10423046804498881,
+      "generation": 3.996320535079576,
+      "optimizer": 0.021965739084407687,
+      "reward": 0.003229724010452628
+    },
+    "step": 36,
+    "step_wall_seconds": 4.350367570994422
+  },
+  {
+    "accounted_seconds": 5.15027332410682,
+    "other_seconds": 0.03872229589615017,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.22349149000365287,
+      "forward_loss": 0.9552597040310502,
+      "generation": 3.947046592948027,
+      "optimizer": 0.022013450041413307,
+      "reward": 0.0024620870826765895
+    },
+    "step": 37,
+    "step_wall_seconds": 5.18899562000297
+  },
+  {
+    "accounted_seconds": 4.472026593983173,
+    "other_seconds": 0.03783682896755636,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18849068495910615,
+      "forward_loss": 0.10403861000668257,
+      "generation": 4.154258335009217,
+      "optimizer": 0.022140408982522786,
+      "reward": 0.0030985550256446004
+    },
+    "step": 38,
+    "step_wall_seconds": 4.50986342295073
+  },
+  {
+    "accounted_seconds": 4.5605118098901585,
+    "other_seconds": 0.03778554208111018,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20036450598854572,
+      "forward_loss": 0.10823848797008395,
+      "generation": 4.226568673970178,
+      "optimizer": 0.022203497937880456,
+      "reward": 0.0031366440234705806
+    },
+    "step": 39,
+    "step_wall_seconds": 4.598297351971269
+  },
+  {
+    "accounted_seconds": 4.483876085025258,
+    "other_seconds": 0.03689539595507085,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1883211269741878,
+      "forward_loss": 0.1043472170131281,
+      "generation": 4.164849614026025,
+      "optimizer": 0.02333918202202767,
+      "reward": 0.00301894498988986
+    },
+    "step": 40,
+    "step_wall_seconds": 4.520771480980329
+  },
+  {
+    "accounted_seconds": 4.7089079389115795,
+    "other_seconds": 0.03695115412119776,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20367351896129549,
+      "forward_loss": 0.10779858997557312,
+      "generation": 4.372568013961427,
+      "optimizer": 0.022018890012986958,
+      "reward": 0.0028489260002970695
+    },
+    "step": 41,
+    "step_wall_seconds": 4.745859093032777
+  },
+  {
+    "accounted_seconds": 4.338275157031603,
+    "other_seconds": 0.03656959696672857,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19874734396580607,
+      "forward_loss": 0.10721153300255537,
+      "generation": 4.007207156042568,
+      "optimizer": 0.022027069004252553,
+      "reward": 0.0030820550164207816
+    },
+    "step": 42,
+    "step_wall_seconds": 4.374844753998332
+  },
+  {
+    "accounted_seconds": 4.137021544971503,
+    "other_seconds": 0.03628212900366634,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1847392750205472,
+      "forward_loss": 0.09905187296681106,
+      "generation": 3.8281297519570217,
+      "optimizer": 0.02232047903817147,
+      "reward": 0.0027801659889519215
+    },
+    "step": 43,
+    "step_wall_seconds": 4.17330367397517
+  },
+  {
+    "accounted_seconds": 4.234131701057777,
+    "other_seconds": 0.036952103953808546,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1870596130611375,
+      "forward_loss": 0.1027619750238955,
+      "generation": 3.9194667160045356,
+      "optimizer": 0.021969210938550532,
+      "reward": 0.0028741860296577215
+    },
+    "step": 44,
+    "step_wall_seconds": 4.271083805011585
+  },
+  {
+    "accounted_seconds": 4.644340985105373,
+    "other_seconds": 0.03671295684762299,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20436684601008892,
+      "forward_loss": 0.10853248601779342,
+      "generation": 4.306271358975209,
+      "optimizer": 0.02211323904339224,
+      "reward": 0.003057055058889091
+    },
+    "step": 45,
+    "step_wall_seconds": 4.681053941952996
+  },
+  {
+    "accounted_seconds": 4.55333571205847,
+    "other_seconds": 0.036912514828145504,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20135811099316925,
+      "forward_loss": 0.1079680590191856,
+      "generation": 4.218996096984483,
+      "optimizer": 0.021903880056925118,
+      "reward": 0.0031095650047063828
+    },
+    "step": 46,
+    "step_wall_seconds": 4.590248226886615
+  },
+  {
+    "accounted_seconds": 4.6408067950978875,
+    "other_seconds": 0.037218743935227394,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19768133002799004,
+      "forward_loss": 0.10857671697158366,
+      "generation": 4.309517013956793,
+      "optimizer": 0.021912670112214983,
+      "reward": 0.0031190640293061733
+    },
+    "step": 47,
+    "step_wall_seconds": 4.678025539033115
+  },
+  {
+    "accounted_seconds": 4.527925289934501,
+    "other_seconds": 0.03661806811578572,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20047261589206755,
+      "forward_loss": 0.10757844103500247,
+      "generation": 4.194770799018443,
+      "optimizer": 0.021866559982299805,
+      "reward": 0.003236874006688595
+    },
+    "step": 48,
+    "step_wall_seconds": 4.564543358050287
+  },
+  {
+    "accounted_seconds": 4.786217206972651,
+    "other_seconds": 0.03678092604968697,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20246448600664735,
+      "forward_loss": 0.10806990799028426,
+      "generation": 4.450386009993963,
+      "optimizer": 0.022019639960490167,
+      "reward": 0.0032771630212664604
+    },
+    "step": 49,
+    "step_wall_seconds": 4.822998133022338
+  },
+  {
+    "accounted_seconds": 4.444345311960205,
+    "other_seconds": 0.03668676607776433,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2014715609839186,
+      "forward_loss": 0.10735978197772056,
+      "generation": 4.110354403965175,
+      "optimizer": 0.022098500048741698,
+      "reward": 0.00306106498464942
+    },
+    "step": 50,
+    "step_wall_seconds": 4.48103207803797
+  },
+  {
+    "accounted_seconds": 4.414611660176888,
+    "other_seconds": 0.03631479886826128,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18975727003999054,
+      "forward_loss": 0.10347523109521717,
+      "generation": 4.096124476054683,
+      "optimizer": 0.0221687889425084,
+      "reward": 0.0030858940444886684
+    },
+    "step": 51,
+    "step_wall_seconds": 4.450926459045149
+  },
+  {
+    "accounted_seconds": 4.2283680740511045,
+    "other_seconds": 0.03637347905896604,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1915981009369716,
+      "forward_loss": 0.105193424038589,
+      "generation": 3.9065506160259247,
+      "optimizer": 0.022228618036024272,
+      "reward": 0.0027973150135949254
+    },
+    "step": 52,
+    "step_wall_seconds": 4.2647415531100705
+  },
+  {
+    "accounted_seconds": 4.688147623091936,
+    "other_seconds": 0.036899694823659956,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2027503540739417,
+      "forward_loss": 0.10789143003057688,
+      "generation": 4.352200875990093,
+      "optimizer": 0.022185539011843503,
+      "reward": 0.003119423985481262
+    },
+    "step": 53,
+    "step_wall_seconds": 4.725047317915596
+  },
+  {
+    "accounted_seconds": 4.465881266049109,
+    "other_seconds": 0.03622311889193952,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1883464070269838,
+      "forward_loss": 0.10418970696628094,
+      "generation": 4.148188238032162,
+      "optimizer": 0.022097178967669606,
+      "reward": 0.003059735056012869
+    },
+    "step": 54,
+    "step_wall_seconds": 4.502104384941049
+  },
+  {
+    "accounted_seconds": 4.393094210885465,
+    "other_seconds": 0.03598790999967605,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1886663349578157,
+      "forward_loss": 0.10332252294756472,
+      "generation": 4.075888769002631,
+      "optimizer": 0.022190909017808735,
+      "reward": 0.0030256749596446753
+    },
+    "step": 55,
+    "step_wall_seconds": 4.429082120885141
+  },
+  {
+    "accounted_seconds": 4.076082760933787,
+    "other_seconds": 0.03616562800016254,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18800641898997128,
+      "forward_loss": 0.10289602493867278,
+      "generation": 3.7604411899810657,
+      "optimizer": 0.021925461012870073,
+      "reward": 0.0028136660112068057
+    },
+    "step": 56,
+    "step_wall_seconds": 4.112248388933949
+  },
+  {
+    "accounted_seconds": 4.549187721218914,
+    "other_seconds": 0.03623980877455324,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20183553907554597,
+      "forward_loss": 0.10719806305132806,
+      "generation": 4.214955305098556,
+      "optimizer": 0.02211659005843103,
+      "reward": 0.0030822239350527525
+    },
+    "step": 57,
+    "step_wall_seconds": 4.585427529993467
+  },
+  {
+    "accounted_seconds": 4.414878384908661,
+    "other_seconds": 0.03642417711671442,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19016356801148504,
+      "forward_loss": 0.10336794191971421,
+      "generation": 4.09599269204773,
+      "optimizer": 0.022224718937650323,
+      "reward": 0.0031294639920815825
+    },
+    "step": 58,
+    "step_wall_seconds": 4.451302562025376
+  },
+  {
+    "accounted_seconds": 4.6789218039484695,
+    "other_seconds": 0.03650386701337993,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20333920198027045,
+      "forward_loss": 0.10686149506364018,
+      "generation": 4.343842030968517,
+      "optimizer": 0.02180977095849812,
+      "reward": 0.003069304977543652
+    },
+    "step": 59,
+    "step_wall_seconds": 4.715425670961849
+  },
+  {
+    "accounted_seconds": 4.514410746982321,
+    "other_seconds": 0.03635823796503246,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19981942896265537,
+      "forward_loss": 0.10714801400899887,
+      "generation": 4.1824918090133,
+      "optimizer": 0.021924189990386367,
+      "reward": 0.003027305006980896
+    },
+    "step": 60,
+    "step_wall_seconds": 4.550768984947354
+  },
+  {
+    "accounted_seconds": 4.558432227815501,
+    "other_seconds": 0.036379028228111565,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19845660601276904,
+      "forward_loss": 0.10694336495362222,
+      "generation": 4.227931901928969,
+      "optimizer": 0.022043959936127067,
+      "reward": 0.0030563949840143323
+    },
+    "step": 61,
+    "step_wall_seconds": 4.594811256043613
+  },
+  {
+    "accounted_seconds": 4.276953008025885,
+    "other_seconds": 0.037011754931882024,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.186047449009493,
+      "forward_loss": 0.1036975410534069,
+      "generation": 3.962317513069138,
+      "optimizer": 0.021967709995806217,
+      "reward": 0.0029227948980405927
+    },
+    "step": 62,
+    "step_wall_seconds": 4.313964762957767
+  },
+  {
+    "accounted_seconds": 4.634947397047654,
+    "other_seconds": 0.03646096703596413,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20269881503190845,
+      "forward_loss": 0.1079484400106594,
+      "generation": 4.299203527974896,
+      "optimizer": 0.021973810042254627,
+      "reward": 0.0031228039879351854
+    },
+    "step": 63,
+    "step_wall_seconds": 4.671408364083618
+  },
+  {
+    "accounted_seconds": 4.692596388049424,
+    "other_seconds": 0.03666630701627582,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20103100407868624,
+      "forward_loss": 0.1081329690059647,
+      "generation": 4.35822932200972,
+      "optimizer": 0.021930449991486967,
+      "reward": 0.003272642963565886
+    },
+    "step": 64,
+    "step_wall_seconds": 4.7292626950656995
+  },
+  {
+    "accounted_seconds": 4.434337440994568,
+    "other_seconds": 0.03610827005468309,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18493537395261228,
+      "forward_loss": 0.10260106599889696,
+      "generation": 4.121580578037538,
+      "optimizer": 0.022058448987081647,
+      "reward": 0.0031619740184396505
+    },
+    "step": 65,
+    "step_wall_seconds": 4.470445711049251
+  },
+  {
+    "accounted_seconds": 4.576830010046251,
+    "other_seconds": 0.037108293967321515,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1967120059998706,
+      "forward_loss": 0.10706039401702583,
+      "generation": 4.246364893973805,
+      "optimizer": 0.023497311980463564,
+      "reward": 0.003195404075086117
+    },
+    "step": 66,
+    "step_wall_seconds": 4.613938304013573
+  },
+  {
+    "accounted_seconds": 4.671687555033714,
+    "other_seconds": 0.0375238818814978,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20416933798696846,
+      "forward_loss": 0.10905970400199294,
+      "generation": 4.333126139943488,
+      "optimizer": 0.02214084903243929,
+      "reward": 0.003191524068824947
+    },
+    "step": 67,
+    "step_wall_seconds": 4.709211436915211
+  },
+  {
+    "accounted_seconds": 4.173239699099213,
+    "other_seconds": 0.03682408784516156,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1796823600307107,
+      "forward_loss": 0.10283768502995372,
+      "generation": 3.8656887100078166,
+      "optimizer": 0.022150258999317884,
+      "reward": 0.002880685031414032
+    },
+    "step": 68,
+    "step_wall_seconds": 4.210063786944374
+  },
+  {
+    "accounted_seconds": 4.185034790891223,
+    "other_seconds": 0.036231220117770135,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1840213789837435,
+      "forward_loss": 0.10266339604277164,
+      "generation": 3.8733776019653305,
+      "optimizer": 0.02208268898539245,
+      "reward": 0.002889724913984537
+    },
+    "step": 69,
+    "step_wall_seconds": 4.221266011008993
+  },
+  {
+    "accounted_seconds": 4.529956187820062,
+    "other_seconds": 0.0362837181892246,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.201209882972762,
+      "forward_loss": 0.10698637494351715,
+      "generation": 4.196636835928075,
+      "optimizer": 0.021985100000165403,
+      "reward": 0.0031379939755424857
+    },
+    "step": 70,
+    "step_wall_seconds": 4.566239906009287
+  },
+  {
+    "accounted_seconds": 4.767885396024212,
+    "other_seconds": 0.038137119030579925,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1989823840558529,
+      "forward_loss": 0.10793731000740081,
+      "generation": 4.43562160898,
+      "optimizer": 0.022194158984348178,
+      "reward": 0.0031499339966103435
+    },
+    "step": 71,
+    "step_wall_seconds": 4.806022515054792
+  },
+  {
+    "accounted_seconds": 4.268966722884215,
+    "other_seconds": 0.03822965011931956,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1865665758959949,
+      "forward_loss": 0.10405949898995459,
+      "generation": 3.952504607033916,
+      "optimizer": 0.02291332499589771,
+      "reward": 0.002922715968452394
+    },
+    "step": 72,
+    "step_wall_seconds": 4.307196373003535
+  },
+  {
+    "accounted_seconds": 4.323324122931808,
+    "other_seconds": 0.03730199299752712,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18889738502912223,
+      "forward_loss": 0.10539380193222314,
+      "generation": 4.003980831010267,
+      "optimizer": 0.022164728958159685,
+      "reward": 0.002887376002036035
+    },
+    "step": 73,
+    "step_wall_seconds": 4.360626115929335
+  },
+  {
+    "accounted_seconds": 4.295881480909884,
+    "other_seconds": 0.03654505708254874,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18673886603210121,
+      "forward_loss": 0.10290223394986242,
+      "generation": 3.9812961550196633,
+      "optimizer": 0.0220720199868083,
+      "reward": 0.002872205921448767
+    },
+    "step": 74,
+    "step_wall_seconds": 4.332426537992433
+  },
+  {
+    "accounted_seconds": 4.476343957125209,
+    "other_seconds": 0.036510647856630385,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1991350930184126,
+      "forward_loss": 0.10799777903594077,
+      "generation": 4.144366728956811,
+      "optimizer": 0.02199965005274862,
+      "reward": 0.002844706061296165
+    },
+    "step": 75,
+    "step_wall_seconds": 4.51285460498184
+  },
+  {
+    "accounted_seconds": 4.429436602978967,
+    "other_seconds": 0.036943705985322595,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20069768489338458,
+      "forward_loss": 0.10855462704785168,
+      "generation": 4.095146195963025,
+      "optimizer": 0.021861431072466075,
+      "reward": 0.003176664002239704
+    },
+    "step": 76,
+    "step_wall_seconds": 4.46638030896429
+  },
+  {
+    "accounted_seconds": 4.291188125032932,
+    "other_seconds": 0.036375478957779706,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18754980096127838,
+      "forward_loss": 0.10331689310260117,
+      "generation": 3.9753574259812012,
+      "optimizer": 0.021832740982063115,
+      "reward": 0.0031312640057876706
+    },
+    "step": 77,
+    "step_wall_seconds": 4.327563603990711
+  },
+  {
+    "accounted_seconds": 4.4580309429438785,
+    "other_seconds": 0.03770670003723353,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18440191796980798,
+      "forward_loss": 0.10321442398708314,
+      "generation": 4.145173477008939,
+      "optimizer": 0.022171529941260815,
+      "reward": 0.0030695940367877483
+    },
+    "step": 78,
+    "step_wall_seconds": 4.495737642981112
+  },
+  {
+    "accounted_seconds": 4.570840885047801,
+    "other_seconds": 0.038506909972056746,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2241163479629904,
+      "forward_loss": 0.11583602009341121,
+      "generation": 4.2055075749522075,
+      "optimizer": 0.022327807964757085,
+      "reward": 0.003053134074434638
+    },
+    "step": 79,
+    "step_wall_seconds": 4.609347795019858
+  },
+  {
+    "accounted_seconds": 5.032246048911475,
+    "other_seconds": 0.0391465041320771,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2249037850415334,
+      "forward_loss": 0.4809748230036348,
+      "generation": 4.3012922869529575,
+      "optimizer": 0.021943790023215115,
+      "reward": 0.003131363890133798
+    },
+    "step": 80,
+    "step_wall_seconds": 5.071392553043552
+  },
+  {
+    "accounted_seconds": 4.6012040770147,
+    "other_seconds": 0.03829758905339986,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2008901450317353,
+      "forward_loss": 0.10677825508173555,
+      "generation": 4.268292733002454,
+      "optimizer": 0.02213815995492041,
+      "reward": 0.0031047839438542724
+    },
+    "step": 81,
+    "step_wall_seconds": 4.639501666068099
+  },
+  {
+    "accounted_seconds": 4.579343517078087,
+    "other_seconds": 0.03873438586015254,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20021523803006858,
+      "forward_loss": 0.10706686496268958,
+      "generation": 4.247157578007318,
+      "optimizer": 0.02181970200035721,
+      "reward": 0.003084134077653289
+    },
+    "step": 82,
+    "step_wall_seconds": 4.618077902938239
+  },
+  {
+    "accounted_seconds": 4.4680065049324185,
+    "other_seconds": 0.03759188100229949,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1895977510139346,
+      "forward_loss": 0.10329515393823385,
+      "generation": 4.150023055030033,
+      "optimizer": 0.02204674994572997,
+      "reward": 0.0030437950044870377
+    },
+    "step": 83,
+    "step_wall_seconds": 4.505598385934718
+  },
+  {
+    "accounted_seconds": 4.42526945786085,
+    "other_seconds": 0.03792689123656601,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1893947219941765,
+      "forward_loss": 0.10306413390208036,
+      "generation": 4.107605858007446,
+      "optimizer": 0.022110629943199456,
+      "reward": 0.0030941140139475465
+    },
+    "step": 84,
+    "step_wall_seconds": 4.463196349097416
+  },
+  {
+    "accounted_seconds": 4.319391909986734,
+    "other_seconds": 0.03775734000373632,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18488713505212218,
+      "forward_loss": 0.10129366302862763,
+      "generation": 4.007897807983682,
+      "optimizer": 0.022267558961175382,
+      "reward": 0.003045744961127639
+    },
+    "step": 85,
+    "step_wall_seconds": 4.357149249990471
+  },
+  {
+    "accounted_seconds": 4.136922121979296,
+    "other_seconds": 0.03759409300982952,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18784278992097825,
+      "forward_loss": 0.10304392501711845,
+      "generation": 3.8208974229637533,
+      "optimizer": 0.02237199805676937,
+      "reward": 0.0027659860206767917
+    },
+    "step": 86,
+    "step_wall_seconds": 4.174516214989126
+  },
+  {
+    "accounted_seconds": 4.5170239709550515,
+    "other_seconds": 0.03794353106059134,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20263947593048215,
+      "forward_loss": 0.10776870092377067,
+      "generation": 4.1815431000432,
+      "optimizer": 0.02208914898801595,
+      "reward": 0.0029835450695827603
+    },
+    "step": 87,
+    "step_wall_seconds": 4.554967502015643
+  },
+  {
+    "accounted_seconds": 4.42513736221008,
+    "other_seconds": 0.03770334075670689,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19922669301740825,
+      "forward_loss": 0.10798598011024296,
+      "generation": 4.0926791650708765,
+      "optimizer": 0.022161809029057622,
+      "reward": 0.003083714982494712
+    },
+    "step": 88,
+    "step_wall_seconds": 4.462840702966787
+  },
+  {
+    "accounted_seconds": 4.633739367942326,
+    "other_seconds": 0.037951571051962674,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2029345150804147,
+      "forward_loss": 0.10747725295368582,
+      "generation": 4.298213346977718,
+      "optimizer": 0.022009979002177715,
+      "reward": 0.0031042739283293486
+    },
+    "step": 89,
+    "step_wall_seconds": 4.6716909389942884
+  },
+  {
+    "accounted_seconds": 4.4096962589537725,
+    "other_seconds": 0.03744232398457825,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.188411757000722,
+      "forward_loss": 0.10244740697089583,
+      "generation": 4.093848090968095,
+      "optimizer": 0.02192784904036671,
+      "reward": 0.003061154973693192
+    },
+    "step": 90,
+    "step_wall_seconds": 4.447138582938351
+  },
+  {
+    "accounted_seconds": 4.504117115866393,
+    "other_seconds": 0.03840239916462451,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20008742797654122,
+      "forward_loss": 0.10777079092804343,
+      "generation": 4.171136012999341,
+      "optimizer": 0.022152208955958486,
+      "reward": 0.002970675006508827
+    },
+    "step": 91,
+    "step_wall_seconds": 4.542519515031017
+  },
+  {
+    "accounted_seconds": 4.40637254610192,
+    "other_seconds": 0.03787237289361656,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19105685409158468,
+      "forward_loss": 0.1034805029630661,
+      "generation": 4.086335938074626,
+      "optimizer": 0.02241200697608292,
+      "reward": 0.0030872439965605736
+    },
+    "step": 92,
+    "step_wall_seconds": 4.444244918995537
+  },
+  {
+    "accounted_seconds": 4.407017342979088,
+    "other_seconds": 0.03778382297605276,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20235599798616022,
+      "forward_loss": 0.10776232997886837,
+      "generation": 4.071829600958154,
+      "optimizer": 0.022027248982340097,
+      "reward": 0.0030421650735661387
+    },
+    "step": 93,
+    "step_wall_seconds": 4.444801165955141
+  },
+  {
+    "accounted_seconds": 4.248600516933948,
+    "other_seconds": 0.037399744032882154,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19004649890121073,
+      "forward_loss": 0.10316918301396072,
+      "generation": 3.9302894599968567,
+      "optimizer": 0.02209564996883273,
+      "reward": 0.002999725053086877
+    },
+    "step": 94,
+    "step_wall_seconds": 4.28600026096683
+  },
+  {
+    "accounted_seconds": 4.447548842872493,
+    "other_seconds": 0.03798715001903474,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2049536049598828,
+      "forward_loss": 0.11022396804764867,
+      "generation": 4.10720800596755,
+      "optimizer": 0.02212046890053898,
+      "reward": 0.0030427949968725443
+    },
+    "step": 95,
+    "step_wall_seconds": 4.485535992891528
+  },
+  {
+    "accounted_seconds": 4.558117410866544,
+    "other_seconds": 0.03797543921973556,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20522129291202873,
+      "forward_loss": 0.1089727149810642,
+      "generation": 4.218650009017438,
+      "optimizer": 0.022292868932709098,
+      "reward": 0.002980525023303926
+    },
+    "step": 96,
+    "step_wall_seconds": 4.596092850086279
+  },
+  {
+    "accounted_seconds": 4.3939107729820535,
+    "other_seconds": 0.03786561009474099,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2028219560161233,
+      "forward_loss": 0.10826358804479241,
+      "generation": 4.057972852955572,
+      "optimizer": 0.021828950964845717,
+      "reward": 0.003023425000719726
+    },
+    "step": 97,
+    "step_wall_seconds": 4.4317763830767944
+  },
+  {
+    "accounted_seconds": 4.49680841807276,
+    "other_seconds": 0.03809662989806384,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20155086100567132,
+      "forward_loss": 0.10811215895228088,
+      "generation": 4.161843994050287,
+      "optimizer": 0.02232804906088859,
+      "reward": 0.002973355003632605
+    },
+    "step": 98,
+    "step_wall_seconds": 4.534905047970824
+  },
+  {
+    "accounted_seconds": 4.4248789709527045,
+    "other_seconds": 0.038003538036718965,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2001543400110677,
+      "forward_loss": 0.10758897196501493,
+      "generation": 4.09201991406735,
+      "optimizer": 0.02210249996278435,
+      "reward": 0.003013244946487248
+    },
+    "step": 99,
+    "step_wall_seconds": 4.4628825089894235
+  },
+  {
+    "accounted_seconds": 4.453201068914495,
+    "other_seconds": 0.0382133771199733,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20253203692846,
+      "forward_loss": 0.10900733503513038,
+      "generation": 4.116562060895376,
+      "optimizer": 0.022104640025645494,
+      "reward": 0.002994996029883623
+    },
+    "step": 100,
+    "step_wall_seconds": 4.491414446034469
+  },
+  {
+    "accounted_seconds": 4.494877686025575,
+    "other_seconds": 0.04559526196680963,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18990020803175867,
+      "forward_loss": 0.10337103996425867,
+      "generation": 4.176013489020988,
+      "optimizer": 0.022593992995098233,
+      "reward": 0.002998956013470888
+    },
+    "step": 101,
+    "step_wall_seconds": 4.540472947992384
+  },
+  {
+    "accounted_seconds": 4.096076111891307,
+    "other_seconds": 0.03720755304675549,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1828680019825697,
+      "forward_loss": 0.10347197798546404,
+      "generation": 3.7848833999596536,
+      "optimizer": 0.02209101605694741,
+      "reward": 0.0027617159066721797
+    },
+    "step": 102,
+    "step_wall_seconds": 4.133283664938062
+  },
+  {
+    "accounted_seconds": 4.487535008229315,
+    "other_seconds": 0.037677940796129405,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2018953210208565,
+      "forward_loss": 0.10725855105556548,
+      "generation": 4.153381325071678,
+      "optimizer": 0.021966245025396347,
+      "reward": 0.003033566055819392
+    },
+    "step": 103,
+    "step_wall_seconds": 4.525212949025445
+  },
+  {
+    "accounted_seconds": 4.129152296110988,
+    "other_seconds": 0.0377334498334676,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1907936749048531,
+      "forward_loss": 0.10338924906682223,
+      "generation": 3.8102198800770566,
+      "optimizer": 0.021960775018669665,
+      "reward": 0.0027887170435860753
+    },
+    "step": 104,
+    "step_wall_seconds": 4.166885745944455
+  },
+  {
+    "accounted_seconds": 4.633019035100006,
+    "other_seconds": 0.03784600191283971,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2023249890189618,
+      "forward_loss": 0.10837834398262203,
+      "generation": 4.297150412108749,
+      "optimizer": 0.022141485009342432,
+      "reward": 0.003023804980330169
+    },
+    "step": 105,
+    "step_wall_seconds": 4.670865037012845
+  },
+  {
+    "accounted_seconds": 4.649894020054489,
+    "other_seconds": 0.03786003089044243,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20379804098047316,
+      "forward_loss": 0.10857785400003195,
+      "generation": 4.312287325039506,
+      "optimizer": 0.022120314999483526,
+      "reward": 0.003110485034994781
+    },
+    "step": 106,
+    "step_wall_seconds": 4.687754050944932
+  },
+  {
+    "accounted_seconds": 4.311761523946188,
+    "other_seconds": 0.03783431800547987,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1898163779405877,
+      "forward_loss": 0.10313060996122658,
+      "generation": 3.99397135397885,
+      "optimizer": 0.022017584997229278,
+      "reward": 0.0028255970682948828
+    },
+    "step": 107,
+    "step_wall_seconds": 4.349595841951668
+  },
+  {
+    "accounted_seconds": 4.499809303204529,
+    "other_seconds": 0.03805115877185017,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18784523708745837,
+      "forward_loss": 0.10429520404431969,
+      "generation": 4.18265277100727,
+      "optimizer": 0.02205891499761492,
+      "reward": 0.002957176067866385
+    },
+    "step": 108,
+    "step_wall_seconds": 4.537860461976379
+  },
+  {
+    "accounted_seconds": 4.37414722610265,
+    "other_seconds": 0.03803069784771651,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18655451200902462,
+      "forward_loss": 0.10250912304036319,
+      "generation": 4.060080108931288,
+      "optimizer": 0.02193395607173443,
+      "reward": 0.0030695260502398014
+    },
+    "step": 109,
+    "step_wall_seconds": 4.412177923950367
+  },
+  {
+    "accounted_seconds": 4.549132734886371,
+    "other_seconds": 0.038370460155420005,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20483132498338819,
+      "forward_loss": 0.10858861298765987,
+      "generation": 4.210480397916399,
+      "optimizer": 0.02218443399760872,
+      "reward": 0.0030479650013148785
+    },
+    "step": 110,
+    "step_wall_seconds": 4.587503195041791
+  },
+  {
+    "accounted_seconds": 4.5688758791657165,
+    "other_seconds": 0.03822844778187573,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1884862530278042,
+      "forward_loss": 0.1031591190258041,
+      "generation": 4.250784342060797,
+      "optimizer": 0.023240420036017895,
+      "reward": 0.0032057450152933598
+    },
+    "step": 111,
+    "step_wall_seconds": 4.607104326947592
+  },
+  {
+    "accounted_seconds": 4.502947979024611,
+    "other_seconds": 0.038337373989634216,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20148996193893254,
+      "forward_loss": 0.10741194803267717,
+      "generation": 4.168407000019215,
+      "optimizer": 0.022492724005132914,
+      "reward": 0.003146345028653741
+    },
+    "step": 112,
+    "step_wall_seconds": 4.541285353014246
+  },
+  {
+    "accounted_seconds": 4.525585903087631,
+    "other_seconds": 0.040930215967819095,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18793123599607497,
+      "forward_loss": 0.10121353704016656,
+      "generation": 4.210596102988347,
+      "optimizer": 0.02287771098781377,
+      "reward": 0.0029673160752281547
+    },
+    "step": 113,
+    "step_wall_seconds": 4.56651611905545
+  },
+  {
+    "accounted_seconds": 4.3984008458210155,
+    "other_seconds": 0.04025306715629995,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20535014290362597,
+      "forward_loss": 0.10999442695174366,
+      "generation": 4.057920505991206,
+      "optimizer": 0.022157683968544006,
+      "reward": 0.00297808600589633
+    },
+    "step": 114,
+    "step_wall_seconds": 4.4386539129773155
+  },
+  {
+    "accounted_seconds": 4.24508495000191,
+    "other_seconds": 0.03833256696816534,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18930156796704978,
+      "forward_loss": 0.10470767109654844,
+      "generation": 3.926041638944298,
+      "optimizer": 0.02223277499433607,
+      "reward": 0.0028012969996780157
+    },
+    "step": 115,
+    "step_wall_seconds": 4.283417516970076
+  },
+  {
+    "accounted_seconds": 4.569158534053713,
+    "other_seconds": 0.038023415952920914,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2041073280852288,
+      "forward_loss": 0.10953820799477398,
+      "generation": 4.230439085979015,
+      "optimizer": 0.02213797508738935,
+      "reward": 0.0029359369073063135
+    },
+    "step": 116,
+    "step_wall_seconds": 4.607181950006634
+  },
+  {
+    "accounted_seconds": 4.669567257864401,
+    "other_seconds": 0.03826022706925869,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20669454499147832,
+      "forward_loss": 0.10975381697062403,
+      "generation": 4.328018264961429,
+      "optimizer": 0.022121454938314855,
+      "reward": 0.0029791760025545955
+    },
+    "step": 117,
+    "step_wall_seconds": 4.707827484933659
+  },
+  {
+    "accounted_seconds": 5.050761054037139,
+    "other_seconds": 0.03813598898705095,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20601466798689216,
+      "forward_loss": 0.10964483697898686,
+      "generation": 4.709921850007959,
+      "optimizer": 0.02224913309328258,
+      "reward": 0.002930565970018506
+    },
+    "step": 118,
+    "step_wall_seconds": 5.08889704302419
+  },
+  {
+    "accounted_seconds": 4.2686127598863095,
+    "other_seconds": 0.03767117904499173,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1910485199186951,
+      "forward_loss": 0.10379661491606385,
+      "generation": 3.9488668030826375,
+      "optimizer": 0.022034454974345863,
+      "reward": 0.0028663669945672154
+    },
+    "step": 119,
+    "step_wall_seconds": 4.306283938931301
+  },
+  {
+    "accounted_seconds": 4.12112871685531,
+    "other_seconds": 0.03785534924827516,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19154387596063316,
+      "forward_loss": 0.10513034800533205,
+      "generation": 3.7994296409888193,
+      "optimizer": 0.022201354964636266,
+      "reward": 0.002823496935889125
+    },
+    "step": 120,
+    "step_wall_seconds": 4.158984066103585
+  },
+  {
+    "accounted_seconds": 4.40407358109951,
+    "other_seconds": 0.037905511795543134,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20282565196976066,
+      "forward_loss": 0.10753959708381444,
+      "generation": 4.068459823960438,
+      "optimizer": 0.02217619400471449,
+      "reward": 0.0030723140807822347
+    },
+    "step": 121,
+    "step_wall_seconds": 4.441979092895053
+  },
+  {
+    "accounted_seconds": 4.231371661880985,
+    "other_seconds": 0.03864825610071421,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20180791697930545,
+      "forward_loss": 0.108983019948937,
+      "generation": 3.8956876740558073,
+      "optimizer": 0.02203462494071573,
+      "reward": 0.0028584259562194347
+    },
+    "step": 122,
+    "step_wall_seconds": 4.270019917981699
+  },
+  {
+    "accounted_seconds": 4.306887165992521,
+    "other_seconds": 0.03719760396052152,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19118822703603655,
+      "forward_loss": 0.10359538497868925,
+      "generation": 3.9870167339686304,
+      "optimizer": 0.02200879401061684,
+      "reward": 0.0030780259985476732
+    },
+    "step": 123,
+    "step_wall_seconds": 4.344084769953042
+  },
+  {
+    "accounted_seconds": 4.494726315955631,
+    "other_seconds": 0.03832606808282435,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.22401836107019335,
+      "forward_loss": 0.11655570298898965,
+      "generation": 4.128991912933998,
+      "optimizer": 0.022006263956427574,
+      "reward": 0.0031540750060230494
+    },
+    "step": 124,
+    "step_wall_seconds": 4.533052384038456
+  },
+  {
+    "accounted_seconds": 4.170071651926264,
+    "other_seconds": 0.037175143137574196,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19070535898208618,
+      "forward_loss": 0.10267595993354917,
+      "generation": 3.8517259719083086,
+      "optimizer": 0.021881205029785633,
+      "reward": 0.0030831560725346208
+    },
+    "step": 125,
+    "step_wall_seconds": 4.207246795063838
+  },
+  {
+    "accounted_seconds": 4.5234499508515,
+    "other_seconds": 0.038110879133455455,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2024353729793802,
+      "forward_loss": 0.10763500595930964,
+      "generation": 4.188006683019921,
+      "optimizer": 0.022185453912243247,
+      "reward": 0.003187434980645776
+    },
+    "step": 126,
+    "step_wall_seconds": 4.5615608299849555
+  },
+  {
+    "accounted_seconds": 4.547090983018279,
+    "other_seconds": 0.038827266078442335,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20633022498805076,
+      "forward_loss": 0.11101551994215697,
+      "generation": 4.204292130074464,
+      "optimizer": 0.022416863008402288,
+      "reward": 0.0030362450052052736
+    },
+    "step": 127,
+    "step_wall_seconds": 4.585918249096721
+  },
+  {
+    "accounted_seconds": 4.144554711994715,
+    "other_seconds": 0.038316537044011056,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18814613099675626,
+      "forward_loss": 0.10371747496537864,
+      "generation": 3.8278319949749857,
+      "optimizer": 0.022032755077816546,
+      "reward": 0.0028263559797778726
+    },
+    "step": 128,
+    "step_wall_seconds": 4.182871249038726
+  },
+  {
+    "accounted_seconds": 4.523520666989498,
+    "other_seconds": 0.038692986010573804,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20252144197002053,
+      "forward_loss": 0.10934010799974203,
+      "generation": 4.186652327072807,
+      "optimizer": 0.02202869497705251,
+      "reward": 0.0029780949698761106
+    },
+    "step": 129,
+    "step_wall_seconds": 4.562213653000072
+  },
+  {
+    "accounted_seconds": 4.398013241705485,
+    "other_seconds": 0.03888435522094369,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20339870790485293,
+      "forward_loss": 0.10772004502359778,
+      "generation": 4.061785229947418,
+      "optimizer": 0.022080843918956816,
+      "reward": 0.003028414910659194
+    },
+    "step": 130,
+    "step_wall_seconds": 4.436897596926428
+  },
+  {
+    "accounted_seconds": 4.110471041873097,
+    "other_seconds": 0.03956052113790065,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19139946391806006,
+      "forward_loss": 0.1047847589943558,
+      "generation": 3.78933322802186,
+      "optimizer": 0.0221069649560377,
+      "reward": 0.002846625982783735
+    },
+    "step": 131,
+    "step_wall_seconds": 4.150031563010998
+  },
+  {
+    "accounted_seconds": 4.1690882492112,
+    "other_seconds": 0.038987132837064564,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19015151099301875,
+      "forward_loss": 0.10446670011151582,
+      "generation": 3.849163839011453,
+      "optimizer": 0.0223943330347538,
+      "reward": 0.0029118660604581237
+    },
+    "step": 132,
+    "step_wall_seconds": 4.208075382048264
+  },
+  {
+    "accounted_seconds": 4.520959754125215,
+    "other_seconds": 0.03820258588530123,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2031399990664795,
+      "forward_loss": 0.10815068299416453,
+      "generation": 4.184362982981838,
+      "optimizer": 0.02214245405048132,
+      "reward": 0.0031636350322514772
+    },
+    "step": 133,
+    "step_wall_seconds": 4.559162340010516
+  },
+  {
+    "accounted_seconds": 4.301669277949259,
+    "other_seconds": 0.038197366055101156,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1904185499297455,
+      "forward_loss": 0.10541832505259663,
+      "generation": 3.9802489549620077,
+      "optimizer": 0.022406112984754145,
+      "reward": 0.0031773350201547146
+    },
+    "step": 134,
+    "step_wall_seconds": 4.33986664400436
+  },
+  {
+    "accounted_seconds": 4.528302029939368,
+    "other_seconds": 0.039067222038283944,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2022773219505325,
+      "forward_loss": 0.10817849298473448,
+      "generation": 4.1925996450008824,
+      "optimizer": 0.021978245000354946,
+      "reward": 0.003268325002864003
+    },
+    "step": 135,
+    "step_wall_seconds": 4.567369251977652
+  },
+  {
+    "accounted_seconds": 4.482166916015558,
+    "other_seconds": 0.03864865505602211,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2025548709789291,
+      "forward_loss": 0.1077998640248552,
+      "generation": 4.146823710063472,
+      "optimizer": 0.02195087494328618,
+      "reward": 0.003037596005015075
+    },
+    "step": 136,
+    "step_wall_seconds": 4.52081557107158
+  },
+  {
+    "accounted_seconds": 4.549087819876149,
+    "other_seconds": 0.0393047631951049,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18939138296991587,
+      "forward_loss": 0.10460697894450277,
+      "generation": 4.228416625992395,
+      "optimizer": 0.023387957946397364,
+      "reward": 0.003284874022938311
+    },
+    "step": 137,
+    "step_wall_seconds": 4.588392583071254
+  },
+  {
+    "accounted_seconds": 4.620971301919781,
+    "other_seconds": 0.03859954606741667,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20698893896769732,
+      "forward_loss": 0.1111803570529446,
+      "generation": 4.27614036295563,
+      "optimizer": 0.023549426929093897,
+      "reward": 0.0031122160144150257
+    },
+    "step": 138,
+    "step_wall_seconds": 4.659570847987197
+  },
+  {
+    "accounted_seconds": 4.742428427212872,
+    "other_seconds": 0.03931111178826541,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20510637806728482,
+      "forward_loss": 0.10938088700640947,
+      "generation": 4.402406504028477,
+      "optimizer": 0.022368563106283545,
+      "reward": 0.003166095004417002
+    },
+    "step": 139,
+    "step_wall_seconds": 4.781739539001137
+  },
+  {
+    "accounted_seconds": 4.514823153032921,
+    "other_seconds": 0.03836401493754238,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1866054569836706,
+      "forward_loss": 0.10307098703924567,
+      "generation": 4.199910880997777,
+      "optimizer": 0.022089853999204934,
+      "reward": 0.0031459740130230784
+    },
+    "step": 140,
+    "step_wall_seconds": 4.553187167970464
+  },
+  {
+    "accounted_seconds": 4.255106321070343,
+    "other_seconds": 0.03831846686080098,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18662590603344142,
+      "forward_loss": 0.10296415607444942,
+      "generation": 3.940494657959789,
+      "optimizer": 0.022136804065667093,
+      "reward": 0.002884796936996281
+    },
+    "step": 141,
+    "step_wall_seconds": 4.293424787931144
+  },
+  {
+    "accounted_seconds": 4.134779704967514,
+    "other_seconds": 0.03698716207873076,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18723028304520994,
+      "forward_loss": 0.10248039895668626,
+      "generation": 3.819819652941078,
+      "optimizer": 0.022438002983108163,
+      "reward": 0.0028113670414313674
+    },
+    "step": 142,
+    "step_wall_seconds": 4.171766867046244
+  },
+  {
+    "accounted_seconds": 4.709104848909192,
+    "other_seconds": 0.03867401508614421,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2015889440663159,
+      "forward_loss": 0.10800393298268318,
+      "generation": 4.374509632936679,
+      "optimizer": 0.02216902293730527,
+      "reward": 0.0028333159862086177
+    },
+    "step": 143,
+    "step_wall_seconds": 4.747778863995336
+  },
+  {
+    "accounted_seconds": 4.287346016149968,
+    "other_seconds": 0.038074216805398464,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18467267497908324,
+      "forward_loss": 0.10100356605835259,
+      "generation": 3.976486616069451,
+      "optimizer": 0.022168033057823777,
+      "reward": 0.0030151259852573276
+    },
+    "step": 144,
+    "step_wall_seconds": 4.325420232955366
+  },
+  {
+    "accounted_seconds": 4.48228670982644,
+    "other_seconds": 0.03777670720592141,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1868465949082747,
+      "forward_loss": 0.10293016699142754,
+      "generation": 4.167122729006223,
+      "optimizer": 0.022148013929836452,
+      "reward": 0.0032392049906775355
+    },
+    "step": 145,
+    "step_wall_seconds": 4.520063417032361
+  },
+  {
+    "accounted_seconds": 4.0942765946965665,
+    "other_seconds": 0.03792731836438179,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18571306997910142,
+      "forward_loss": 0.10321994498372078,
+      "generation": 3.7805149279301986,
+      "optimizer": 0.02203250490128994,
+      "reward": 0.002796146902255714
+    },
+    "step": 146,
+    "step_wall_seconds": 4.132203913060948
+  },
+  {
+    "accounted_seconds": 4.1039761730935425,
+    "other_seconds": 0.03796159999910742,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18773035006597638,
+      "forward_loss": 0.10454747802577913,
+      "generation": 3.786914463969879,
+      "optimizer": 0.022025914047844708,
+      "reward": 0.002757966984063387
+    },
+    "step": 147,
+    "step_wall_seconds": 4.14193777309265
+  },
+  {
+    "accounted_seconds": 4.715741549152881,
+    "other_seconds": 0.038329655886627734,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20465917908586562,
+      "forward_loss": 0.10899356799200177,
+      "generation": 4.377073272014968,
+      "optimizer": 0.022008924977853894,
+      "reward": 0.003006605082191527
+    },
+    "step": 148,
+    "step_wall_seconds": 4.754071205039509
+  },
+  {
+    "accounted_seconds": 4.519318775041029,
+    "other_seconds": 0.03866576589643955,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19970233202911913,
+      "forward_loss": 0.10816775099374354,
+      "generation": 4.185044148936868,
+      "optimizer": 0.023226078017614782,
+      "reward": 0.0031784650636836886
+    },
+    "step": 149,
+    "step_wall_seconds": 4.557984540937468
+  },
+  {
+    "accounted_seconds": 4.410400484106503,
+    "other_seconds": 0.03784094890579581,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19088094402104616,
+      "forward_loss": 0.1027956570032984,
+      "generation": 4.091198795940727,
+      "optimizer": 0.022498642094433308,
+      "reward": 0.0030264450469985604
+    },
+    "step": 150,
+    "step_wall_seconds": 4.448241433012299
+  },
+  {
+    "accounted_seconds": 4.541684251977131,
+    "other_seconds": 0.038143286015838385,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1995372719829902,
+      "forward_loss": 0.1072211560094729,
+      "generation": 4.2099394529359415,
+      "optimizer": 0.021937515004538,
+      "reward": 0.003048856044188142
+    },
+    "step": 151,
+    "step_wall_seconds": 4.579827537992969
+  },
+  {
+    "accounted_seconds": 4.502530745929107,
+    "other_seconds": 0.038378526107408106,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1908323939424008,
+      "forward_loss": 0.1040203410666436,
+      "generation": 4.1823549919063225,
+      "optimizer": 0.022169383941218257,
+      "reward": 0.0031536350725218654
+    },
+    "step": 152,
+    "step_wall_seconds": 4.540909272036515
+  },
+  {
+    "accounted_seconds": 4.676368535961956,
+    "other_seconds": 0.038864315021783113,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20059433695860207,
+      "forward_loss": 0.1082571999868378,
+      "generation": 4.341971072019078,
+      "optimizer": 0.022114263963885605,
+      "reward": 0.003431663033552468
+    },
+    "step": 153,
+    "step_wall_seconds": 4.715232850983739
+  },
+  {
+    "accounted_seconds": 4.454130929079838,
+    "other_seconds": 0.03852154687047005,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1904389460105449,
+      "forward_loss": 0.10423248901497573,
+      "generation": 4.133997416938655,
+      "optimizer": 0.022107284050434828,
+      "reward": 0.003354793065227568
+    },
+    "step": 154,
+    "step_wall_seconds": 4.492652475950308
+  },
+  {
+    "accounted_seconds": 4.5038795680738986,
+    "other_seconds": 0.038528104894794524,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1898615580284968,
+      "forward_loss": 0.10393233108334243,
+      "generation": 4.18488090892788,
+      "optimizer": 0.022044494980946183,
+      "reward": 0.0031602750532329082
+    },
+    "step": 155,
+    "step_wall_seconds": 4.542407672968693
+  },
+  {
+    "accounted_seconds": 4.731466982979327,
+    "other_seconds": 0.0386073220288381,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20190884999465197,
+      "forward_loss": 0.10763232398312539,
+      "generation": 4.395412095007487,
+      "optimizer": 0.023148000007495284,
+      "reward": 0.003365713986568153
+    },
+    "step": 156,
+    "step_wall_seconds": 4.7700743050081655
+  },
+  {
+    "accounted_seconds": 4.501551972003654,
+    "other_seconds": 0.038652835064567626,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20273624605033547,
+      "forward_loss": 0.10800738097168505,
+      "generation": 4.165514745982364,
+      "optimizer": 0.022136264014989138,
+      "reward": 0.003157334984280169
+    },
+    "step": 157,
+    "step_wall_seconds": 4.540204807068221
+  },
+  {
+    "accounted_seconds": 4.362069368944503,
+    "other_seconds": 0.03814469603821635,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18971487903036177,
+      "forward_loss": 0.10404855001252145,
+      "generation": 4.043213289929554,
+      "optimizer": 0.022015774971805513,
+      "reward": 0.0030768750002607703
+    },
+    "step": 158,
+    "step_wall_seconds": 4.40021406498272
+  },
+  {
+    "accounted_seconds": 4.516333422856405,
+    "other_seconds": 0.038967044092714787,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2004691669717431,
+      "forward_loss": 0.10858117800671607,
+      "generation": 4.182018089923076,
+      "optimizer": 0.02222871291451156,
+      "reward": 0.003036275040358305
+    },
+    "step": 159,
+    "step_wall_seconds": 4.55530046694912
+  },
+  {
+    "accounted_seconds": 4.37943416996859,
+    "other_seconds": 0.03828080405946821,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18908601196017116,
+      "forward_loss": 0.1030717050889507,
+      "generation": 4.061736914911307,
+      "optimizer": 0.022400673013180494,
+      "reward": 0.003138864994980395
+    },
+    "step": 160,
+    "step_wall_seconds": 4.417714974028058
+  },
+  {
+    "accounted_seconds": 4.473694752086885,
+    "other_seconds": 0.03803779685404152,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20125930302310735,
+      "forward_loss": 0.10871672700159252,
+      "generation": 4.138365903985687,
+      "optimizer": 0.022224433021619916,
+      "reward": 0.0031283850548788905
+    },
+    "step": 161,
+    "step_wall_seconds": 4.511732548940927
+  },
+  {
+    "accounted_seconds": 4.448923556949012,
+    "other_seconds": 0.03880430408753455,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20158027100842446,
+      "forward_loss": 0.10818702995311469,
+      "generation": 4.114042336936109,
+      "optimizer": 0.022012743982486427,
+      "reward": 0.0031011750688776374
+    },
+    "step": 162,
+    "step_wall_seconds": 4.4877278610365465
+  },
+  {
+    "accounted_seconds": 4.105253236950375,
+    "other_seconds": 0.039409640012308955,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18748451897408813,
+      "forward_loss": 0.10278742597438395,
+      "generation": 3.7900660319719464,
+      "optimizer": 0.02204778406303376,
+      "reward": 0.002867475966922939
+    },
+    "step": 163,
+    "step_wall_seconds": 4.144662876962684
+  },
+  {
+    "accounted_seconds": 4.137404670007527,
+    "other_seconds": 0.03912454203236848,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1842433239798993,
+      "forward_loss": 0.10324120405130088,
+      "generation": 3.8248462920309976,
+      "optimizer": 0.022291172994300723,
+      "reward": 0.0027826769510284066
+    },
+    "step": 164,
+    "step_wall_seconds": 4.176529212039895
+  },
+  {
+    "accounted_seconds": 4.153463478083722,
+    "other_seconds": 0.038276817998848855,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1877543570008129,
+      "forward_loss": 0.10269168601371348,
+      "generation": 3.838144995039329,
+      "optimizer": 0.02204735402483493,
+      "reward": 0.0028250860050320625
+    },
+    "step": 165,
+    "step_wall_seconds": 4.191740296082571
+  },
+  {
+    "accounted_seconds": 4.088112720055506,
+    "other_seconds": 0.037542089936323464,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1789798690006137,
+      "forward_loss": 0.09867611504159868,
+      "generation": 3.7857522449921817,
+      "optimizer": 0.02195327403023839,
+      "reward": 0.0027512169908732176
+    },
+    "step": 166,
+    "step_wall_seconds": 4.125654809991829
+  },
+  {
+    "accounted_seconds": 4.133976286859252,
+    "other_seconds": 0.03809516713954508,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18904594099149108,
+      "forward_loss": 0.10301334399264306,
+      "generation": 3.817166490945965,
+      "optimizer": 0.02197863394394517,
+      "reward": 0.0027718769852072
+    },
+    "step": 167,
+    "step_wall_seconds": 4.172071453998797
+  },
+  {
+    "accounted_seconds": 4.321880641160533,
+    "other_seconds": 0.03751802886836231,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1873819079482928,
+      "forward_loss": 0.1026561870239675,
+      "generation": 4.006663597072475,
+      "optimizer": 0.022048844024538994,
+      "reward": 0.0031301050912588835
+    },
+    "step": 168,
+    "step_wall_seconds": 4.359398670028895
+  },
+  {
+    "accounted_seconds": 4.470816680812277,
+    "other_seconds": 0.03880087414290756,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2041539680212736,
+      "forward_loss": 0.1082225589780137,
+      "generation": 4.133353304932825,
+      "optimizer": 0.022074383916333318,
+      "reward": 0.0030124649638310075
+    },
+    "step": 169,
+    "step_wall_seconds": 4.5096175549551845
+  },
+  {
+    "accounted_seconds": 4.368763879057951,
+    "other_seconds": 0.037306849961169064,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18767953698989004,
+      "forward_loss": 0.10190215997863561,
+      "generation": 4.054054653039202,
+      "optimizer": 0.022002964047715068,
+      "reward": 0.0031245650025084615
+    },
+    "step": 170,
+    "step_wall_seconds": 4.40607072901912
+  },
+  {
+    "accounted_seconds": 4.378656327840872,
+    "other_seconds": 0.038388606160879135,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20223824598360807,
+      "forward_loss": 0.10790776100475341,
+      "generation": 4.043193902936764,
+      "optimizer": 0.02229160291608423,
+      "reward": 0.0030248149996623397
+    },
+    "step": 171,
+    "step_wall_seconds": 4.417044934001751
+  },
+  {
+    "accounted_seconds": 4.058876573108137,
+    "other_seconds": 0.03807773895096034,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18305348802823573,
+      "forward_loss": 0.10302134498488158,
+      "generation": 3.748126670019701,
+      "optimizer": 0.021881794091314077,
+      "reward": 0.00279327598400414
+    },
+    "step": 172,
+    "step_wall_seconds": 4.096954312059097
+  },
+  {
+    "accounted_seconds": 4.055259530898184,
+    "other_seconds": 0.03811462502926588,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18469129095319659,
+      "forward_loss": 0.10348620195873082,
+      "generation": 3.741955838049762,
+      "optimizer": 0.022339683026075363,
+      "reward": 0.002786516910418868
+    },
+    "step": 173,
+    "step_wall_seconds": 4.0933741559274495
+  },
+  {
+    "accounted_seconds": 4.41646639816463,
+    "other_seconds": 0.038140976801514626,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19971351802814752,
+      "forward_loss": 0.10705975501332432,
+      "generation": 4.084647796000354,
+      "optimizer": 0.022093603038229048,
+      "reward": 0.002951726084575057
+    },
+    "step": 174,
+    "step_wall_seconds": 4.454607374966145
+  },
+  {
+    "accounted_seconds": 4.129312049015425,
+    "other_seconds": 0.03776822704821825,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18924769898876548,
+      "forward_loss": 0.10340140201151371,
+      "generation": 3.811965255998075,
+      "optimizer": 0.02193702501244843,
+      "reward": 0.002760667004622519
+    },
+    "step": 175,
+    "step_wall_seconds": 4.167080276063643
+  },
+  {
+    "accounted_seconds": 4.051670878077857,
+    "other_seconds": 0.037874458939768374,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18921007891185582,
+      "forward_loss": 0.10224813804961741,
+      "generation": 3.735398202086799,
+      "optimizer": 0.022028282983228564,
+      "reward": 0.002786176046356559
+    },
+    "step": 176,
+    "step_wall_seconds": 4.089545337017626
+  },
+  {
+    "accounted_seconds": 4.4622258299496025,
+    "other_seconds": 0.03818623605184257,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20069125294685364,
+      "forward_loss": 0.10835702798794955,
+      "generation": 4.128125078976154,
+      "optimizer": 0.02187628496903926,
+      "reward": 0.003176185069605708
+    },
+    "step": 177,
+    "step_wall_seconds": 4.500412066001445
+  },
+  {
+    "accounted_seconds": 4.020085887168534,
+    "other_seconds": 0.03791236679535359,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1865609510568902,
+      "forward_loss": 0.10344237205572426,
+      "generation": 3.705345513066277,
+      "optimizer": 0.021928673959337175,
+      "reward": 0.0028083770303055644
+    },
+    "step": 178,
+    "step_wall_seconds": 4.057998253963888
+  },
+  {
+    "accounted_seconds": 4.4708237699232996,
+    "other_seconds": 0.038317278027534485,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19001554499845952,
+      "forward_loss": 0.10205076797865331,
+      "generation": 4.153368460945785,
+      "optimizer": 0.02222198201343417,
+      "reward": 0.003167013986967504
+    },
+    "step": 179,
+    "step_wall_seconds": 4.509141047950834
+  },
+  {
+    "accounted_seconds": 4.550505873980001,
+    "other_seconds": 0.038827353972010314,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2016117280581966,
+      "forward_loss": 0.10667717608157545,
+      "generation": 4.216808222932741,
+      "optimizer": 0.022290301974862814,
+      "reward": 0.0031184449326246977
+    },
+    "step": 180,
+    "step_wall_seconds": 4.589333227952011
+  },
+  {
+    "accounted_seconds": 4.451391131151468,
+    "other_seconds": 0.03769185789860785,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19851734407711774,
+      "forward_loss": 0.10823517804965377,
+      "generation": 4.1194435399957,
+      "optimizer": 0.022179833031259477,
+      "reward": 0.003015235997736454
+    },
+    "step": 181,
+    "step_wall_seconds": 4.489082989050075
+  },
+  {
+    "accounted_seconds": 4.440184251987375,
+    "other_seconds": 0.03663950401823968,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2046209640102461,
+      "forward_loss": 0.11117842397652566,
+      "generation": 4.099432094022632,
+      "optimizer": 0.02194628503639251,
+      "reward": 0.0030064849415794015
+    },
+    "step": 182,
+    "step_wall_seconds": 4.476823756005615
+  },
+  {
+    "accounted_seconds": 4.162247958825901,
+    "other_seconds": 0.03644970420282334,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18669269001111388,
+      "forward_loss": 0.10337603196967393,
+      "generation": 3.847312646917999,
+      "optimizer": 0.02204585389699787,
+      "reward": 0.0028207360301166773
+    },
+    "step": 183,
+    "step_wall_seconds": 4.1986976630287245
+  },
+  {
+    "accounted_seconds": 4.316773001104593,
+    "other_seconds": 0.03636729484423995,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19876292196568102,
+      "forward_loss": 0.1087649849941954,
+      "generation": 3.98418831510935,
+      "optimizer": 0.021970923990011215,
+      "reward": 0.0030858550453558564
+    },
+    "step": 184,
+    "step_wall_seconds": 4.353140295948833
+  },
+  {
+    "accounted_seconds": 4.600191473145969,
+    "other_seconds": 0.03653987287543714,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20262482401449233,
+      "forward_loss": 0.10695245407987386,
+      "generation": 4.265309687005356,
+      "optimizer": 0.02218083303887397,
+      "reward": 0.0031236750073730946
+    },
+    "step": 185,
+    "step_wall_seconds": 4.636731346021406
+  },
+  {
+    "accounted_seconds": 4.4282333380542696,
+    "other_seconds": 0.03654978389386088,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2015697869937867,
+      "forward_loss": 0.10771849099546671,
+      "generation": 4.093751830980182,
+      "optimizer": 0.02213564410340041,
+      "reward": 0.0030575849814340472
+    },
+    "step": 186,
+    "step_wall_seconds": 4.46478312194813
+  },
+  {
+    "accounted_seconds": 4.54481964407023,
+    "other_seconds": 0.0365939928451553,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2013698690570891,
+      "forward_loss": 0.10748107195831835,
+      "generation": 4.210819914005697,
+      "optimizer": 0.022131953039206564,
+      "reward": 0.0030168360099196434
+    },
+    "step": 187,
+    "step_wall_seconds": 4.581413636915386
+  },
+  {
+    "accounted_seconds": 4.6983313309028745,
+    "other_seconds": 0.03637676406651735,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20175617700442672,
+      "forward_loss": 0.10821339790709317,
+      "generation": 4.363027118030004,
+      "optimizer": 0.02215746301226318,
+      "reward": 0.0031771749490872025
+    },
+    "step": 188,
+    "step_wall_seconds": 4.734708094969392
+  },
+  {
+    "accounted_seconds": 4.450731580960564,
+    "other_seconds": 0.036511234007775784,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1878145239315927,
+      "forward_loss": 0.10344345006160438,
+      "generation": 4.134075780049898,
+      "optimizer": 0.02228376199491322,
+      "reward": 0.003114064922556281
+    },
+    "step": 189,
+    "step_wall_seconds": 4.48724281496834
+  },
+  {
+    "accounted_seconds": 4.518069904181175,
+    "other_seconds": 0.03644882491789758,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2030358110787347,
+      "forward_loss": 0.11022724804934114,
+      "generation": 4.179422518005595,
+      "optimizer": 0.022183793014846742,
+      "reward": 0.0032005340326577425
+    },
+    "step": 190,
+    "step_wall_seconds": 4.5545187290990725
+  },
+  {
+    "accounted_seconds": 4.108257330022752,
+    "other_seconds": 0.03706551995128393,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19690646999515593,
+      "forward_loss": 0.10685778502374887,
+      "generation": 3.7795714850071818,
+      "optimizer": 0.02210046397522092,
+      "reward": 0.0028211260214447975
+    },
+    "step": 191,
+    "step_wall_seconds": 4.145322849974036
+  },
+  {
+    "accounted_seconds": 4.3230311799561605,
+    "other_seconds": 0.03678233304526657,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20392370596528053,
+      "forward_loss": 0.11001491802744567,
+      "generation": 3.9841792850056663,
+      "optimizer": 0.02183495496865362,
+      "reward": 0.003078315989114344
+    },
+    "step": 192,
+    "step_wall_seconds": 4.359813513001427
+  },
+  {
+    "accounted_seconds": 4.5459567019715905,
+    "other_seconds": 0.03675069299060851,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2039791049901396,
+      "forward_loss": 0.10907878400757909,
+      "generation": 4.20775446400512,
+      "optimizer": 0.022106942953541875,
+      "reward": 0.0030374060152098536
+    },
+    "step": 193,
+    "step_wall_seconds": 4.582707394962199
+  },
+  {
+    "accounted_seconds": 4.455472275032662,
+    "other_seconds": 0.03634669701568782,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18914883607067168,
+      "forward_loss": 0.10280757397413254,
+      "generation": 4.1382633780594915,
+      "optimizer": 0.022096022963523865,
+      "reward": 0.00315646396484226
+    },
+    "step": 194,
+    "step_wall_seconds": 4.49181897204835
+  },
+  {
+    "accounted_seconds": 4.161905241082422,
+    "other_seconds": 0.03672628290951252,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19097040896303952,
+      "forward_loss": 0.10356244910508394,
+      "generation": 3.8423955829348415,
+      "optimizer": 0.022146224044263363,
+      "reward": 0.002830576035194099
+    },
+    "step": 195,
+    "step_wall_seconds": 4.198631523991935
+  },
+  {
+    "accounted_seconds": 4.2749495229218155,
+    "other_seconds": 0.036375895026139915,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18766065302770585,
+      "forward_loss": 0.10290342394728214,
+      "generation": 3.9590216679498553,
+      "optimizer": 0.02227410301566124,
+      "reward": 0.0030896749813109636
+    },
+    "step": 196,
+    "step_wall_seconds": 4.311325417947955
+  },
+  {
+    "accounted_seconds": 4.626315505011007,
+    "other_seconds": 0.03686116193421185,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20360365696251392,
+      "forward_loss": 0.10953800100833178,
+      "generation": 4.288117327960208,
+      "optimizer": 0.022027194034308195,
+      "reward": 0.003029325045645237
+    },
+    "step": 197,
+    "step_wall_seconds": 4.663176666945219
+  },
+  {
+    "accounted_seconds": 4.415347720962018,
+    "other_seconds": 0.036777792032808065,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18725118599832058,
+      "forward_loss": 0.10570508905220777,
+      "generation": 4.096763718989678,
+      "optimizer": 0.022411042009480298,
+      "reward": 0.0032166849123314023
+    },
+    "step": 198,
+    "step_wall_seconds": 4.452125512994826
+  },
+  {
+    "accounted_seconds": 4.563146502012387,
+    "other_seconds": 0.037240671925246716,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.22082974296063185,
+      "forward_loss": 0.11546782194636762,
+      "generation": 4.201567090000026,
+      "optimizer": 0.022243202081881464,
+      "reward": 0.0030386450234800577
+    },
+    "step": 199,
+    "step_wall_seconds": 4.600387173937634
+  },
+  {
+    "accounted_seconds": 4.335361480829306,
+    "other_seconds": 0.03654539422132075,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1855012240121141,
+      "forward_loss": 0.1038929580245167,
+      "generation": 4.020910200895742,
+      "optimizer": 0.021976482938043773,
+      "reward": 0.0030806149588897824
+    },
+    "step": 200,
+    "step_wall_seconds": 4.371906875050627
+  },
+  {
+    "accounted_seconds": 4.65826768882107,
+    "other_seconds": 0.04089203616604209,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20161679293960333,
+      "forward_loss": 0.1083805370144546,
+      "generation": 4.321847714949399,
+      "optimizer": 0.02311130496673286,
+      "reward": 0.003311338950879872
+    },
+    "step": 201,
+    "step_wall_seconds": 4.699159724987112
+  },
+  {
+    "accounted_seconds": 4.627366231172346,
+    "other_seconds": 0.03977703978307545,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2006653060670942,
+      "forward_loss": 0.10769768909085542,
+      "generation": 4.292737410985865,
+      "optimizer": 0.023063575034029782,
+      "reward": 0.0032022499945014715
+    },
+    "step": 202,
+    "step_wall_seconds": 4.667143270955421
+  },
+  {
+    "accounted_seconds": 4.345496111316606,
+    "other_seconds": 0.039549439679831266,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18754519906360656,
+      "forward_loss": 0.10430920007638633,
+      "generation": 4.028604933992028,
+      "optimizer": 0.022162447101436555,
+      "reward": 0.002874331083148718
+    },
+    "step": 203,
+    "step_wall_seconds": 4.385045550996438
+  },
+  {
+    "accounted_seconds": 4.197259868029505,
+    "other_seconds": 0.03912882995791733,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18825412599835545,
+      "forward_loss": 0.10257080500014126,
+      "generation": 3.8814033570233732,
+      "optimizer": 0.022208197973668575,
+      "reward": 0.0028233820339664817
+    },
+    "step": 204,
+    "step_wall_seconds": 4.236388697987422
+  },
+  {
+    "accounted_seconds": 4.1692708800546825,
+    "other_seconds": 0.038562833913601935,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.17738617002032697,
+      "forward_loss": 0.09947510506026447,
+      "generation": 3.8683385220356286,
+      "optimizer": 0.02231510798446834,
+      "reward": 0.001755974953994155
+    },
+    "step": 205,
+    "step_wall_seconds": 4.207833713968284
+  },
+  {
+    "accounted_seconds": 4.4770199480699375,
+    "other_seconds": 0.03865170292556286,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18655511096585542,
+      "forward_loss": 0.10343062202446163,
+      "generation": 4.161677247029729,
+      "optimizer": 0.02219070796854794,
+      "reward": 0.003166260081343353
+    },
+    "step": 206,
+    "step_wall_seconds": 4.5156716509955
+  },
+  {
+    "accounted_seconds": 4.164997538900934,
+    "other_seconds": 0.03869955206755549,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18374369002413005,
+      "forward_loss": 0.10154402896296233,
+      "generation": 3.854586772969924,
+      "optimizer": 0.022226266912184656,
+      "reward": 0.002896780031733215
+    },
+    "step": 207,
+    "step_wall_seconds": 4.20369709096849
+  },
+  {
+    "accounted_seconds": 4.583200932946056,
+    "other_seconds": 0.039014572044834495,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1986571210436523,
+      "forward_loss": 0.10752053908072412,
+      "generation": 4.251801356906071,
+      "optimizer": 0.022146346978843212,
+      "reward": 0.003075568936765194
+    },
+    "step": 208,
+    "step_wall_seconds": 4.622215504990891
+  },
+  {
+    "accounted_seconds": 4.5358181208139285,
+    "other_seconds": 0.03903117123991251,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2029441959457472,
+      "forward_loss": 0.10879068495705724,
+      "generation": 4.198979062028229,
+      "optimizer": 0.022063057986088097,
+      "reward": 0.0030411198968067765
+    },
+    "step": 209,
+    "step_wall_seconds": 4.574849292053841
+  },
+  {
+    "accounted_seconds": 4.547267153044231,
+    "other_seconds": 0.03921131289098412,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2034053939860314,
+      "forward_loss": 0.10875590401701629,
+      "generation": 4.210025678039528,
+      "optimizer": 0.02198904799297452,
+      "reward": 0.003091129008680582
+    },
+    "step": 210,
+    "step_wall_seconds": 4.586478465935215
+  },
+  {
+    "accounted_seconds": 4.579300210229121,
+    "other_seconds": 0.03918049170169979,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20118929108139127,
+      "forward_loss": 0.10754043806809932,
+      "generation": 4.245180995087139,
+      "optimizer": 0.02222964691463858,
+      "reward": 0.0031598390778526664
+    },
+    "step": 211,
+    "step_wall_seconds": 4.618480701930821
+  },
+  {
+    "accounted_seconds": 4.5345619089202955,
+    "other_seconds": 0.037413116078823805,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18907027994282544,
+      "forward_loss": 0.1050515950191766,
+      "generation": 4.21498284698464,
+      "optimizer": 0.02230038703419268,
+      "reward": 0.0031567999394610524
+    },
+    "step": 212,
+    "step_wall_seconds": 4.571975024999119
+  },
+  {
+    "accounted_seconds": 4.32709331298247,
+    "other_seconds": 0.03715386602561921,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19184122094884515,
+      "forward_loss": 0.10515456600114703,
+      "generation": 4.0049624079838395,
+      "optimizer": 0.02230482699815184,
+      "reward": 0.0028302910504862666
+    },
+    "step": 213,
+    "step_wall_seconds": 4.364247179008089
+  },
+  {
+    "accounted_seconds": 4.762261146912351,
+    "other_seconds": 0.03820544306654483,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20190686697605997,
+      "forward_loss": 0.10717781900893897,
+      "generation": 4.427866852958687,
+      "optimizer": 0.022148638032376766,
+      "reward": 0.0031609699362888932
+    },
+    "step": 214,
+    "step_wall_seconds": 4.800466589978896
+  },
+  {
+    "accounted_seconds": 4.743141037761234,
+    "other_seconds": 0.03826198517344892,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2015460479306057,
+      "forward_loss": 0.11078540596645325,
+      "generation": 4.405386636964977,
+      "optimizer": 0.022325116908177733,
+      "reward": 0.0030978299910202622
+    },
+    "step": 215,
+    "step_wall_seconds": 4.781403022934683
+  },
+  {
+    "accounted_seconds": 4.641868772916496,
+    "other_seconds": 0.039218181162141263,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2034805309958756,
+      "forward_loss": 0.10985827900003642,
+      "generation": 4.30329523596447,
+      "optimizer": 0.02218981704209,
+      "reward": 0.003044909914024174
+    },
+    "step": 216,
+    "step_wall_seconds": 4.681086954078637
+  },
+  {
+    "accounted_seconds": 4.050795058021322,
+    "other_seconds": 0.03866907302290201,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18017746694386005,
+      "forward_loss": 0.09927177405916154,
+      "generation": 3.7465623080497608,
+      "optimizer": 0.021983837941661477,
+      "reward": 0.002799671026878059
+    },
+    "step": 217,
+    "step_wall_seconds": 4.089464131044224
+  },
+  {
+    "accounted_seconds": 4.145003493060358,
+    "other_seconds": 0.03887083090376109,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18768474203534424,
+      "forward_loss": 0.10353618999943137,
+      "generation": 3.8288059420883656,
+      "optimizer": 0.022145367925986648,
+      "reward": 0.0028312510112300515
+    },
+    "step": 218,
+    "step_wall_seconds": 4.183874323964119
+  },
+  {
+    "accounted_seconds": 4.659605412045494,
+    "other_seconds": 0.03941897093318403,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20303653203882277,
+      "forward_loss": 0.10757679597008973,
+      "generation": 4.323826216976158,
+      "optimizer": 0.021993097034282982,
+      "reward": 0.003172770026139915
+    },
+    "step": 219,
+    "step_wall_seconds": 4.699024382978678
+  },
+  {
+    "accounted_seconds": 4.595045926864259,
+    "other_seconds": 0.03894113108981401,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20773923594970256,
+      "forward_loss": 0.10849670297466218,
+      "generation": 4.253489081049338,
+      "optimizer": 0.022219726932235062,
+      "reward": 0.003101179958321154
+    },
+    "step": 220,
+    "step_wall_seconds": 4.633987057954073
+  },
+  {
+    "accounted_seconds": 4.568896065000445,
+    "other_seconds": 0.038770093000493944,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20414709800388664,
+      "forward_loss": 0.10995053802616894,
+      "generation": 4.229410573025234,
+      "optimizer": 0.022380096022970974,
+      "reward": 0.00300775992218405
+    },
+    "step": 221,
+    "step_wall_seconds": 4.607666158000939
+  },
+  {
+    "accounted_seconds": 4.39895145688206,
+    "other_seconds": 0.03905398107599467,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18857491889502853,
+      "forward_loss": 0.10313016991131008,
+      "generation": 4.082101961015724,
+      "optimizer": 0.022066247067414224,
+      "reward": 0.003078159992583096
+    },
+    "step": 222,
+    "step_wall_seconds": 4.438005437958054
+  },
+  {
+    "accounted_seconds": 4.07498395012226,
+    "other_seconds": 0.03903447883203626,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1879797710571438,
+      "forward_loss": 0.10338397999294102,
+      "generation": 3.758434421964921,
+      "optimizer": 0.02232702705077827,
+      "reward": 0.002858750056475401
+    },
+    "step": 223,
+    "step_wall_seconds": 4.114018428954296
+  },
+  {
+    "accounted_seconds": 4.350407994934358,
+    "other_seconds": 0.03929803904611617,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19316530297510326,
+      "forward_loss": 0.10572253097780049,
+      "generation": 4.026323372963816,
+      "optimizer": 0.02219714701641351,
+      "reward": 0.002999641001224518
+    },
+    "step": 224,
+    "step_wall_seconds": 4.389706033980474
+  },
+  {
+    "accounted_seconds": 4.5085240341722965,
+    "other_seconds": 0.03921864181756973,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19913514307700098,
+      "forward_loss": 0.10696771694347262,
+      "generation": 4.1773869370808825,
+      "optimizer": 0.022074057022109628,
+      "reward": 0.002960180048830807
+    },
+    "step": 225,
+    "step_wall_seconds": 4.547742675989866
+  },
+  {
+    "accounted_seconds": 4.414533987874165,
+    "other_seconds": 0.0388111921492964,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20673562795855105,
+      "forward_loss": 0.11162358103320003,
+      "generation": 4.071057013003156,
+      "optimizer": 0.02214074693620205,
+      "reward": 0.002977018943056464
+    },
+    "step": 226,
+    "step_wall_seconds": 4.453345180023462
+  },
+  {
+    "accounted_seconds": 4.4475620918674394,
+    "other_seconds": 0.04060988605488092,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20541881094686687,
+      "forward_loss": 0.11199074995238334,
+      "generation": 4.104450796032324,
+      "optimizer": 0.02226400701329112,
+      "reward": 0.0034377279225736856
+    },
+    "step": 227,
+    "step_wall_seconds": 4.48817197792232
+  },
+  {
+    "accounted_seconds": 4.651544319931418,
+    "other_seconds": 0.0395273610483855,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20279103994835168,
+      "forward_loss": 0.10953320795670152,
+      "generation": 4.3130519590340555,
+      "optimizer": 0.02296145400032401,
+      "reward": 0.003206658991985023
+    },
+    "step": 228,
+    "step_wall_seconds": 4.691071680979803
+  },
+  {
+    "accounted_seconds": 4.655264121014625,
+    "other_seconds": 0.03898793098051101,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2035404370399192,
+      "forward_loss": 0.10822132194880396,
+      "generation": 4.317679418018088,
+      "optimizer": 0.022776333964429796,
+      "reward": 0.0030466100433841348
+    },
+    "step": 229,
+    "step_wall_seconds": 4.694252051995136
+  },
+  {
+    "accounted_seconds": 4.191911508096382,
+    "other_seconds": 0.03928783885203302,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.17565176007337868,
+      "forward_loss": 0.1034443179378286,
+      "generation": 3.886299517005682,
+      "optimizer": 0.02340877300594002,
+      "reward": 0.0031071400735527277
+    },
+    "step": 230,
+    "step_wall_seconds": 4.231199346948415
+  },
+  {
+    "accounted_seconds": 4.227058095042594,
+    "other_seconds": 0.038981001009233296,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18388202192727476,
+      "forward_loss": 0.10384682705625892,
+      "generation": 3.9141202500322834,
+      "optimizer": 0.022245286032557487,
+      "reward": 0.0029637099942192435
+    },
+    "step": 231,
+    "step_wall_seconds": 4.266039096051827
+  },
+  {
+    "accounted_seconds": 4.2249681749381125,
+    "other_seconds": 0.038666521082632244,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.17502398998476565,
+      "forward_loss": 0.10252809093799442,
+      "generation": 3.922331057023257,
+      "optimizer": 0.02199015801306814,
+      "reward": 0.0030948789790272713
+    },
+    "step": 232,
+    "step_wall_seconds": 4.263634696020745
+  },
+  {
+    "accounted_seconds": 4.72924677003175,
+    "other_seconds": 0.038751790998503566,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18905271403491497,
+      "forward_loss": 0.10279921907931566,
+      "generation": 4.41058891499415,
+      "optimizer": 0.023441422963514924,
+      "reward": 0.003364498959854245
+    },
+    "step": 233,
+    "step_wall_seconds": 4.767998561030254
+  },
+  {
+    "accounted_seconds": 4.601222624303773,
+    "other_seconds": 0.038640782702714205,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19267876108642668,
+      "forward_loss": 0.10622319707181305,
+      "generation": 4.27698029007297,
+      "optimizer": 0.02216024708468467,
+      "reward": 0.003180128987878561
+    },
+    "step": 234,
+    "step_wall_seconds": 4.639863407006487
+  },
+  {
+    "accounted_seconds": 4.52887582895346,
+    "other_seconds": 0.04005684703588486,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18948207201901823,
+      "forward_loss": 0.10413392505142838,
+      "generation": 4.209728676942177,
+      "optimizer": 0.02223229594528675,
+      "reward": 0.0032988589955493808
+    },
+    "step": 235,
+    "step_wall_seconds": 4.568932675989345
+  },
+  {
+    "accounted_seconds": 4.180999106960371,
+    "other_seconds": 0.03920923906844109,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18587309401482344,
+      "forward_loss": 0.10408356599509716,
+      "generation": 3.8658647009870037,
+      "optimizer": 0.022228765999898314,
+      "reward": 0.0029489799635484815
+    },
+    "step": 236,
+    "step_wall_seconds": 4.220208346028812
+  },
+  {
+    "accounted_seconds": 4.822179421898909,
+    "other_seconds": 0.04018926713615656,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20236040907911956,
+      "forward_loss": 0.10972448601387441,
+      "generation": 4.484547401894815,
+      "optimizer": 0.022310036001726985,
+      "reward": 0.0032370889093726873
+    },
+    "step": 237,
+    "step_wall_seconds": 4.8623686890350655
+  },
+  {
+    "accounted_seconds": 4.3346635709749535,
+    "other_seconds": 0.042064453940838575,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18999374902341515,
+      "forward_loss": 0.10523703007493168,
+      "generation": 4.012753841932863,
+      "optimizer": 0.023479070980101824,
+      "reward": 0.0031998789636418223
+    },
+    "step": 238,
+    "step_wall_seconds": 4.376728024915792
+  },
+  {
+    "accounted_seconds": 4.632982446928509,
+    "other_seconds": 0.03978631808422506,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20015309599693865,
+      "forward_loss": 0.10696539492346346,
+      "generation": 4.30051019100938,
+      "optimizer": 0.022239856072701514,
+      "reward": 0.003113908926025033
+    },
+    "step": 239,
+    "step_wall_seconds": 4.672768765012734
+  },
+  {
+    "accounted_seconds": 4.65400744182989,
+    "other_seconds": 0.039280578144825995,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20507526898290962,
+      "forward_loss": 0.10823750996496528,
+      "generation": 4.315424075932242,
+      "optimizer": 0.022184076951816678,
+      "reward": 0.0030865099979564548
+    },
+    "step": 240,
+    "step_wall_seconds": 4.693288019974716
+  },
+  {
+    "accounted_seconds": 4.437177016050555,
+    "other_seconds": 0.039181538042612374,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2047109690029174,
+      "forward_loss": 0.10799108201172203,
+      "generation": 4.099045319017023,
+      "optimizer": 0.022284706006757915,
+      "reward": 0.0031449400121346116
+    },
+    "step": 241,
+    "step_wall_seconds": 4.476358554093167
+  },
+  {
+    "accounted_seconds": 4.470531829050742,
+    "other_seconds": 0.038903888897038996,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20206543907988816,
+      "forward_loss": 0.10876759793609381,
+      "generation": 4.13457717502024,
+      "optimizer": 0.022046446916647255,
+      "reward": 0.003075170097872615
+    },
+    "step": 242,
+    "step_wall_seconds": 4.509435717947781
+  },
+  {
+    "accounted_seconds": 4.299570688046515,
+    "other_seconds": 0.03846812387928367,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18470255506690592,
+      "forward_loss": 0.10179927106946707,
+      "generation": 3.9879905859706923,
+      "optimizer": 0.02201677591074258,
+      "reward": 0.003061500028707087
+    },
+    "step": 243,
+    "step_wall_seconds": 4.338038811925799
+  },
+  {
+    "accounted_seconds": 4.433820676989853,
+    "other_seconds": 0.03855747205670923,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19257248903159052,
+      "forward_loss": 0.10429572290740907,
+      "generation": 4.111488381051458,
+      "optimizer": 0.0223225150257349,
+      "reward": 0.003141568973660469
+    },
+    "step": 244,
+    "step_wall_seconds": 4.472378149046563
+  },
+  {
+    "accounted_seconds": 4.381287046940997,
+    "other_seconds": 0.03891174914315343,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19020163698587567,
+      "forward_loss": 0.10389036394190043,
+      "generation": 4.062316388939507,
+      "optimizer": 0.022079696063883603,
+      "reward": 0.0027989610098302364
+    },
+    "step": 245,
+    "step_wall_seconds": 4.420198796084151
+  },
+  {
+    "accounted_seconds": 4.527270115213469,
+    "other_seconds": 0.038622390711680055,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18578808207530528,
+      "forward_loss": 0.10364898503758013,
+      "generation": 4.212447923026048,
+      "optimizer": 0.022211946081370115,
+      "reward": 0.003173178993165493
+    },
+    "step": 246,
+    "step_wall_seconds": 4.565892505925149
+  },
+  {
+    "accounted_seconds": 4.6032055171672255,
+    "other_seconds": 0.039697245811112225,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2002885330002755,
+      "forward_loss": 0.10750608204398304,
+      "generation": 4.270153666031547,
+      "optimizer": 0.02220804605167359,
+      "reward": 0.0030491900397464633
+    },
+    "step": 247,
+    "step_wall_seconds": 4.642902762978338
+  },
+  {
+    "accounted_seconds": 4.489284547045827,
+    "other_seconds": 0.03915966092608869,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18992474698461592,
+      "forward_loss": 0.10316128504928201,
+      "generation": 4.170646090991795,
+      "optimizer": 0.022591474000364542,
+      "reward": 0.0029609500197693706
+    },
+    "step": 248,
+    "step_wall_seconds": 4.528444207971916
+  },
+  {
+    "accounted_seconds": 4.1222454670351,
+    "other_seconds": 0.03883399092592299,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1879222139250487,
+      "forward_loss": 0.10390093305613846,
+      "generation": 3.805605843081139,
+      "optimizer": 0.02200481598265469,
+      "reward": 0.0028116609901189804
+    },
+    "step": 249,
+    "step_wall_seconds": 4.161079457961023
+  },
+  {
+    "accounted_seconds": 4.520706093986519,
+    "other_seconds": 0.03969121596310288,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2040333200711757,
+      "forward_loss": 0.10840988799463958,
+      "generation": 4.182826759992167,
+      "optimizer": 0.02236289600841701,
+      "reward": 0.003073229920119047
+    },
+    "step": 250,
+    "step_wall_seconds": 4.560397309949622
+  },
+  {
+    "accounted_seconds": 4.369708939921111,
+    "other_seconds": 0.07078018505126238,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1865617869189009,
+      "forward_loss": 0.10340993502177298,
+      "generation": 4.054594932007603,
+      "optimizer": 0.022021127049811184,
+      "reward": 0.003121158923022449
+    },
+    "step": 251,
+    "step_wall_seconds": 4.440489124972373
+  },
+  {
+    "accounted_seconds": 4.120122997905128,
+    "other_seconds": 0.03897978109307587,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1883388009155169,
+      "forward_loss": 0.10317753499839455,
+      "generation": 3.803895225049928,
+      "optimizer": 0.02195836591999978,
+      "reward": 0.0027530710212886333
+    },
+    "step": 252,
+    "step_wall_seconds": 4.159102778998204
+  },
+  {
+    "accounted_seconds": 4.5568852870492265,
+    "other_seconds": 0.039105577976442873,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20153940794989467,
+      "forward_loss": 0.10784999001771212,
+      "generation": 4.222410173038952,
+      "optimizer": 0.021968786022625864,
+      "reward": 0.0031169300200417638
+    },
+    "step": 253,
+    "step_wall_seconds": 4.595990865025669
+  },
+  {
+    "accounted_seconds": 4.420648024999537,
+    "other_seconds": 0.03912827803287655,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20000351197086275,
+      "forward_loss": 0.10655466397292912,
+      "generation": 4.089199342066422,
+      "optimizer": 0.02193422697018832,
+      "reward": 0.002956280019134283
+    },
+    "step": 254,
+    "step_wall_seconds": 4.459776303032413
+  },
+  {
+    "accounted_seconds": 4.444410189054906,
+    "other_seconds": 0.03925533895380795,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20090063801035285,
+      "forward_loss": 0.10713352193124592,
+      "generation": 4.111092942999676,
+      "optimizer": 0.022216966026462615,
+      "reward": 0.0030661200871691108
+    },
+    "step": 255,
+    "step_wall_seconds": 4.483665528008714
+  },
+  {
+    "accounted_seconds": 4.345703885075636,
+    "other_seconds": 0.038078802987001836,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2017271959921345,
+      "forward_loss": 0.10711301304399967,
+      "generation": 4.011812160024419,
+      "optimizer": 0.02192633703816682,
+      "reward": 0.0031251789769157767
+    },
+    "step": 256,
+    "step_wall_seconds": 4.383782688062638
+  },
+  {
+    "accounted_seconds": 4.23146455490496,
+    "other_seconds": 0.03824953513685614,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18808311794418842,
+      "forward_loss": 0.10207306093070656,
+      "generation": 3.916104280971922,
+      "optimizer": 0.02212257101200521,
+      "reward": 0.003081524046137929
+    },
+    "step": 257,
+    "step_wall_seconds": 4.269714090041816
+  },
+  {
+    "accounted_seconds": 4.441230605007149,
+    "other_seconds": 0.0387676419923082,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20010326709598303,
+      "forward_loss": 0.108585707959719,
+      "generation": 4.107395934988745,
+      "optimizer": 0.02199871197808534,
+      "reward": 0.0031469829846173525
+    },
+    "step": 258,
+    "step_wall_seconds": 4.4799982469994575
+  },
+  {
+    "accounted_seconds": 4.474415383068845,
+    "other_seconds": 0.03911086090374738,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20096845494117588,
+      "forward_loss": 0.10698660800699145,
+      "generation": 4.141163746011443,
+      "optimizer": 0.022218230995349586,
+      "reward": 0.00307834311388433
+    },
+    "step": 259,
+    "step_wall_seconds": 4.513526243972592
+  },
+  {
+    "accounted_seconds": 4.222961309016682,
+    "other_seconds": 0.03887526295147836,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18941078905481845,
+      "forward_loss": 0.10516928904689848,
+      "generation": 3.903085006051697,
+      "optimizer": 0.022472259937785566,
+      "reward": 0.002823964925482869
+    },
+    "step": 260,
+    "step_wall_seconds": 4.261836571968161
+  },
+  {
+    "accounted_seconds": 4.474717527977191,
+    "other_seconds": 0.03937102004420012,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2030576990218833,
+      "forward_loss": 0.10997526510618627,
+      "generation": 4.136182339978404,
+      "optimizer": 0.02237685094587505,
+      "reward": 0.0031253729248419404
+    },
+    "step": 261,
+    "step_wall_seconds": 4.514088548021391
+  },
+  {
+    "accounted_seconds": 4.008721434045583,
+    "other_seconds": 0.03861226700246334,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.17659851303324103,
+      "forward_loss": 0.09950334206223488,
+      "generation": 3.7074906829511747,
+      "optimizer": 0.022380431066267192,
+      "reward": 0.002748464932665229
+    },
+    "step": 262,
+    "step_wall_seconds": 4.047333701048046
+  },
+  {
+    "accounted_seconds": 4.086354217026383,
+    "other_seconds": 0.03958237997721881,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18311946094036102,
+      "forward_loss": 0.10316855297423899,
+      "generation": 3.7747474369825795,
+      "optimizer": 0.0224289110628888,
+      "reward": 0.0028898550663143396
+    },
+    "step": 263,
+    "step_wall_seconds": 4.1259365970036015
+  },
+  {
+    "accounted_seconds": 4.676243432099,
+    "other_seconds": 0.03950843191705644,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19964723498560488,
+      "forward_loss": 0.10798844892997295,
+      "generation": 4.34299280308187,
+      "optimizer": 0.022411082056351006,
+      "reward": 0.0032038630452007055
+    },
+    "step": 264,
+    "step_wall_seconds": 4.715751864016056
+  },
+  {
+    "accounted_seconds": 4.1404912419384345,
+    "other_seconds": 0.03853717807214707,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18462169694248587,
+      "forward_loss": 0.1049665070604533,
+      "generation": 3.8257872209651396,
+      "optimizer": 0.02231633197516203,
+      "reward": 0.0027994849951937795
+    },
+    "step": 265,
+    "step_wall_seconds": 4.179028420010582
+  },
+  {
+    "accounted_seconds": 4.492842774023302,
+    "other_seconds": 0.03887620696332306,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20282510400284082,
+      "forward_loss": 0.10771802393719554,
+      "generation": 4.156995789962821,
+      "optimizer": 0.022157563013024628,
+      "reward": 0.003146293107420206
+    },
+    "step": 266,
+    "step_wall_seconds": 4.531718980986625
+  },
+  {
+    "accounted_seconds": 4.560030265129171,
+    "other_seconds": 0.03977085091173649,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20385009096935391,
+      "forward_loss": 0.10813800303731114,
+      "generation": 4.222529474063776,
+      "optimizer": 0.02233791397884488,
+      "reward": 0.0031747830798849463
+    },
+    "step": 267,
+    "step_wall_seconds": 4.599801116040908
+  },
+  {
+    "accounted_seconds": 4.091296670027077,
+    "other_seconds": 0.03882462705951184,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18746293999720365,
+      "forward_loss": 0.09983370802365243,
+      "generation": 3.7787376740016043,
+      "optimizer": 0.022499982034787536,
+      "reward": 0.0027623659698292613
+    },
+    "step": 268,
+    "step_wall_seconds": 4.130121297086589
+  },
+  {
+    "accounted_seconds": 4.471746235038154,
+    "other_seconds": 0.039218625985085964,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20104842202272266,
+      "forward_loss": 0.10695378202944994,
+      "generation": 4.138127635000274,
+      "optimizer": 0.022411993006244302,
+      "reward": 0.003204402979463339
+    },
+    "step": 269,
+    "step_wall_seconds": 4.51096486102324
+  },
+  {
+    "accounted_seconds": 4.387347705080174,
+    "other_seconds": 0.03885710786562413,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19131040503270924,
+      "forward_loss": 0.10477459605317563,
+      "generation": 4.065566007979214,
+      "optimizer": 0.02260930195916444,
+      "reward": 0.0030873940559104085
+    },
+    "step": 270,
+    "step_wall_seconds": 4.426204812945798
+  },
+  {
+    "accounted_seconds": 4.505289188935421,
+    "other_seconds": 0.03931592602748424,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20284022798296064,
+      "forward_loss": 0.107838109950535,
+      "generation": 4.1691595239099115,
+      "optimizer": 0.022460843087174,
+      "reward": 0.002990484004840255
+    },
+    "step": 271,
+    "step_wall_seconds": 4.544605114962906
+  },
+  {
+    "accounted_seconds": 4.4296408909140155,
+    "other_seconds": 0.03886003012303263,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18967290804721415,
+      "forward_loss": 0.10307868698146194,
+      "generation": 4.111459817970172,
+      "optimizer": 0.022464513895101845,
+      "reward": 0.0029649640200659633
+    },
+    "step": 272,
+    "step_wall_seconds": 4.468500921037048
+  },
+  {
+    "accounted_seconds": 4.5460478567983955,
+    "other_seconds": 0.03854852123185992,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18634678900707513,
+      "forward_loss": 0.10318131698295474,
+      "generation": 4.230858623981476,
+      "optimizer": 0.022401523892767727,
+      "reward": 0.0032596029341220856
+    },
+    "step": 273,
+    "step_wall_seconds": 4.584596378030255
+  },
+  {
+    "accounted_seconds": 4.7229913850314915,
+    "other_seconds": 0.03859536291565746,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2014467720873654,
+      "forward_loss": 0.10795134399086237,
+      "generation": 4.388067940948531,
+      "optimizer": 0.02242787496652454,
+      "reward": 0.0030974530382081866
+    },
+    "step": 274,
+    "step_wall_seconds": 4.761586747947149
+  },
+  {
+    "accounted_seconds": 4.393684091977775,
+    "other_seconds": 0.03823239402845502,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18955356697551906,
+      "forward_loss": 0.10322539997287095,
+      "generation": 4.075572394998744,
+      "optimizer": 0.02224302594549954,
+      "reward": 0.0030897040851414204
+    },
+    "step": 275,
+    "step_wall_seconds": 4.43191648600623
+  },
+  {
+    "accounted_seconds": 4.5575071381172165,
+    "other_seconds": 0.03892742993775755,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20265576208475977,
+      "forward_loss": 0.10781783796846867,
+      "generation": 4.221949705970474,
+      "optimizer": 0.02204512699972838,
+      "reward": 0.0030387050937861204
+    },
+    "step": 276,
+    "step_wall_seconds": 4.596434568054974
+  },
+  {
+    "accounted_seconds": 4.384369900915772,
+    "other_seconds": 0.03871667105704546,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18797768000513315,
+      "forward_loss": 0.1029384039575234,
+      "generation": 4.06785267801024,
+      "optimizer": 0.022198845981620252,
+      "reward": 0.003402292961254716
+    },
+    "step": 277,
+    "step_wall_seconds": 4.423086571972817
+  },
+  {
+    "accounted_seconds": 4.114133712952025,
+    "other_seconds": 0.03887081006541848,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1863884899066761,
+      "forward_loss": 0.1031017949571833,
+      "generation": 3.799481356050819,
+      "optimizer": 0.022347165970131755,
+      "reward": 0.002814906067214906
+    },
+    "step": 278,
+    "step_wall_seconds": 4.153004523017444
+  },
+  {
+    "accounted_seconds": 4.398364090826362,
+    "other_seconds": 0.038838405162096024,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20213001093361527,
+      "forward_loss": 0.10883348598144948,
+      "generation": 4.062039723969065,
+      "optimizer": 0.02230776590295136,
+      "reward": 0.0030531040392816067
+    },
+    "step": 279,
+    "step_wall_seconds": 4.437202495988458
+  },
+  {
+    "accounted_seconds": 4.155141262104735,
+    "other_seconds": 0.03860984288621694,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18914735002908856,
+      "forward_loss": 0.10605691210366786,
+      "generation": 3.8348989660153165,
+      "optimizer": 0.022277966956607997,
+      "reward": 0.002760067000053823
+    },
+    "step": 280,
+    "step_wall_seconds": 4.193751104990952
+  },
+  {
+    "accounted_seconds": 4.533761180122383,
+    "other_seconds": 0.03912834287621081,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20099084300454706,
+      "forward_loss": 0.10696657805237919,
+      "generation": 4.200748846982606,
+      "optimizer": 0.02216131705790758,
+      "reward": 0.0028935950249433517
+    },
+    "step": 281,
+    "step_wall_seconds": 4.572889522998594
+  },
+  {
+    "accounted_seconds": 4.048934704158455,
+    "other_seconds": 0.0387327647767961,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1888167760334909,
+      "forward_loss": 0.10281113104429096,
+      "generation": 3.7319220170611516,
+      "optimizer": 0.022571534966118634,
+      "reward": 0.0028132450534030795
+    },
+    "step": 282,
+    "step_wall_seconds": 4.087667468935251
+  },
+  {
+    "accounted_seconds": 4.126392886857502,
+    "other_seconds": 0.03880571620538831,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1877975029638037,
+      "forward_loss": 0.10430077405180782,
+      "generation": 3.8093284969218075,
+      "optimizer": 0.02216925797984004,
+      "reward": 0.0027968549402430654
+    },
+    "step": 283,
+    "step_wall_seconds": 4.1651986030628905
+  },
+  {
+    "accounted_seconds": 4.318367528030649,
+    "other_seconds": 0.03858687705360353,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18912917899433523,
+      "forward_loss": 0.1027076339814812,
+      "generation": 4.0010911140125245,
+      "optimizer": 0.022343507036566734,
+      "reward": 0.003096094005741179
+    },
+    "step": 284,
+    "step_wall_seconds": 4.356954405084252
+  },
+  {
+    "accounted_seconds": 4.540331014781259,
+    "other_seconds": 0.03937077126465738,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2245032729115337,
+      "forward_loss": 0.1169832629384473,
+      "generation": 4.173425265937112,
+      "optimizer": 0.022342408075928688,
+      "reward": 0.0030768049182370305
+    },
+    "step": 285,
+    "step_wall_seconds": 4.579701786045916
+  },
+  {
+    "accounted_seconds": 4.527332081925124,
+    "other_seconds": 0.039459764142520726,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2024111560313031,
+      "forward_loss": 0.1083658579736948,
+      "generation": 4.191126795951277,
+      "optimizer": 0.02228788798674941,
+      "reward": 0.0031403839820995927
+    },
+    "step": 286,
+    "step_wall_seconds": 4.566791846067645
+  },
+  {
+    "accounted_seconds": 4.3228949351469055,
+    "other_seconds": 0.03872989781666547,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1862774189794436,
+      "forward_loss": 0.10395176103338599,
+      "generation": 4.007201053085737,
+      "optimizer": 0.022382767987437546,
+      "reward": 0.0030819340609014034
+    },
+    "step": 287,
+    "step_wall_seconds": 4.361624832963571
+  },
+  {
+    "accounted_seconds": 4.507567144231871,
+    "other_seconds": 0.038365698768757284,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.2004421710735187,
+      "forward_loss": 0.10827448009513319,
+      "generation": 4.173700927989557,
+      "optimizer": 0.02216793003026396,
+      "reward": 0.002981635043397546
+    },
+    "step": 288,
+    "step_wall_seconds": 4.545932843000628
+  },
+  {
+    "accounted_seconds": 4.535328158992343,
+    "other_seconds": 0.040155850001610816,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1999038360081613,
+      "forward_loss": 0.10739659692626446,
+      "generation": 4.20225292397663,
+      "optimizer": 0.022556588053703308,
+      "reward": 0.003218214027583599
+    },
+    "step": 289,
+    "step_wall_seconds": 4.5754840089939535
+  },
+  {
+    "accounted_seconds": 4.063823829987086,
+    "other_seconds": 0.03833735908847302,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18795567704364657,
+      "forward_loss": 0.0998418650124222,
+      "generation": 3.751119120977819,
+      "optimizer": 0.022062081028707325,
+      "reward": 0.0028450859244912863
+    },
+    "step": 290,
+    "step_wall_seconds": 4.102161189075559
+  },
+  {
+    "accounted_seconds": 4.0444979660678655,
+    "other_seconds": 0.03842192993033677,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18840834801085293,
+      "forward_loss": 0.10348427703138441,
+      "generation": 3.727730073966086,
+      "optimizer": 0.022054231027141213,
+      "reward": 0.0028210360324010253
+    },
+    "step": 291,
+    "step_wall_seconds": 4.082919895998202
+  },
+  {
+    "accounted_seconds": 4.47082050004974,
+    "other_seconds": 0.03838040097616613,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19872070802375674,
+      "forward_loss": 0.10709370102267712,
+      "generation": 4.139378798077814,
+      "optimizer": 0.022537108976393938,
+      "reward": 0.003090183949097991
+    },
+    "step": 292,
+    "step_wall_seconds": 4.509200901025906
+  },
+  {
+    "accounted_seconds": 4.232379805063829,
+    "other_seconds": 0.03883279801812023,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1844950009835884,
+      "forward_loss": 0.10283053305465728,
+      "generation": 3.9197053969837725,
+      "optimizer": 0.02218603005167097,
+      "reward": 0.0031628439901396632
+    },
+    "step": 293,
+    "step_wall_seconds": 4.271212603081949
+  },
+  {
+    "accounted_seconds": 4.04646985407453,
+    "other_seconds": 0.03789848287124187,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1870327100623399,
+      "forward_loss": 0.0989212830318138,
+      "generation": 3.735490752966143,
+      "optimizer": 0.022262340993620455,
+      "reward": 0.002762767020612955
+    },
+    "step": 294,
+    "step_wall_seconds": 4.084368336945772
+  },
+  {
+    "accounted_seconds": 4.593055679928511,
+    "other_seconds": 0.03719160705804825,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19999654788989574,
+      "forward_loss": 0.10820571903605014,
+      "generation": 4.259639287018217,
+      "optimizer": 0.022177770966663957,
+      "reward": 0.0030363550176844
+    },
+    "step": 295,
+    "step_wall_seconds": 4.63024728698656
+  },
+  {
+    "accounted_seconds": 4.404312735190615,
+    "other_seconds": 0.03710577788297087,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.1900159700307995,
+      "forward_loss": 0.1037019919604063,
+      "generation": 4.085258697043173,
+      "optimizer": 0.022321841097436845,
+      "reward": 0.003014235058799386
+    },
+    "step": 296,
+    "step_wall_seconds": 4.441418513073586
+  },
+  {
+    "accounted_seconds": 4.5767909969436005,
+    "other_seconds": 0.037234958028420806,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20072299893945456,
+      "forward_loss": 0.10678389808163047,
+      "generation": 4.243886653915979,
+      "optimizer": 0.022301880992017686,
+      "reward": 0.0030955650145187974
+    },
+    "step": 297,
+    "step_wall_seconds": 4.614025954972021
+  },
+  {
+    "accounted_seconds": 4.485383542953059,
+    "other_seconds": 0.037412749137729406,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.19923138804733753,
+      "forward_loss": 0.1078690739814192,
+      "generation": 4.152887515025213,
+      "optimizer": 0.022173861972987652,
+      "reward": 0.003221703926101327
+    },
+    "step": 298,
+    "step_wall_seconds": 4.5227962920907885
+  },
+  {
+    "accounted_seconds": 4.347764130914584,
+    "other_seconds": 0.037130197044461966,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.20092110289260745,
+      "forward_loss": 0.10808671393897384,
+      "generation": 4.013618875993416,
+      "optimizer": 0.02212100208271295,
+      "reward": 0.003016436006873846
+    },
+    "step": 299,
+    "step_wall_seconds": 4.384894327959046
+  },
+  {
+    "accounted_seconds": 4.247219530050643,
+    "other_seconds": 0.03672624286264181,
+    "phase_calls": {
+      "backward": 1,
+      "forward_loss": 1,
+      "generation": 1,
+      "optimizer": 1,
+      "reward": 1
+    },
+    "phase_seconds": {
+      "backward": 0.18382384697906673,
+      "forward_loss": 0.1015897860052064,
+      "generation": 3.9363969010300934,
+      "optimizer": 0.022407901007682085,
+      "reward": 0.0030010950285941362
+    },
+    "step": 300,
+    "step_wall_seconds": 4.283945772913285
+  }
+]

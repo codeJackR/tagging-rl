@@ -1,0 +1,63 @@
+{
+  "checkpoint_adapter_sha256": "562149feae197a8368dcb2eace91ada19c41dd2e1caae5b9b61e4a8cfa094e7c",
+  "command": [
+    "/venv/rl/bin/python",
+    "-m",
+    "training.run2_checkpoint_monitor_runtime",
+    "--repo-root",
+    "/workspace/tagging-rl",
+    "--contract",
+    "runs/grpo-run2-checkpoint-monitor-contract.json",
+    "--pack",
+    "packs/vastraa_taste_v1",
+    "--base-model",
+    "unsloth/Qwen2.5-1.5B-Instruct",
+    "--local-files-only",
+    "evaluate",
+    "--checkpoint",
+    "/workspace/arm-b-scratch/trainer/checkpoint-200",
+    "--output",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-monitor/checkpoint-200",
+    "--mode",
+    "production"
+  ],
+  "elapsed_seconds": 2529.8011448830366,
+  "ended_at": "2026-08-16T10:19:34.896471Z",
+  "expected_checkpoint_sha256": "562149feae197a8368dcb2eace91ada19c41dd2e1caae5b9b61e4a8cfa094e7c",
+  "expected_mode": "production",
+  "manifest": {
+    "bytes": 7491,
+    "sha256": "16fad42c8546d1bc2c7200d8032323e317cce379469abebae353130fab8db3be"
+  },
+  "output_dir": "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-monitor/checkpoint-200",
+  "quality_abort_threshold_applied": false,
+  "repo_root": "/workspace/tagging-rl",
+  "return_code": 0,
+  "spawn_error": null,
+  "started_at": "2026-08-16T09:37:25.095301Z",
+  "status": "checkpoint_monitor_accepted",
+  "streams": {
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": "",
+      "tail_bytes": 0,
+      "tail_truncated": false
+    },
+    "stdout": {
+      "bytes": 124,
+      "sha256": "87d0d844a3c566e7d568ffb68619b6a2a6932bfd4c5aa1eccbbac7609350611c",
+      "tail": "{\"output\": \"/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-monitor/checkpoint-200\", \"status\": \"checkpoint_monitor_complete\"}\n",
+      "tail_bytes": 124,
+      "tail_truncated": false
+    }
+  },
+  "termination": {
+    "kill_sent": false,
+    "terminate_sent": false
+  },
+  "timed_out": false,
+  "timeout_seconds": 3600,
+  "training_may_continue": true,
+  "version": "grpo-run2-checkpoint-monitor-control-v1"
+}

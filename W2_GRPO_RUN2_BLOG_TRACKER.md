@@ -7582,3 +7582,98 @@ tell answers apart. **Limitation:** one seed per arm; the block trends rest on
 read from the training log rather than recomputed from the bundle, which is
 cross-checked against Arm A's independently derived 125 but not yet against Arm
 B's own rollouts.
+
+## 124. Arm B finished. The paired comparison the run was designed for
+
+Arm B published `arm_run_completed` after 8,969 seconds against Arm A's 9,012,
+a 0.5% difference. The arms differ only in the reward function, and the reward
+itself costs under a second of the run, so near-identical wall time is what
+causal isolation should look like from the outside.
+
+Both arms cost **$0.36** of RTX 3090 time. The whole causal experiment, two
+300-step runs with three quality monitors each, came to **$0.72**.
+
+### Every checkpoint, both arms, against the policy they started from
+
+| greedy, 360 dev | SFT baseline | A @100 | A @200 | A @300 | B @100 | B @200 | **B @300** |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| macro-F1 | 0.8537 | 0.8577 | 0.8616 | 0.8618 | 0.8589 | 0.8522 | **0.8645** |
+| selective macro-F1 | 0.8676 | 0.8609 | 0.8637 | 0.8649 | 0.8839 | 0.8683 | **0.8812** |
+| coverage | 0.9770 | 0.9948 | 0.9968 | 0.9955 | 0.9666 | 0.9757 | 0.9740 |
+| vocabulary validity | 0.9417 | 0.9361 | 0.9389 | 0.9444 | 0.9861 | 0.9556 | **0.9583** |
+| rule-violation rate | 0.0278 | 0.0667 | 0.0556 | 0.0583 | 0.0222 | 0.0278 | **0.0222** |
+| ... x baseline | 1.00x | 2.40x | 2.00x | 2.10x | 0.80x | 1.00x | **0.80x** |
+| quality status | - | `warn` | `warn` | `warn` | `pass` | `pass` | **`pass`** |
+
+**Section 122 was too pessimistic and should be read with this correction.** It
+observed Arm B drifting toward baseline between checkpoints 100 and 200 and
+wrote down that checkpoint 300 might land on "no change from SFT". It did not.
+Checkpoint 300 is Arm B's best checkpoint on four of five metrics and sits above
+the SFT baseline on macro-F1, selective F1 and vocabulary validity while holding
+rule violations at 0.80x. The 200 dip was noise on two points, which is exactly
+what section 122 warned it might be.
+
+What that correction does **not** license is a macro-F1 claim. B @300 at 0.8645
+against A @300 at 0.8618 is a gap of 0.0027 on 360 products, which is nothing.
+The arms are tied on macro-F1. The separation is entirely in compliance and
+calibration:
+
+- **rule violations 0.0222 against 0.0583**, 0.80x baseline against 2.10x
+- **vocabulary validity 0.9583 against 0.9444**
+- **selective F1 0.8812 against 0.8649** at *lower* coverage, meaning Arm B is
+  more right on what it chooses to answer while answering less often
+
+### The reward resolution result, from the bundles
+
+This is the number the whole diagnosis pointed at, now measured on both arms
+over identical rollout counts.
+
+| across 2,400 completions | Arm A (1:1:2) | Arm B (candidate UA) |
+|---|---:|---:|
+| distinct reward values | **3** | **141** |
+| completions at the maximum | 1,546 (64.4%) | 782 (32.6%) |
+| zero-variance steps | 125 (41.7%) | 22 (7.3%) |
+
+Arm A's three values are 4.0, 2.0 and 1.0. Two thirds of everything the model
+produced scored identically, and a GRPO group drawn from that pool has zero
+variance 42% of the time, which produces zero advantages and no gradient.
+
+UA gives **47x more distinct reward values** and halves the share pinned at the
+ceiling. It does not eliminate the ceiling: 782 completions still score exactly
+1.0, so a third of the corpus remains unresolvable even under dense grading.
+That is consistent with section 123's reading. Saturation is postponed, not
+defeated.
+
+### Section 123's open limitation is closed
+
+Section 123 derived the dead-step counts from `frac_reward_zero_std` in the
+training log and flagged that they had not been recomputed from the bundle's own
+rollouts. Recomputing them from `rollouts.jsonl` by grouping on `step` and
+counting groups whose eight `weighted_total` values are all identical reproduces
+both arms exactly: 22 for Arm B in blocks of 4, 7 and 11, and 125 for Arm A in
+blocks of 36, 43 and 46. The log and the bundle agree.
+
+### What the experiment establishes, and what it does not
+
+**Establishes.** Replacing a saturated 1:1:2 binary reward with a dense
+unknown-aware one, holding everything else fixed, raises reward resolution from
+3 values to 141, cuts dead optimisation steps from 125 to 22, and moves rule
+compliance from 2.10x baseline to 0.80x, at equal macro-F1 and identical cost.
+
+**Does not establish.** That UA is the *best* reward, that any of this replicates
+across seeds, or that RL beat supervised fine-tuning. On the metric most people
+would quote, macro-F1, three hundred steps of GRPO moved 0.8537 to 0.8645, and
+whether that is real is not answerable from one seed. What RL demonstrably
+bought here is compliance and calibrated abstention, not accuracy.
+
+**Direct finding:** Arm B completed all 300 steps with `pass` at every
+checkpoint, 141 distinct reward values against Arm A's 3, 22 dead steps against
+125, rule violations at 0.80x baseline against 2.10x, tied macro-F1, identical
+$0.36 cost. **Intuition:** the reward function was the whole experiment. The
+same model, data, schedule, seed and hyperparameters produced a compliant policy
+or a degraded one depending only on whether the scoring function could tell two
+imperfect answers apart. **Limitation:** one seed per arm with no replication;
+the endpoint metrics come from the checkpoint monitor's 360 dev products, not
+from a frozen held-out evaluation, so they are a monitoring signal rather than
+the pre-registered result; and a third of completions still saturate at the
+maximum, so the mechanism that killed run 1 is reduced, not removed.
