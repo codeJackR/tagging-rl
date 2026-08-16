@@ -56,11 +56,19 @@ Every number in blog post 1 still verifies: **17 of its 19 claim tests pass with
 the corpus entirely absent**, and the remaining two read gold labels, which
 `eval-labels.jsonl` supplies.
 
-What does not run is the provenance layer. Roughly **170 tests** require the
-corpus, concentrated in the checkpoint monitor, GRPO pool builders, preflight
-checks and replay contracts, because those verify data-file checksums and a file
-that is not present cannot be checksummed. That is the honest cost of the
-decision and it is not worked around.
+What does not run is the provenance layer. On a clone the suite reports
+**898 passed, 181 skipped, 0 failed**. Those 181 verify data-file checksums, and
+a file that is not present cannot be checksummed; they concentrate in the
+checkpoint monitor, the GRPO pool builders, the preflight checks and the replay
+contracts.
+
+They are reported as skips rather than failures because that is what they are,
+and the conversion in `tests/conftest.py` is deliberately narrow enough to say
+so honestly: it fires only when an exception both names one of the nine
+withheld files **and** says that file is absent. A checksum that has *drifted*
+still fails loudly, because masking that would hide a real defect. On a checkout
+that has the corpus the hook does nothing at all, and the suite reports 1,079
+passed with no skips.
 
 ## Confirming you have the same data
 
