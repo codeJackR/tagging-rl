@@ -495,6 +495,12 @@ composition, class support, and ordinary validation optimism all plausibly
 contribute. Revealing performance your selection process never got to
 optimize against is what a frozen set is *for*.
 
+Treat that paragraph as the load-bearing one. When the RL runs came, the same
+split reappeared at close to the same size, and the two sets disagreed about
+whether RL had helped at all: on the set I watched during training it looked
+like a small win, and on this frozen set it was a measurable loss. Everything
+that made that legible was built here, before any of it happened.
+
 Per-attribute, every field improved over zero-shot. The strong ones: `fit`
 0.950, `garment_category` 0.835, `material` 0.833. The weak tail: `closure`
 0.405, `silhouette` 0.410, `waistline` 0.444, `details` 0.463. That tail is
@@ -528,8 +534,14 @@ checkpoint of both arms.
 SFT taught the shell and most of the vocabulary. It did not fully
 internalize that every value comes from a closed list, and it has no
 mechanism for relationships *between* fields. The verifier already catches
-every one of these mechanically, which is exactly the shape of error a
-verifier-based reward attacks. That's post 2.
+both of these mechanically.
+
+Whether a reward built on that verifier actually *fixes* them is post 2's
+question, and I'll spoil the shape of the answer because it changes how you
+should read this post: it fixed one and not the other. Cross-field rules
+came down. The closed-vocabulary discipline, the thing `"supraprise"` is an
+instance of, did not move at all. That is a more interesting post than the
+one I expected to write.
 
 ## Reproduce this
 
@@ -594,14 +606,21 @@ the actual thesis of this post.
 
 ## Limitations
 
-- **Weak gold labels.** 78 of 4,500 frozen cells human-reviewed. Every claim
-  here is a delta under a fixed evaluator, not a production-accuracy claim.
+- **Weak gold labels.** 78 of 4,500 frozen cells human-reviewed, and those 78
+  were the *contested* ones, where two model families disagreed. On those the
+  frontier labeller was right 72% of the time, which is a lower bound chosen
+  for difficulty rather than an estimate; its overall accuracy sits somewhere
+  in 0.72 to 0.96 and the upper end was never measured. Every claim here is a
+  delta under a fixed evaluator, not a production-accuracy claim.
 - **Conditional zero-shot F1**, computed over its 196 parsed survivors.
 - **One model size, one domain, one seed.** No claim that combined LoRA
   always beats attention-only; the bootstrap quantifies eval-row
   uncertainty, not training-run variance.
-- **No constrained decoding**, deliberate for measurement; production would
-  likely differ.
+- **No constrained decoding**, deliberate for measurement, and production
+  differs by more than "likely". Running the frontier model over these same
+  300 products with the schema enforced during decoding took its rule
+  violations from 6 to 79, because a JSON Schema enum constrains one field at
+  a time and applicability is a relationship *between* fields.
 - **Duration-ablation metrics are regenerated** from preserved raw
   predictions (hash-verified), not training-time saves.
 

@@ -232,3 +232,78 @@ def test_every_repo_relative_link_resolves(post):
         if not (POST.parent / target).exists()
     ]
     assert not missing, f"broken evidence links: {missing}"
+
+
+# --- claims added after the W2 and W3 runs ------------------------------------
+
+
+def _rule_violations(loaded) -> int:
+    return sum(loaded.rule_histogram.values())
+
+
+def test_the_constrained_decoding_claim_recomputes():
+    """The post says enforcing the schema during decoding took the frontier
+    model's rule violations from 6 to 79 on these same 300 products. Both ends
+    come from committed predictions, so both are recomputed here."""
+    from evalharness import predictions as preds_mod
+    from labeling.records import read_jsonl
+    from verifier import load_pack
+
+    pack = load_pack(ROOT / "packs" / "vastraa_taste_v1")
+    gold = read_jsonl(ROOT / "data" / "eval_300" / "eval.jsonl")
+
+    unconstrained = preds_mod.from_frontier(gold, pack)
+    constrained = preds_mod.load(
+        ROOT / "runs" / "production-eval300" / "pass-1.jsonl", pack
+    )
+
+    assert _rule_violations(unconstrained) == 6
+    assert _rule_violations(constrained) == 79
+    assert "6 to 79" in POST.read_text(encoding="utf-8")
+
+    # The mechanism the post names: membership held, applicability did not.
+    assert unconstrained.vocab_valid == len(gold), "vocab was not already perfect"
+
+
+def test_the_label_accuracy_band_matches_the_reliability_artifact():
+    """The post now quotes 72% as a lower bound chosen for difficulty, and a
+    0.72 to 0.96 band. The lower end is measured; the band's width is the
+    unmeasured part, and both must stay tied to the artifact."""
+    reliability = load(ROOT / "data" / "reliability.json")
+    post = POST.read_text(encoding="utf-8")
+
+    measured = reliability["frontier_baseline"]["macro_accuracy"]
+    assert f"{measured:.0%}".rstrip("%") == "72"
+    assert "72%" in post
+    assert "0.72 to 0.96" in post
+    assert "lower bound" in post, "the bound must not be quoted as an estimate"
+    assert "contested" in post, "the selection-for-difficulty caveat must survive"
+    assert reliability["usable"] is False
+
+
+def test_the_rl_reversal_claim_matches_both_scored_sets():
+    """The post says the dev set and the frozen set disagreed about whether RL
+    helped. That is only worth printing if both numbers still say so."""
+    import subprocess
+
+    post = POST.read_text(encoding="utf-8")
+    assert "small win" in post and "measurable loss" in post
+
+    # Frozen: arm B below the SFT baseline, interval clear of zero.
+    bootstrap = load(
+        ROOT / "runs" / "grpo-run2-arm-b-frozen-eval-300-bootstrap.json"
+    )["bootstrap"]["metrics"]["macro_f1"]["delta_candidate_minus_baseline"]
+    assert bootstrap["point"] < 0, "arm B is no longer below baseline on frozen"
+    assert bootstrap["ci"][1] < 0, "the loss is no longer significant"
+
+    # Dev monitor: arm B above its own baseline, which is the disagreement.
+    quality = load(
+        ROOT / "runs" / "grpo-run2-arm-b-ua-monitor-quality" / "checkpoint-300.quality.json"
+    )
+    greedy = [
+        o for o in quality["observations"]
+        if o["metric"] == "macro_f1"
+        and o["decoding_mode"] == "greedy"
+        and o["view"] == "representative_all"
+    ]
+    assert greedy and greedy[0]["observed"] > 0.8537, "the dev-set win has gone"
