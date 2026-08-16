@@ -49,6 +49,19 @@ def label_from_value(value: Any, pack: Pack) -> AttributeLabel:
         return AttributeLabel(value=None, status=LabelStatus.NOT_APPLICABLE)
     if value == pack.unknown_token or value == [pack.unknown_token]:
         return AttributeLabel(value=None, status=LabelStatus.UNKNOWN)
+    if value == [] or value == "":
+        # A multi-valued field can come back empty: the model selected zero
+        # details rather than declining to answer. `AttributeLabel` forbids a
+        # labelled state with no value, and rightly so, because "labelled with
+        # nothing" is not a label.
+        #
+        # It is recorded as not-applicable carrying `[]` rather than `None`, so
+        # its consensus key stays distinct from a scalar null. The production
+        # run shows why that matters: for `details` the model emits `unknown`,
+        # `none`, `null` and `[]` as four different spellings of absence, and
+        # collapsing any two of them into one key would manufacture agreement
+        # between answers that were not the same answer.
+        return AttributeLabel(value=[], status=LabelStatus.NOT_APPLICABLE)
     return AttributeLabel(value=value, status=LabelStatus.LABELED)
 
 
@@ -114,6 +127,19 @@ class EscalationReport:
             )
             if self.products
             else 0.0,
+            # The worst-first ordering below is deliberate but does not survive
+            # serialisation: the report is written with sort_keys=True, and JSON
+            # objects are unordered by spec anyway, so a reader of the artifact
+            # sees the attributes alphabetically and would take the first one
+            # listed for the worst. The ranking is therefore also published as
+            # an explicit list.
+            "per_attribute_worst_first": [
+                name
+                for name, _stats in sorted(
+                    self.per_attribute.items(),
+                    key=lambda kv: -kv[1]["escalated"] / max(kv[1]["cells"], 1),
+                )
+            ],
             # Per attribute as well as overall, because one bad attribute can
             # dominate the headline and hide that the rest are fine.
             "per_attribute": {

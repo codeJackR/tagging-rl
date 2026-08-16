@@ -166,6 +166,7 @@ def run(
     # makes a partial run interpretable: it is complete for some passes rather
     # than partial for all products.
     passes: list[list] = []
+    resumed_passes: list[int] = []
     for index in range(k):
         path = out_dir / f"pass-{index + 1}.jsonl"
         # Resume a complete pass rather than paying for it twice. An
@@ -176,6 +177,7 @@ def run(
         existing = load_pass(path, expected=len(items))
         if existing is not None:
             passes.append(existing)
+            resumed_passes.append(index + 1)
             print(f"  pass {index + 1}/{k}: resumed from disk", flush=True)
             continue
 
@@ -220,6 +222,7 @@ def run(
     all_results = [r for results in passes for r in results]
     total_cost = sum(r.cost_usd for r in all_results)
     latencies = sorted(r.latency_seconds for r in all_results)
+    request_seconds = sum(r.latency_seconds for r in all_results)
     p95 = latencies[max(0, min(len(latencies) - 1, int(round(0.95 * len(latencies))) - 1))]
 
     report = {
@@ -262,18 +265,29 @@ def run(
         },
         "performance": {
             "wall_seconds": round(wall_seconds, 1),
-            "products_per_minute": round(len(items) / (wall_seconds / 60), 2)
-            if wall_seconds
+            # Throughput comes from summed request latencies, not from wall
+            # clock. A resumed pass costs no time to reload, so wall clock on a
+            # resumed run measures file reads rather than tagging and reports a
+            # throughput several orders of magnitude too high. The latencies
+            # were recorded when the requests actually ran and stay true across
+            # a resume; wall_seconds is kept alongside so the two are
+            # comparable on a run that did no resuming.
+            "products_per_minute": round(len(items) / (request_seconds / 60), 2)
+            if request_seconds
             else 0.0,
-            "requests_per_minute": round(len(all_results) / (wall_seconds / 60), 2)
-            if wall_seconds
+            "requests_per_minute": round(len(all_results) / (request_seconds / 60), 2)
+            if request_seconds
             else 0.0,
+            "request_seconds": round(request_seconds, 1),
+            "resumed_passes": resumed_passes,
             "latency_p50_seconds": round(latencies[len(latencies) // 2], 3),
             "latency_p95_seconds": round(p95, 3),
             "latency_max_seconds": round(latencies[-1], 3),
             "caveat": (
                 "Sequential, single process, no concurrency. Throughput is a "
-                "floor rather than a capability claim."
+                "floor rather than a capability claim, and is derived from "
+                "summed request latencies rather than wall clock so that it "
+                "survives a resume."
             ),
         },
         "limitations": [

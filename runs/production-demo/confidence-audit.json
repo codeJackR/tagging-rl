@@ -1,0 +1,29 @@
+{
+  "attributable_violations": 80,
+  "by_field": {
+    "fit": {
+      "unanimous": 0,
+      "unanimous_share": 0.0,
+      "violations": 2
+    },
+    "sleeve_length": {
+      "unanimous": 2,
+      "unanimous_share": 0.5,
+      "violations": 4
+    },
+    "waistline": {
+      "unanimous": 13,
+      "unanimous_share": 0.1757,
+      "violations": 74
+    }
+  },
+  "gate_failed": 80,
+  "gate_failed_and_unanimous": 0,
+  "invisible_share_of_gate_failures": 0.0,
+  "invisible_share_of_products": 0.0,
+  "k": 5,
+  "products": 271,
+  "unanimous_share_of_violations": 0.1875,
+  "unanimous_violations": 15,
+  "version": "production-confidence-audit-v1"
+}

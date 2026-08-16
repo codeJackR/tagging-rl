@@ -459,3 +459,145 @@ which doors are still locked and why, rather than being declared finished.
 **Limitation:** the tests verify that the post's numbers match the artifacts;
 they cannot verify that the artifacts are correct, and no test can check whether
 a sentence is a fair characterisation of what a number means.
+
+## 9. W3.4 — five numbers, and the two defects that had to be fixed to trust them
+
+The corpus run is done: 300 products, five self-consistency passes, 1,500
+requests, $6.18, no failed requests. The five numbers the plan asked for, each
+with the caveat that makes it readable.
+
+| number | value | what it does not mean |
+|---|---:|---|
+| gate pass rate | **67.3%** | not accuracy; the gate is schema, vocabulary and cross-field rules, with no reference to a gold label |
+| escalation rate | **26.2% of cells** | at threshold 1.0, the most aggressive setting; the same run touches **96.7% of products**, so "26%" is not "26% of the work" |
+| cost per SKU | **$0.0206** | that is all five passes; a single tagging pass is **$0.0041**, and confidence costs 4x more than the answer |
+| throughput | **4.3 products/min** | sequential, one process, no concurrency; a floor, not a capability. 21.5 requests/min is the same number per request |
+| p95 latency | **3.90 s** | p50 is 2.83 s and max is 6.38 s, over 1,500 requests |
+
+Underneath: schema validity 97.7%, vocabulary validity 97.7%, 92 rule
+violations across 300 records.
+
+### The escalation rate has two denominators and they tell opposite stories
+
+26.2% of cells sounds like a quarter of the work. 96.7% of products sounds like
+all of it. Both are the same measurement at threshold 1.0, and the threshold
+curve is what makes the choice legible:
+
+| threshold | cells escalated | products touched |
+|---:|---:|---:|
+| 0.6 | 3.0% | 32.0% |
+| 0.8 | 15.5% | 86.0% |
+| 1.0 | 26.2% | 96.7% |
+
+With fifteen fields per product, requiring unanimity on all of them means
+almost every product has *something* to look at. If the review interface is
+per product, threshold 1.0 is barely better than reviewing everything, and 0.6
+is the only setting that leaves most products untouched.
+
+Worst attributes are `details` (62.0%) and `waistline` (57.3%), not the
+`closure` (35.3%) that a reader of the raw artifact would have named. That is a
+defect, and it is the first of the two below.
+
+### Defect 1: the worst-first ranking did not survive being written down
+
+`EscalationReport.summary()` sorts attributes worst-first, deliberately, with a
+comment saying why. The report is then written with `sort_keys=True`, and JSON
+objects are unordered by spec regardless, so the artifact came out
+alphabetically. `closure` appears first, and a reader takes the first entry for
+the worst one when it is fifth.
+
+The fix publishes the ranking as an explicit list rather than relying on dict
+order, with a test that round-trips it through the writer.
+
+### Defect 2: throughput was reported as 1,416,888 products per minute
+
+Throughput was `len(items) / wall_seconds`. Every pass on this run resumed from
+disk, so wall clock measured five file reads, and the number came out six orders
+of magnitude too high.
+
+It now derives from summed request latencies, which were recorded when the
+requests actually ran and stay true across a resume, and the report records
+which passes were resumed so a reader can tell whether `wall_seconds` means
+anything. The test asserts the number is under 600 per minute, which is the
+bound one sequential process against a hosted API cannot exceed.
+
+**This is the second time a resume path produced a wrong number rather than a
+crash.** A crash would have been better.
+
+### What the run found about constrained decoding
+
+**Schema validity is 97.7%, not 100%.** All seven invalid records hit exactly
+`max_tokens = 400` with empty content. They are truncations, not model errors.
+Constrained decoding guarantees the output matches the grammar *only if
+generation runs to completion*; a token cutoff yields a truncated document that
+satisfies no schema, and nothing in the API surface says so.
+
+The retry did not fire on any of them (`attempts: 1`), because `tag_one` retries
+when the provider returns `None` and this returned an empty string. An empty
+string is not an answer, but the code treats it as one.
+
+Both are recorded rather than fixed. Fixing means re-running to keep the report
+consistent with the code that produced it, and $6.18 of the $10 W3 ceiling is
+already spent. Named for W4: **raise `max_tokens`, record `finish_reason`, and
+retry a truncation as a budget failure rather than scoring it as a model
+error.**
+
+### One rule is carrying the whole failure rate
+
+Of 92 rule violations, **79 are `auto:applies_to:waistline`** and 78 of those
+are the same mistake: the model emits the string `"none"` for a top, shirt or
+sweater where the pack requires JSON `null`.
+
+The convention is not ambiguous. In the training data, when `garment_category`
+is outside waistline's `applies_to` set, the label is `not_applicable` with
+`null` in **2,783 of 2,784 rows (99.96%)**, and the string `"none"` is never
+used that way. But `none` is a legal member of the waistline enum, because a
+dress genuinely can have no waistline, and the schema offers it on every
+product. Applicability is a cross-field constraint; a JSON Schema enum is
+per-field. So the schema cannot express the rule and actively supplies the
+tempting wrong answer.
+
+The same pathology shows up in `details`, where the model spells absence four
+different ways: `["unknown"]`, `["none"]`, `null` and `[]`.
+
+For contrast, the SFT model decoding **unconstrained** over 300 frozen products
+produced 12 rule violations total, and `auto:applies_to:waistline` does not
+appear among them. Fine-tuning learned the convention from data; the grammar
+cannot represent it. Not a like-for-like comparison, different models and
+different products, but the direction is the interesting part: **the constrained
+path is worse on exactly the constraint the grammar does not cover.**
+
+### Agreement is not correctness, and now there is a number for it
+
+W3.3 shipped a caveat saying five samples can agree on the same wrong answer.
+This run measured it. `production/confidence_audit.py` crosses agreement against
+the gate:
+
+- **15 of 80 attributable violating cells (18.75%) are unanimous across all five
+  samples.** For `waistline` alone it is 13 of 74. Those cells never enter the
+  review queue at any threshold, including 1.0.
+- The product-level version of the same question returns **zero**: no product
+  fails the gate while every one of its fifteen cells is unanimous.
+
+The second number is nearly vacuous and it would have been the flattering one to
+quote. With fifteen fields, 290 of 300 products have at least one disagreeing
+cell, so a product-level blind spot is almost impossible to observe whether or
+not one exists. The cell is the honest unit because `write_queue` emits one row
+per flagged **cell**: a reviewer opens flagged cells, not whole records, so a
+unanimous wrong cell stays unseen even inside a product that was flagged for
+something else entirely.
+
+**Direct finding:** the pipeline tags at $0.0041 per SKU and $0.0206 with
+confidence, 4.3 products/min sequential, p95 3.90 s, 67.3% gate pass, 26.2% of
+cells escalated at threshold 1.0 but 96.7% of products touched; one applicability
+rule accounts for 79 of 92 violations, and 18.75% of attributable violating cells
+are unanimously agreed and therefore unreviewable. **Intuition:** constrained
+decoding and self-consistency each guarantee something real and neither
+guarantees correctness. The grammar guarantees membership, not applicability;
+agreement guarantees stability, not truth. The verifier is the only one of the
+three that measures the thing the catalog cares about, which is the entire
+argument for it serving both consumers. **Limitation:** one model, one pack, 300
+products already seen during SFT; agreement is measured over k=5, so 15 is a
+count of what five samples missed rather than a bound on what the model gets
+wrong; and the truncation and retry defects above are documented, not fixed, so
+the 97.7% schema validity figure describes a pipeline with a known bug in it.

@@ -1,0 +1,196 @@
+{
+  "cost": {
+    "caveat": "From API-reported token usage, including retries. Cost per SKU covers all 5 self-consistency passes; the single-pass figure is what tagging alone would cost without confidence measurement.",
+    "cost_per_sku_single_pass_usd": 0.004117,
+    "cost_per_sku_usd": 0.020586,
+    "requests": 1500,
+    "total_usd": 6.1759
+  },
+  "escalation": {
+    "cells": 4500,
+    "escalated_cells": 1179,
+    "escalation_rate": 0.262,
+    "k": 5,
+    "per_attribute": {
+      "closure": {
+        "cells": 300,
+        "escalated": 106,
+        "escalation_rate": 0.3533
+      },
+      "collar_type": {
+        "cells": 300,
+        "escalated": 62,
+        "escalation_rate": 0.2067
+      },
+      "colour_primary": {
+        "cells": 300,
+        "escalated": 38,
+        "escalation_rate": 0.1267
+      },
+      "details": {
+        "cells": 300,
+        "escalated": 186,
+        "escalation_rate": 0.62
+      },
+      "fit": {
+        "cells": 300,
+        "escalated": 40,
+        "escalation_rate": 0.1333
+      },
+      "garment_category": {
+        "cells": 300,
+        "escalated": 8,
+        "escalation_rate": 0.0267
+      },
+      "garment_length": {
+        "cells": 300,
+        "escalated": 38,
+        "escalation_rate": 0.1267
+      },
+      "material": {
+        "cells": 300,
+        "escalated": 46,
+        "escalation_rate": 0.1533
+      },
+      "neckline": {
+        "cells": 300,
+        "escalated": 33,
+        "escalation_rate": 0.11
+      },
+      "occasion": {
+        "cells": 300,
+        "escalated": 135,
+        "escalation_rate": 0.45
+      },
+      "pattern": {
+        "cells": 300,
+        "escalated": 133,
+        "escalation_rate": 0.4433
+      },
+      "silhouette": {
+        "cells": 300,
+        "escalated": 54,
+        "escalation_rate": 0.18
+      },
+      "sleeve_length": {
+        "cells": 300,
+        "escalated": 38,
+        "escalation_rate": 0.1267
+      },
+      "sleeve_style": {
+        "cells": 300,
+        "escalated": 90,
+        "escalation_rate": 0.3
+      },
+      "waistline": {
+        "cells": 300,
+        "escalated": 172,
+        "escalation_rate": 0.5733
+      }
+    },
+    "per_attribute_worst_first": [
+      "details",
+      "waistline",
+      "occasion",
+      "pattern",
+      "closure",
+      "sleeve_style",
+      "collar_type",
+      "silhouette",
+      "material",
+      "fit",
+      "garment_length",
+      "sleeve_length",
+      "colour_primary",
+      "neckline",
+      "garment_category"
+    ],
+    "product_touch_rate": 0.9667,
+    "products": 300,
+    "products_with_any_escalation": 290,
+    "threshold": 1.0,
+    "version": "production-escalation-v1"
+  },
+  "escalation_threshold_curve": [
+    {
+      "cells": 4500,
+      "escalated_cells": 0,
+      "escalation_rate": 0.0,
+      "product_touch_rate": 0.0,
+      "threshold": 0.2
+    },
+    {
+      "cells": 4500,
+      "escalated_cells": 2,
+      "escalation_rate": 0.0004,
+      "product_touch_rate": 0.0033,
+      "threshold": 0.4
+    },
+    {
+      "cells": 4500,
+      "escalated_cells": 137,
+      "escalation_rate": 0.0304,
+      "product_touch_rate": 0.32,
+      "threshold": 0.6
+    },
+    {
+      "cells": 4500,
+      "escalated_cells": 696,
+      "escalation_rate": 0.1547,
+      "product_touch_rate": 0.86,
+      "threshold": 0.8
+    },
+    {
+      "cells": 4500,
+      "escalated_cells": 1179,
+      "escalation_rate": 0.262,
+      "product_touch_rate": 0.9667,
+      "threshold": 1.0
+    }
+  ],
+  "generated_at_utc": "2026-08-16T10:31:50Z",
+  "inputs": {
+    "k": 5,
+    "model": "provider default",
+    "pack": "vastraa_taste_v1",
+    "price_per_mtok": {
+      "completion": 10.0,
+      "prompt": 1.25
+    },
+    "products": 300,
+    "source": "data/train_weak.jsonl",
+    "threshold": 1.0
+  },
+  "limitations": [
+    "Products come from the corpus already collected. The planned Shopify sources were unavailable: 16 of 20 candidate stores prohibit the access, none approve it.",
+    "These products were seen during SFT training, so any comparison with their stored labels measures agreement with weak labels, not production accuracy.",
+    "Agreement is not correctness: five samples can agree on the same wrong answer, so the escalation rate bounds review labour rather than error."
+  ],
+  "performance": {
+    "caveat": "Sequential, single process, no concurrency. Throughput is a floor rather than a capability claim, and is derived from summed request latencies rather than wall clock so that it survives a resume.",
+    "latency_max_seconds": 6.382,
+    "latency_p50_seconds": 2.831,
+    "latency_p95_seconds": 3.902,
+    "products_per_minute": 4.3,
+    "request_seconds": 4189.5,
+    "requests_per_minute": 21.48,
+    "resumed_passes": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "wall_seconds": 0.0
+  },
+  "quality_first_pass": {
+    "caveat": "Gate pass rate is not accuracy against ground truth. It is the share of records that are structurally valid, in-vocabulary and rule-consistent. A confidently wrong record passes the gate.",
+    "failed": 0,
+    "gate_pass_rate": 0.6733,
+    "rule_violations": 92,
+    "schema_validity": 0.9767,
+    "scored": 300,
+    "vocab_validity": 0.9767
+  },
+  "version": "production-run-report-v1"
+}

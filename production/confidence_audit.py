@@ -14,11 +14,19 @@ signals the pipeline already produces:
   W1 review round used), and
 - **the gate**, from the verifier, which is the same code the RL reward calls.
 
-The number it exists to produce is `gate_failed_and_unanimous`: records the
-verifier rejects while every one of their cells is unanimous across all k
-samples. No confidence threshold surfaces those, including threshold 1.0, which
-is already the most aggressive setting available. They are the records that
-would ship wrong and unreviewed.
+The number it exists to produce is `unanimous_violations`: **cells** the
+verifier rejects while all k samples agree on them. No confidence threshold
+surfaces those, including 1.0, which is already the most aggressive setting
+available. They ship wrong and unreviewed.
+
+The unit is the cell rather than the record, and that choice is load-bearing.
+`production.escalation.write_queue` emits one CSV row per flagged cell, so a
+reviewer sees flagged cells, not whole products. A product-level version of this
+measurement is also computed (`gate_failed_and_unanimous`) but is close to
+vacuous on this pack: with fifteen fields, 290 of 300 products have at least one
+non-unanimous cell, so nearly every product is touched by something and a
+product-level blind spot is almost impossible to observe. Reporting only that
+number would understate the problem to zero.
 
 This is not a repair path. Nothing here changes an answer; it only counts what
 one signal misses and the other catches. The fix, if one is wanted, belongs
@@ -58,16 +66,36 @@ class AuditReport:
 
     @property
     def invisible_share(self) -> float:
-        """Share of gate failures no threshold can surface."""
+        """Share of gate failures no threshold can surface, by product."""
         return (
             self.gate_failed_and_unanimous / self.gate_failed if self.gate_failed else 0.0
         )
+
+    @property
+    def attributable_violations(self) -> int:
+        return sum(stats["violations"] for stats in self.by_field.values())
+
+    @property
+    def unanimous_violations(self) -> int:
+        """The headline: violating cells every sample agreed on."""
+        return sum(stats["unanimous"] for stats in self.by_field.values())
 
     def summary(self) -> dict[str, Any]:
         return {
             "version": VERSION,
             "k": self.k,
             "products": self.products,
+            # Cell level: the unit the review queue actually uses.
+            "attributable_violations": self.attributable_violations,
+            "unanimous_violations": self.unanimous_violations,
+            "unanimous_share_of_violations": (
+                round(self.unanimous_violations / self.attributable_violations, 4)
+                if self.attributable_violations
+                else 0.0
+            ),
+            # Product level: reported for completeness, but see the module
+            # docstring. On a pack this wide it is nearly always zero whether or
+            # not a blind spot exists.
             "gate_failed": self.gate_failed,
             "gate_failed_and_unanimous": self.gate_failed_and_unanimous,
             "invisible_share_of_gate_failures": round(self.invisible_share, 4),

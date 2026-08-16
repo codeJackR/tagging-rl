@@ -5,9 +5,12 @@ unreviewed remainder is correct, and these tests pin the distinction: a record
 can be unanimous across every sample and still be rejected by the verifier,
 because agreement measures stability and the gate measures correctness.
 
-The load-bearing test is `test_a_unanimous_failure_is_counted_as_invisible`.
-If that ever passes vacuously, the run report's escalation number goes back to
-implying something it cannot support.
+The load-bearing test is `test_the_headline_counts_cells_not_products`. The
+review queue is a queue of cells, so a violating cell every sample agreed on is
+invisible to a reviewer even when the product around it is flagged for some
+unrelated disagreement. Measuring this per product instead reports zero on this
+pack whether or not the blind spot exists, which is why both units are kept and
+only the cell-level one is quoted as the finding.
 """
 
 from __future__ import annotations
@@ -213,3 +216,39 @@ def test_load_run_folds_passes_by_sku_and_takes_verdicts_from_the_first(tmp_path
     assert len(per_product) == 1 and len(per_product[0][1]) == K
     assert gate["a"]["gate_passed"] is False
     assert gate["a"]["rule_violations"] == ["auto:applies_to:waistline"]
+
+
+# --- the cell is the unit, because the queue is a cell queue -------------------
+
+
+def test_the_headline_counts_cells_not_products(pack):
+    """`write_queue` emits one row per flagged cell, so a reviewer sees cells.
+    A violating cell every sample agreed on never becomes a row."""
+    samples = [record(garment_category="top", waistline="none", material="cotton")] * 4
+    samples.append(record(garment_category="top", waistline="none", material="linen"))
+    report = audit(
+        [("sku-1", samples)],
+        {"sku-1": failing("auto:applies_to:waistline")},
+        pack=pack, k=K,
+    )
+    summary = report.summary()
+    # The product is reviewable, because `material` disagrees...
+    assert summary["gate_failed_and_unanimous"] == 0
+    # ...but the cell that actually broke the rule is not, and that is the
+    # cell a reviewer would have had to open.
+    assert summary["unanimous_violations"] == 1
+    assert summary["unanimous_share_of_violations"] == 1.0
+
+
+def test_a_violating_cell_that_disagrees_is_not_counted_as_invisible(pack):
+    samples = [record(garment_category="top", waistline="none")] * 4
+    samples.append(record(garment_category="top", waistline=None))
+    report = audit(
+        [("sku-1", samples)],
+        {"sku-1": failing("auto:applies_to:waistline")},
+        pack=pack, k=K,
+    )
+    summary = report.summary()
+    assert summary["attributable_violations"] == 1
+    assert summary["unanimous_violations"] == 0
+    assert summary["unanimous_share_of_violations"] == 0.0

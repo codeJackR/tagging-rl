@@ -155,3 +155,47 @@ def test_an_absent_pass_is_simply_run(tmp_path):
     from production.run_report import load_pass
 
     assert load_pass(tmp_path / "nope.jsonl", expected=3) is None
+
+
+# --- throughput must survive a resume ----------------------------------------
+
+
+def test_throughput_is_derived_from_request_time_not_wall_clock():
+    """A resumed pass reloads instantly, so wall clock measures file reads
+    rather than tagging. Computing throughput from it reported 1,416,888
+    products per minute on a run whose real rate was under 25."""
+    report_path = ROOT / "runs" / "production-demo" / "report.json"
+    if not report_path.exists():
+        pytest.skip("no production report committed yet")
+    performance = json.loads(report_path.read_text())["performance"]
+
+    products = json.loads(report_path.read_text())["escalation"]["products"]
+    expected = round(products / (performance["request_seconds"] / 60), 2)
+    assert performance["products_per_minute"] == expected
+
+    # The bound that would have caught the original defect. One sequential
+    # process against a hosted API cannot exceed a request per second per
+    # product, and p50 latency is seconds.
+    assert performance["products_per_minute"] < 600, "throughput is not physical"
+
+
+def test_the_report_records_which_passes_were_resumed():
+    """Without this the reader cannot tell whether wall_seconds means anything."""
+    report_path = ROOT / "runs" / "production-demo" / "report.json"
+    if not report_path.exists():
+        pytest.skip("no production report committed yet")
+    performance = json.loads(report_path.read_text())["performance"]
+    assert "resumed_passes" in performance
+    assert isinstance(performance["resumed_passes"], list)
+    if performance["resumed_passes"]:
+        assert performance["request_seconds"] > performance["wall_seconds"], (
+            "a resumed run must show more request time than wall time"
+        )
+
+
+def test_the_throughput_caveat_says_where_the_number_came_from():
+    report_path = ROOT / "runs" / "production-demo" / "report.json"
+    if not report_path.exists():
+        pytest.skip("no production report committed yet")
+    caveat = json.loads(report_path.read_text())["performance"]["caveat"]
+    assert "wall clock" in caveat and "resume" in caveat
