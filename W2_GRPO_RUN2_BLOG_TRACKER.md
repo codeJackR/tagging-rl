@@ -7239,3 +7239,128 @@ Intuition: the exam got easier faster than the student got better, until most
 of the class was tying at full marks and the teacher could no longer tell anyone
 apart. Limitation: one run, one seed, and the block boundaries coincide with
 checkpoint pauses, so block effects and time effects are not separable here.
+
+## 119. The control arm exists: three attempts, three real defects, one clean result
+
+Arm A completed on the fourth dispatch and published its bundle atomically to
+`runs/grpo-run2-arm-a-original`. The corrected control now exists.
+
+| evidence | value |
+|---|---:|
+| optimizer steps | 300 / 300 |
+| rollout records | 2,400 |
+| phase records | 300 |
+| checkpoints saved and evaluated | 100, 200, 300 |
+| wall time | 9,011.9 s (2 h 30 m) |
+| zero-variance groups | **125 / 300 (41.7%)** |
+
+The three failed attempts were not wasted motion. Each exposed a defect that
+would otherwise have surfaced later and cost more:
+
+| attempt | died at | defect |
+|---|---|---|
+| 1 | step 100 | a path contract two components could not both satisfy |
+| 2 | step 200 | a quality policy that disqualified its own control |
+| 3 | publication | a validator reading an interface only the test fake had |
+
+Only the third was avoidable by discipline already available at the time. The
+first two were conflicts that no unit test could reach, because both live in
+code paths that only execute when a real checkpoint is written.
+
+### The quality trajectory the amended policy allowed
+
+| step | macro-F1 greedy | rule-violation rate | abortable breaches |
+|---|---:|---:|---:|
+| SFT baseline | 0.8537 | 0.0278 | — |
+| 100 | 0.8577 | 0.0667 | 0 |
+| 200 | 0.8616 | 0.0556 | 0 |
+| 300 | 0.8618 | 0.0583 | 0 |
+
+Every checkpoint reported `warn`: compliance breached, quality never did.
+Under the original policy this run would have been killed twice. Its macro-F1
+finished **above** the model it started from, while its rule-violation rate sat
+at roughly twice baseline throughout without trending anywhere in particular.
+
+That combination is the sharpest statement yet of what the original reward
+actually does. It is not degrading the model's ability to choose tags. It is
+degrading the model's respect for the constraints between them, and it does so
+almost immediately and then holds.
+
+## 120. Three numbers. That is the entire vocabulary of the original reward.
+
+The published rollouts allow a measurement the earlier runs could only estimate.
+Across **all 2,400 completions on 300 products**, the weighted reward took
+exactly three distinct values:
+
+| weighted total | completions | share |
+|---:|---:|---:|
+| 1.0 | 100 | 4.2% |
+| 2.0 | 754 | 31.4% |
+| 4.0 | 1,546 | 64.4% |
+
+Not three per group. Three in the entire run. The reward ladder nominally offers
+`0 → 1 → 2 → 4`, and the bottom rung was never once used: the SFT policy never
+emitted output that failed schema validity outright.
+
+Distribution across the eight-completion groups follows directly:
+
+| distinct values in a group | groups | consequence |
+|---:|---:|---|
+| 1 | **125** | zero variance, no gradient |
+| 2 | 156 | a single binary split |
+| 3 | 19 | genuine ranking |
+
+Only **19 of 300 groups**, 6.3%, could rank their completions more finely than
+"these are better than those". And **1,398 of 2,400 advantages were nonzero**,
+58.2%: two completions in five contributed nothing to any update.
+
+### Why this is the mechanism and not merely a symptom
+
+Section 118 recorded that the dead-step rate rose 36 → 43 → 46 as the policy
+improved. These distributions explain why without appeal to anything subtle.
+With 64.4% of completions already scoring the maximum, a policy that improves
+pushes more of each group onto that same top rung. There is no rung above it and
+no gradation within it, so improvement converts directly into ties.
+
+A binary whole-record reward has a built-in ceiling on its own usefulness, and
+the policy approaches that ceiling precisely by succeeding.
+
+### The cost profile confirms where the money goes
+
+| phase | total | share of measured train time |
+|---|---:|---:|
+| generation | 1,245.4 s | 91.4% |
+| backward | 59.7 s | 4.4% |
+| forward / loss | 50.6 s | 3.7% |
+| optimizer | 6.8 s | 0.5% |
+| reward | 0.6 s | 0.0% |
+
+Computing the reward costs **0.6 seconds across the entire run**. The reward is
+simultaneously the cheapest component to evaluate and the one that determines
+whether any of the other 1,362 seconds accomplish anything. Optimising the
+verifier would be pointless; optimising what it *measures* is the whole game.
+
+### The prediction for Arm B, now precise
+
+Candidate UA scores each of fifteen fields separately and normalises, so it does
+not have three values available, it has effectively a continuum. Two claims
+follow, both falsifiable from Arm B's own bundle:
+
+1. **Fewer dead groups than 125.** The offline forecast is 13.5% against the
+   original reward's 48.5% on the same rollouts, a 3.6x reduction.
+2. **A flatter curve.** Arm A climbed 36 → 43 → 46 because improvement piles
+   completions onto one rung. UA should keep resolving distinctions as the
+   policy improves, so its dead-step count should not climb the same way.
+
+The second claim is the more informative one. A lower starting rate could come
+from the pool; a flatter trajectory can only come from the reward continuing to
+discriminate as the model gets better. If UA also climbs steeply, densification
+bought a one-time improvement rather than a durable one, and that is worth
+knowing before any conclusion about GRPO for this task.
+
+Direct finding: the original reward emitted three distinct values across 2,400
+completions, only 19 of 300 groups could rank beyond a binary split, and 42% of
+advantages were zero. Intuition: a ruler marked only in metres, being used to
+measure how much someone grew this year. Limitation: this is one arm, one seed,
+one pool; the comparison that matters is Arm B on the identical 300 products,
+and it has not run yet.
