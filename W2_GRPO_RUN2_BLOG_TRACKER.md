@@ -7677,3 +7677,97 @@ the endpoint metrics come from the checkpoint monitor's 360 dev products, not
 from a frozen held-out evaluation, so they are a monitoring signal rather than
 the pre-registered result; and a third of completions still saturate at the
 maximum, so the mechanism that killed run 1 is reduced, not removed.
+
+## 125. The pre-registered endpoint, finally measured, and it splits the verdict
+
+Sections 121 to 124 were written on the checkpoint monitor's 360 dev products,
+because that is the only data the run produced. Section 124 flagged the gap in
+its own limitation: those are "a monitoring signal rather than the pre-registered
+result". Neither arm had ever been scored on the frozen 300.
+
+Both now have been, using the locked generation settings the SFT baseline and
+run 1 used: greedy, batch 8, 640 input tokens, 170 new, `do_sample: false`. The
+eval input hashed to its recorded value, and both adapters hashed to what their
+checkpoint-300 monitors scored.
+
+| frozen 300, greedy | SFT baseline | Arm A (1:1:2) | Arm B (UA) |
+|---|---:|---:|---:|
+| macro-F1 | **0.6411** | 0.6247 | 0.6315 |
+| selective macro-F1 | 0.7170 | 0.6640 | **0.7127** |
+| coverage | 0.9430 | 0.9699 | 0.9347 |
+| schema validity | 1.0000 | 1.0000 | 1.0000 |
+| vocabulary validity | 0.8867 | 0.8833 | 0.8833 |
+| rule violations | 12 | **33** | **8** |
+| ... as a multiple of SFT | 1.00x | 2.75x | **0.67x** |
+
+Paired nonparametric row bootstrap, 5,000 replicates, 95% percentile intervals:
+
+| comparison | metric | delta | 95% CI | verdict |
+|---|---|---:|---|---|
+| A − SFT | macro-F1 | −0.0164 | [−0.0287, −0.0040] | **A worse** |
+| A − SFT | selective F1 | −0.0530 | [−0.0667, −0.0298] | **A worse** |
+| A − SFT | coverage | +0.0269 | [+0.0205, +0.0334] | A answers more |
+| B − SFT | macro-F1 | −0.0097 | [−0.0170, −0.0020] | **B worse** |
+| B − SFT | selective F1 | −0.0043 | [−0.0129, +0.0066] | **no difference** |
+| B − SFT | coverage | −0.0083 | [−0.0133, −0.0033] | B answers less |
+| **B − A** | macro-F1 | +0.0067 | [−0.0033, +0.0170] | **tied** |
+| **B − A** | selective F1 | **+0.0487** | **[+0.0276, +0.0624]** | **B better** |
+| **B − A** | coverage | −0.0352 | [−0.0421, −0.0288] | B answers less |
+
+### The causal result replicates. The progress claim does not.
+
+These are two different claims and the frozen set treats them differently.
+
+**A against B replicates, and is the comparison the experiment was built to
+make.** Same macro-F1 (CI spans zero), Arm B decisively better on what it
+chooses to answer (+0.0487, interval clear of zero), answering less often, and
+breaking a quarter as many rules: 8 against 33. Every direction section 122
+described from the dev monitor holds on the pre-registered set, and the rule
+gap is *larger* here than there, 0.67x against 2.75x where the monitor said
+0.80x against 2.10x.
+
+**RL against no-RL inverts.** On the monitor, Arm B at checkpoint 300 read
+0.8645 against a 0.8537 baseline and looked like a small win. On the frozen 300
+it is **0.6315 against 0.6411, and the interval excludes zero.** Arm B is
+significantly *worse* than the SFT model it started from on macro-F1. So is Arm
+A, by more.
+
+The mechanism is visible in the same rows. Arm B's selective F1 is statistically
+indistinguishable from SFT's, so it is not worse at answering. It is worse at
+macro-F1 because it answers less: coverage 0.9347 against 0.9430. The UA reward
+made abstention free, the policy took the offer, and macro-F1 charges for
+abstention.
+
+### One claim from the monitor that does not survive at all
+
+Sections 122 and 124 reported Arm B's vocabulary validity as a clear win, 0.9583
+against Arm A's 0.9444 and a 0.9417 baseline. On the frozen 300 **both arms sit
+at 0.8833 and the SFT model at 0.8867**: no separation, and all three slightly
+below the monitor's numbers. That win was a property of the dev set, not of the
+reward. It is withdrawn.
+
+### What this settles elsewhere
+
+The W6 plan picks its distillation teacher by a rule: the W2 GRPO checkpoint
+**if it beat SFT**, else a LoRA-SFT Qwen2.5-7B. Neither arm beat SFT, both
+significantly below on the only set that counts. **The teacher is the 7B**, which
+is the branch that costs a second training run the plan budgets loosely, on a
+24GB card sized for neither of the plan's configurations.
+
+W2's own stop condition was "GRPO beats SFT on macro-F1, **or you can explain
+why it doesn't**". This is the explanation, and it took the pre-registered set
+to get it: GRPO under either reward traded coverage for something else, and
+macro-F1 prices coverage.
+
+**Direct finding:** on the frozen 300, Arm B ties Arm A on macro-F1, beats it
+decisively on selective F1 (+0.0487, CI [+0.0276, +0.0624]) and breaks 8 rules
+against 33; both arms are significantly *below* the SFT baseline on macro-F1,
+and Arm B's dev-set vocabulary-validity advantage disappears entirely.
+**Intuition:** the experiment answered its own question correctly and answered
+the more interesting question wrongly, because the set it was watched on was not
+the set it was meant to be judged on, and nobody noticed until the two were put
+side by side. A monitoring signal became the headline because it arrived four
+sections earlier. **Limitation:** one seed per arm; the frozen 300's labels are
+weak and its own reliability artifact puts the label source near 72%, so these
+are deltas under a fixed evaluator rather than accuracy; and this is a third
+scoring use of a set that was frozen to be scored sparingly.

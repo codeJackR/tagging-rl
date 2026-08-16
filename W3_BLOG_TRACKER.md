@@ -849,3 +849,42 @@ became the result because it arrived first. **Limitation:** the tie on the dev
 monitor is 360 products and one seed, and a frozen-300 score could fall either
 way; the VRAM concern is arithmetic rather than a failed smoke run, and the
 plan's own smoke step is the thing that would settle it.
+
+## 13. The teacher question from section 12 is answered, and it is the expensive branch
+
+Section 12 recorded that W6's teacher rule was undecidable, because no run-2 arm
+had ever been scored on the frozen 300. Both arms have now been scored, and the
+result is in
+[`W2_GRPO_RUN2_BLOG_TRACKER.md`](W2_GRPO_RUN2_BLOG_TRACKER.md) section 125.
+
+| frozen 300, macro-F1 | value | vs SFT | 95% CI |
+|---|---:|---:|---|
+| SFT baseline | 0.6411 | - | - |
+| Arm A (original reward) | 0.6247 | −0.0164 | [−0.0287, −0.0040] |
+| Arm B (candidate UA) | 0.6315 | −0.0097 | [−0.0170, −0.0020] |
+
+**Neither arm beat SFT, and both intervals exclude zero.** The plan's rule
+therefore resolves to its `else`: the teacher is a LoRA-SFT Qwen2.5-7B-Instruct
+trained on the 3,600 weak rows, not a checkpoint already in hand.
+
+So the cost estimate in section 12 lands on the wrong side of its coin flip. W6
+now needs a 7B trained before the distillation it was budgeted for, and held
+in-process next to a 1.5B student and its optimizer on a 24GB card that is below
+both configurations the plan sizes. The plan's 50-step smoke run stops being a
+formality and becomes the first thing the week should do.
+
+There is a consolation the section-12 estimate did not anticipate. The plan's
+teacher gate is *"teacher beats the student baseline on the frozen eval by a
+margin worth transferring"*, and the frozen numbers make that gate cheap to
+apply: the student baseline is 0.6411, and that number now sits alongside two
+GRPO arms measured identically. If the 7B does not clear it, the plan's own
+advice is to fix the teacher before touching `GKDTrainer`, and the fixing can be
+decided in one scoring run rather than after a week of distillation.
+
+**Direct finding:** the frozen-300 scores resolve W6's teacher to the 7B branch,
+because both GRPO arms are significantly below the SFT baseline on macro-F1.
+**Intuition:** the cheap version of W6 depended on a number nobody had measured,
+and measuring it removed the cheap version. **Limitation:** this decides the
+teacher under the plan's stated rule only; a different rule, for instance
+picking the teacher on rule compliance where Arm B beats SFT 8 to 12, would
+choose differently, and nothing here argues the plan's rule is the right one.
