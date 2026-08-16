@@ -272,14 +272,36 @@ class OpenAIProvider:
 
     def complete(self, body: dict) -> tuple[str | None, str | None]:
         """One synchronous request. Returns (text, error) — never raises."""
+        text, error, _usage = self.complete_with_usage(body)
+        return text, error
+
+    def complete_with_usage(
+        self, body: dict
+    ) -> tuple[str | None, str | None, dict[str, int]]:
+        """One synchronous request, also returning the API's reported usage.
+
+        Cost per SKU has to come from token counts the API reports, not from an
+        estimate. Earlier in this project a cost figure derived from a wrong
+        scaling factor had to be corrected after it was stated; the API returns
+        the real numbers and there is no reason to guess.
+
+        Usage is empty rather than absent on failure, so a caller accumulating
+        cost never has to special-case an error path.
+        """
         try:
             r = self._client.chat.completions.create(**body)
         except Exception as exc:  # noqa: BLE001
-            return None, f"{type(exc).__name__}: {str(exc)[:100]}"
+            return None, f"{type(exc).__name__}: {str(exc)[:100]}", {}
+        usage = getattr(r, "usage", None)
+        counts = {
+            "prompt_tokens": int(getattr(usage, "prompt_tokens", 0) or 0),
+            "completion_tokens": int(getattr(usage, "completion_tokens", 0) or 0),
+            "total_tokens": int(getattr(usage, "total_tokens", 0) or 0),
+        }
         m = r.choices[0].message
         if m.refusal:
-            return None, f"refusal: {str(m.refusal)[:80]}"
-        return m.content, None if m.content else "empty content"
+            return None, f"refusal: {str(m.refusal)[:80]}", counts
+        return m.content, None if m.content else "empty content", counts
 
     def status(self, batch_id: str) -> dict:
         import time as _t

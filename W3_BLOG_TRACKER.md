@@ -172,3 +172,79 @@ are carrying the same current. **Limitation:** equivalence is demonstrated over
 120 records from two runs of one model family on one pack. It shows the two
 consumers agree; it does not show the verifier is *correct*, which is a separate
 question the weak labels cannot answer.
+
+## 5. W3.2 — the production path inverts every decoding choice W2 made
+
+`production/tagger.py` tags products with **constrained decoding**, which is the
+exact opposite of what W2 did, for the exact opposite reason.
+
+W2 decoded unconstrained on purpose. Whether the model learns to emit valid JSON
+was the behaviour under study, and a grammar would have made that reward free
+and therefore unmeasurable. Section 120 of the Run 2 tracker records the price
+of that choice: the format-validity component scored 1.0000 on every one of
+2,400 completions, contributing nothing to any gradient.
+
+In production the reasoning inverts. Nobody benefits from a malformed record
+reaching a catalog, so the schema is enforced during generation and validity
+stops being a question. The same fact that made the reward useless makes the
+production path free of an entire failure mode.
+
+### What a grammar cannot do, and why the gate still runs
+
+A schema can guarantee the shape of a record and the membership of each enum. It
+cannot guarantee that a `solid` pattern is not also `multicolour`, because that
+is a relationship between two fields that are individually legal. Cross-field
+rules are checked after generation by the same verifier the reward function
+uses, and a test asserts exactly this case: schema valid, vocabulary valid, gate
+failed.
+
+That is the clearest statement of why the verifier is not replaceable by a
+schema, and it is worth having as an executable example rather than an argument.
+
+Schema validity is **recorded rather than assumed**, even though constrained
+decoding should make it constant. "Guaranteed by construction" is a claim about
+a vendor's implementation, and the recorded number is the one that would falsify
+it.
+
+### Cost is measured, not estimated
+
+`complete_with_usage` was added to the OpenAI provider so the API's reported
+token counts reach the caller. The existing `complete` now delegates to it, so
+no existing caller changed.
+
+Dollars and tokens are kept deliberately separate. Token counts are a
+measurement returned by the API; the price table is an *input* stated in one
+place, so a reader can substitute their own rates without re-running anything.
+Earlier in this project a cost figure computed from a wrong scaling factor was
+stated and had to be corrected; that class of error is avoided by never deriving
+a token count.
+
+**Every attempt is charged**, including retries that failed. A retry consumed
+tokens whether or not it produced an answer, and a cost-per-SKU figure that
+counts only successful calls understates what the pipeline costs to operate. A
+test pins this: three attempts must cost exactly three times one attempt.
+
+### Idempotency keyed on the question, not the request
+
+The key is a hash of product, pack name and prompt text. Same three, same key,
+so a retry is identifiable. Change the pack or the prompt and the key changes,
+because the previous answer is no longer an answer to this question: a record
+judged against a different vocabulary is a different record.
+
+### Stop condition honoured
+
+No caching, no concurrency, no persistence, no queue. Output is a JSONL file.
+The plan warned that this week's work is the comfort zone and could eat the
+week; the tagger is 250 lines and the temptation to add a worker pool was real
+and declined.
+
+**Direct finding:** the production path enforces the schema during decoding,
+applies the same verifier afterwards for what a schema cannot express, and
+reports cost from API-reported tokens with retries charged. 13 tests pass with a
+fake provider, so every retry and failure path is reachable without spending
+anything. **Intuition:** the RL run took the safety rails off to watch the model
+learn to stay on the road; production bolts them back on and measures only the
+things rails cannot prevent. **Limitation:** a fake provider cannot prove that
+constrained decoding actually yields valid JSON at the vendor, which is why
+schema validity is recorded; that number only becomes evidence on the real run
+in W3.4.
