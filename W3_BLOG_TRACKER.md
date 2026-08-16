@@ -91,3 +91,84 @@ smaller than what would feel finished. **Intuition:** the risk this week is not
 that the work is too hard, it is that it is pleasant. **Limitation:** a stop
 condition written in a plan is not a stop condition observed under pressure;
 whether it held is something the later entries will have to record honestly.
+
+---
+
+## 4. W3.1 — the second consumer exists, and it agrees
+
+`service/verifier_service.py` is the verifier's production consumer: a FastAPI
+gate with two endpoints, `POST /verify` and `GET /health`. It is 154 lines,
+imports `verify` and `verify_record`, and contains no verification logic of its
+own.
+
+The interesting part is not the service. It is the test.
+
+### The claim, made executable
+
+`test_the_two_consumers_never_disagree` takes **120 literal model outputs from
+the committed SFT and GRPO prediction files**, pushes each through both paths,
+and requires the verdicts to be identical on schema validity, vocabulary
+validity, the `ok` property, the rule-violation list and the parsed record.
+
+The reward path calls `verify` in-process. The gate path crosses HTTP, with its
+own request parsing, pack loading and response projection. Those are genuinely
+different code paths around the same core, which is exactly what makes the
+comparison worth running.
+
+Real outputs were used rather than invented fixtures deliberately. Invented
+records agree trivially, because they are written by someone who already knows
+what both sides do. The committed files contain the failures a model actually
+produced: the record that opened with prose instead of JSON, and the one that
+invented `supraprise` as a neckline. Those are the cases where a divergence
+would hide.
+
+A second test compares the gate against the **reward callables themselves**
+rather than against `verify`, because the reward functions wrap the verifier and
+a wrapper that reinterpreted the result would slip past a comparison with the
+core alone.
+
+A third test reads the service source and fails if it contains `rules.yaml`,
+`vocab.yaml`, `ValidationError` or `json.loads(`. Equivalence today does not
+prevent divergence tomorrow; that test is what makes "adds no logic of its own"
+a property rather than an intention.
+
+**All 12 tests pass.** The architecture claim has stopped being an import graph.
+
+### Three things found along the way
+
+**The design anticipated this in W1.** `verifier/__init__.py` opens with:
+
+```text
+W2 / W4-5   reward function      verify(rollout_output, pack).rule_violations
+W3          production QA gate   verify(frontier_output, pack).schema_valid
+```
+
+The docstring named this week's consumer before the reward function existed. The
+interface needed no change to accept it, which is the useful evidence: a design
+that anticipated a second consumer and then received one without modification.
+
+**Three wrong assumptions about the Pack API, caught by tests.** `pack.fields`
+is `pack.specs`, `pack.field_names` exists but `pack.fields` does not, and
+`rule_inventory` is a method rather than an attribute. All three were written
+from memory of the interface rather than from reading it, and all three failed
+immediately. This is the same class of defect that cost a full GPU run in W2 —
+asserting against an interface that was assumed rather than checked — appearing
+again within an hour of being written up. The difference is only that a CPU test
+catches it in a second.
+
+**A miscount that would have shipped a wrong number.** `rule_inventory()`
+returns `{"written": 25, "derived": 9, "total": 34}`. Summing its values gives
+68, because `total` is a key in the dict rather than something to be derived
+from it. The health endpoint briefly reported 68 rules where there are 34. The
+fix reports written and derived counts separately, which is more useful anyway:
+an auditor reading a gate's identity wants to know how much of the rule set was
+hand-authored.
+
+**Direct finding:** two independent consumers of the verifier return identical
+verdicts on 120 real model outputs, including malformed ones, and a source-level
+test prevents the service from acquiring verification logic later. **Intuition:**
+the second socket now has something plugged into it, and a meter confirms both
+are carrying the same current. **Limitation:** equivalence is demonstrated over
+120 records from two runs of one model family on one pack. It shows the two
+consumers agree; it does not show the verifier is *correct*, which is a separate
+question the weak labels cannot answer.
