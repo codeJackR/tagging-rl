@@ -324,3 +324,61 @@ survives contact with structured output. **Limitation:** agreement is not
 correctness. Five samples can agree confidently on the same wrong answer, and
 nothing here detects that; the escalation rate bounds review labour, it does not
 bound error.
+
+## 7. Constrained decoding is not free, and a two-product smoke found the bill
+
+The run report gates itself on a projected cost before spending anything. The
+projection reused W2's measured prompt budget of 600 tokens, which seemed safe:
+that figure came from tokenising the real corpus with the real tokenizer, and
+section 3 of the W2 brief makes a point of how much better that is than
+guessing.
+
+A two-product smoke, costing under a cent, measured the truth:
+
+| | prompt tokens | completion tokens | $/request |
+|---|---:|---:|---:|
+| projected from W2's budget | 600 | 170 | 0.00245 |
+| **measured against the API** | **1,214** | **220** | **0.00372** |
+
+The estimate was low by a factor of two, and the reason is structural rather
+than arithmetic. **W2 measured the prompt the model sees. The production request
+also carries the JSON schema**, because that is how constrained decoding is
+specified, and this pack's schema enumerates all 156 vocabulary values.
+
+So the grammar that makes schema validity free is itself billed, as prompt
+tokens, on every request — including every one of the k self-consistency
+repeats. Constrained decoding trades a class of failure for a line on the
+invoice, and the trade is invisible until someone looks at a usage field.
+
+At the original plan of 500 products the corrected figure is **$9.31 against a
+$10 ceiling**, which passes but leaves no headroom for retries, and retries are
+charged. The run was sized to 300 products at $5.79 instead. That is a change
+made because a measurement moved, not because a number was unwelcome, and 300
+products still yields 4,500 cells and 300 per attribute, which is ample for
+stable per-attribute escalation rates.
+
+The smoke also caught something duller and more likely: the API key lives in
+`.env`, which the shell does not export, so the provider raised on construction.
+Half a cent to discover, versus discovering it part-way through a paid run.
+
+**Direct finding:** the production prompt is 1,214 tokens against a 600-token
+projection, because the JSON schema for constrained decoding is sent on every
+request and this pack's schema carries 156 vocabulary values. **Intuition:** the
+grammar that guarantees the answer's shape has to be shipped with the question,
+every time, and it is longer than the question. **Limitation:** measured on two
+products of one pack against one vendor's structured-output implementation; a
+vendor that caches or precompiles schemas server-side would bill this
+differently, and a smaller vocabulary would shrink it.
+
+### The rule this reinforces
+
+Two token estimates in this project have now been wrong in the same direction.
+W1 estimated prompt lengths from character counts and was out by up to 2x, which
+is why W2 measured with the real tokenizer. W3 reused that measurement in a new
+context and was out by 2x again, because the context added something the
+original measurement never contained.
+
+A measurement is only valid for the thing that was measured. Carrying one across
+a boundary — from training to production, from the model's prompt to the API's
+request — needs re-measuring rather than reuse, and a two-product smoke is the
+cheapest possible way to find out.

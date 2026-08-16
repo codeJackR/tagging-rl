@@ -1,0 +1,143 @@
+{
+  "cost": {
+    "caveat": "From API-reported token usage, including retries. Cost per SKU covers all 1 self-consistency passes; the single-pass figure is what tagging alone would cost without confidence measurement.",
+    "cost_per_sku_single_pass_usd": 0.003723,
+    "cost_per_sku_usd": 0.003723,
+    "requests": 2,
+    "total_usd": 0.0074
+  },
+  "escalation": {
+    "cells": 30,
+    "escalated_cells": 0,
+    "escalation_rate": 0.0,
+    "k": 1,
+    "per_attribute": {
+      "closure": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "collar_type": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "colour_primary": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "details": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "fit": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "garment_category": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "garment_length": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "material": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "neckline": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "occasion": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "pattern": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "silhouette": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "sleeve_length": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "sleeve_style": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      },
+      "waistline": {
+        "cells": 2,
+        "escalated": 0,
+        "escalation_rate": 0.0
+      }
+    },
+    "product_touch_rate": 0.0,
+    "products": 2,
+    "products_with_any_escalation": 0,
+    "threshold": 1.0,
+    "version": "production-escalation-v1"
+  },
+  "escalation_threshold_curve": [
+    {
+      "cells": 30,
+      "escalated_cells": 0,
+      "escalation_rate": 0.0,
+      "product_touch_rate": 0.0,
+      "threshold": 1.0
+    }
+  ],
+  "generated_at_utc": "2026-08-16T09:05:13Z",
+  "inputs": {
+    "k": 1,
+    "model": "provider default",
+    "pack": "vastraa_taste_v1",
+    "price_per_mtok": {
+      "completion": 10.0,
+      "prompt": 1.25
+    },
+    "products": 2,
+    "source": "data/train_weak.jsonl",
+    "threshold": 1.0
+  },
+  "limitations": [
+    "Products come from the corpus already collected. The planned Shopify sources were unavailable: 16 of 20 candidate stores prohibit the access, none approve it.",
+    "These products were seen during SFT training, so any comparison with their stored labels measures agreement with weak labels, not production accuracy.",
+    "Agreement is not correctness: five samples can agree on the same wrong answer, so the escalation rate bounds review labour rather than error."
+  ],
+  "performance": {
+    "caveat": "Sequential, single process, no concurrency. Throughput is a floor rather than a capability claim.",
+    "latency_max_seconds": 4.68,
+    "latency_p50_seconds": 4.68,
+    "latency_p95_seconds": 4.68,
+    "products_per_minute": 16.34,
+    "requests_per_minute": 16.34,
+    "wall_seconds": 7.3
+  },
+  "quality_first_pass": {
+    "caveat": "Gate pass rate is not accuracy against ground truth. It is the share of records that are structurally valid, in-vocabulary and rule-consistent. A confidently wrong record passes the gate.",
+    "failed": 0,
+    "gate_pass_rate": 1.0,
+    "rule_violations": 0,
+    "schema_validity": 1.0,
+    "scored": 2,
+    "vocab_validity": 1.0
+  },
+  "version": "production-run-report-v1"
+}
