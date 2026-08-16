@@ -549,6 +549,18 @@ Everything below assumes the repo cloned on a CUDA box with the pinned
 environment (`uv sync`; exact versions above and in the
 [brief](../W2_BLOG_BRIEF.md)).
 
+**One thing you will not find in the repo: the corpus.** The 4,000 listings
+were collected from public Shopify endpoints, and a later terms audit found
+that 16 of the 20 stores I sampled prohibit that access and none permit it.
+Collecting it was already the marginal call; redistributing it is a stronger
+act, so the product copy stays out. What ships instead is
+[`data/eval_300/eval-labels.jsonl`](../data/eval_300/eval-labels.jsonl): every
+label, provenance record and split assignment, with the merchant prose blanked.
+Steps 0 and 3 below score against it unchanged, because scoring reads labels.
+Steps 1 and 2 need the text and will not run.
+[`data/README.md`](../data/README.md) has the file list, the hashes to confirm
+parity if you collect your own, and what else this costs a reader.
+
 ```bash
 # 0) sanity: the pack, verifier, and harness are testable offline
 uv run python -m pytest tests/ -q

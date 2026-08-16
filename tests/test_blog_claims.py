@@ -187,7 +187,10 @@ def test_the_review_count_matches_the_reliability_artifact(post):
     assert reliability["reviewed_cells"] == 78
     assert f"{reliability['reviewed_cells']}" in post
 
-    gold = [line for line in (ROOT / "data" / "eval_300" / "eval.jsonl")
+    # eval-labels.jsonl, not eval.jsonl: the merchant corpus is not
+    # redistributed (see data/README.md), and the post's claims must stay
+    # verifiable from what a public clone actually has.
+    gold = [line for line in (ROOT / "data" / "eval_300" / "eval-labels.jsonl")
             .read_text(encoding="utf-8").splitlines() if line.strip()]
     pack_fields = len(json.loads(gold[0])["labels"])
     assert len(gold) * pack_fields == 4500, "the 4,500 denominator has drifted"
@@ -250,7 +253,7 @@ def test_the_constrained_decoding_claim_recomputes():
     from verifier import load_pack
 
     pack = load_pack(ROOT / "packs" / "vastraa_taste_v1")
-    gold = read_jsonl(ROOT / "data" / "eval_300" / "eval.jsonl")
+    gold = read_jsonl(ROOT / "data" / "eval_300" / "eval-labels.jsonl")
 
     unconstrained = preds_mod.from_frontier(gold, pack)
     constrained = preds_mod.load(
