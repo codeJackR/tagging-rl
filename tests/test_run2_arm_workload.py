@@ -20,7 +20,10 @@ from training.run2_arm_workload import (
     run_arm,
     validate_training_result,
 )
-from tests.test_run2_arm_runtime_composition import (  # reuse the proven fakes
+# Plain module import, not package-qualified: tests/ has no __init__.py, so
+# `from tests.x import` only resolved by accident locally and failed on the GPU
+# host. pytest puts the test directory on sys.path for non-package test dirs.
+from test_run2_arm_runtime_composition import (  # reuse the proven fakes
     FakeCallbackBase,
     FakeConfig,
     FakeTrainer,
