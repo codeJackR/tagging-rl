@@ -136,6 +136,14 @@ to estimate them.
 **Stop condition:** schema validity is 100% by construction and per-SKU cost is
 logged from real usage. No caching layer, no parallelism beyond simple batching.
 
+> **Amended 2026-08-16, after W3.4.** "100% by construction" was falsified by
+> the corpus run: schema validity is 97.7%, and all seven failures are
+> `max_tokens` truncations rather than model errors. Constrained decoding
+> guarantees the grammar only if generation runs to completion. The stop
+> condition now reads: **schema validity is recorded from a real run, and any
+> shortfall is explained.** The implementation always assumed this; only this
+> sentence did not. See tracker section 9.
+
 ## 7. W3.3 — Confidence without logprobs, and an escalation queue
 
 **Why not logprobs.** The plan's revision 2 is explicit: generative models have
@@ -222,11 +230,16 @@ Checklist to complete:
 | 2026-08-16 | Constrained decoding in production, unconstrained in RL | opposite goals: production wants validity free, RL needs to measure whether it is learned |
 | 2026-08-16 | Confidence from self-consistency, not logprobs | plan revision 2; generative models lack calibrated confidence over structured outputs |
 | 2026-08-16 | Blog #1 prepared but not published | publication is a human decision and was excluded from this scope |
+| 2026-08-16 | Do not re-run to fix the truncation defect | $6.18 of the $10 ceiling is spent; re-running costs $6.18 more and would desync the committed report from the code |
+| 2026-08-16 | Report throughput from summed request latencies | wall clock is meaningless on a resumed run and reported 1,416,888 products/min |
 
 ## 12. Live checklist
 
-- [ ] W3.1 verifier service, two callers, equivalence test
-- [ ] W3.2 constrained-decoding production path with cost tracking
-- [ ] W3.3 self-consistency confidence and escalation queue
-- [ ] W3.4 corpus run and five-number report
-- [ ] W3.5 blog #1 pre-publication checklist
+- [x] W3.1 verifier service, two callers, equivalence test
+- [x] W3.2 constrained-decoding production path with cost tracking
+- [x] W3.3 self-consistency confidence and escalation queue
+- [x] W3.4 corpus run and five-number report
+- [x] W3.5 blog #1 pre-publication checklist
+
+Carried into W4: raise `max_tokens`, record `finish_reason`, and retry a
+truncation as a budget failure rather than scoring it as a model error.

@@ -601,3 +601,54 @@ products already seen during SFT; agreement is measured over k=5, so 15 is a
 count of what five samples missed rather than a bound on what the model gets
 wrong; and the truncation and retry defects above are documented, not fixed, so
 the 97.7% schema validity figure describes a pipeline with a known bug in it.
+
+## 10. W3 closes, and one of its own stop conditions did not survive contact
+
+All five steps are done: the verifier serves two consumers and they provably
+agree, the production path inverts every decoding choice W2 made, confidence
+comes from self-consistency with a published threshold curve, the corpus run
+produced its five numbers, and blog #1 is verified by tests and stopped one step
+short of publishing.
+
+The part worth recording is that **W3.4 falsified W3.2's stop condition.**
+
+The plan said W3.2 was done when "schema validity is 100% by construction". The
+corpus run measured 97.7%. Constrained decoding guarantees the grammar only if
+generation runs to completion, and seven records hit the `max_tokens` ceiling
+and came back empty.
+
+The implementation was never confused about this. `TagResult.schema_valid`
+carries a comment saying it is "recorded rather than assumed, because
+'guaranteed by construction' is a claim about a vendor's implementation and this
+is the number that would falsify it", and section 5 of this tracker said the
+number "only becomes evidence on the real run in W3.4". The code was built to
+catch exactly this and it did.
+
+The plan sentence was the sloppy one. It has been amended in place with the
+reason and a pointer, rather than quietly corrected, because a stop condition
+that was wrong is more useful visible than erased.
+
+### The shape of the week's defects
+
+Four defects reached a committed artifact this week, and three share a shape:
+
+| defect | how it presented |
+|---|---|
+| throughput on a resumed run | wrong number, no error |
+| worst-first ranking lost to `sort_keys` | wrong order, no error |
+| `max_tokens` truncation scored as a model error | wrong attribution, no error |
+| `details: []` crashed the consensus mapping | **crash** |
+
+Only the last one announced itself. The other three produced confident,
+plausible, wrong output, and two of them were found by reading the artifact
+rather than by any test. The crash was the cheapest defect of the four: it
+stopped the run, pointed at its own line, and was fixed in minutes.
+
+**Direct finding:** W3 is complete against its amended plan; one stop condition
+was falsified by a later step and amended in place rather than removed.
+**Intuition:** the failures that cost the most are the ones that keep going. A
+pipeline that reports 1,416,888 products per minute is more dangerous than one
+that stops, because only one of them asks to be looked at. **Limitation:** three
+of the four defects were caught by reading an artifact, which is not a repeatable
+process; each now has a test, but the class of defect that produces a plausible
+wrong number has no general guard in this repo.
