@@ -6974,3 +6974,144 @@ somebody finally switched the power on for a second. Limitation: construction is
 not execution. `instrumented_phases` proves the phase methods are wrapped, not
 that the wrappers ever fire, and no reward has been computed and no optimizer
 step taken through this path. Those remain unproven until Arm A actually runs.
+
+## 115. The first production launch died at the first checkpoint it reached
+
+Arm A was dispatched for 300 steps and stopped at step 100 with
+`Arm A monitor checkpoint path drifted`. Two decisions that were each correct
+in isolation were in direct conflict.
+
+Adversarial review had required the trainer to write into a scratch directory,
+because a real `Trainer.__init__` calls `makedirs(output_dir)` and would
+otherwise create the reserved arm path, permanently failing the launch preflight
+that requires that path to be absent. The Arm A launcher's
+`build_monitor_command` requires the opposite: that the checkpoint sit at
+exactly that reserved path.
+
+No CPU test could have caught this. The monitor command is only constructed when
+a checkpoint is actually saved, so the conflict is unreachable until a real run
+reaches step 100. The production module now builds the command itself and
+asserts the paths against where the trainer actually writes. Which checkpoint is
+being evaluated never depended on the path: the coordinator independently
+verifies the adapter's SHA-256.
+
+The failure published nothing. It created two empty reserved directories through
+the monitor's `on_train_begin`, which were removed before the relaunch.
+
+Direct finding: a path contract can be self-consistent in every unit test and
+still be unsatisfiable at runtime. Intuition: two people each measured from a
+different wall, and both measurements were correct. Limitation: this was found
+by spending eight minutes of GPU, not by analysis; the same class of conflict
+could exist in any interface that is only exercised on a real checkpoint.
+
+## 116. The second launch was aborted by its own quality policy, correctly and uselessly
+
+The relaunched run reached step 200 and stopped with
+`CausalQualityAbort: repeated checkpoint quality breach`. The predeclared rule
+fired exactly as written: the same guardrails breached at two consecutive
+checkpoints.
+
+The breaches were rule-violation rate, greedy and sampled, and sampled
+vocabulary validity. What did **not** breach is the point:
+
+| checkpoint | macro-F1 greedy | SFT baseline |
+|---|---:|---:|
+| step 100 | 0.8577 | 0.8537 |
+| step 200 | 0.8616 | 0.8537 |
+
+Macro-F1 was above the baseline at both checkpoints, and rising. The abort did
+not catch a run going bad. It caught a run whose cross-field rule compliance had
+drifted outside the band the starting model occupies.
+
+### The calibration question, and the number that answered it
+
+Whether this was a finding about the reward or a mis-calibrated threshold could
+be decided from data already on disk. The guardrail is
+`baseline + max(2 x population stddev, practical margin)`, which for
+rule-violation rate permits **1.72x** the baseline rate.
+
+| | rule violations vs the same SFT baseline |
+|---|---|
+| threshold permits | 1.72x |
+| Arm A step 100 | 2.40x greedy, 2.54x sampled |
+| Arm A step 200 | 2.00x greedy, 2.18x sampled |
+| Run 1, completed 300 steps | 2.33x |
+
+Run 1 used this identical reward, ran to completion, and finished at 2.33x.
+Under this policy it would have breached at every checkpoint. Arm A was not
+behaving unusually; it was behaving exactly like the only other run of this
+recipe that exists, and it was aborted for it.
+
+The answer is therefore both things at once. It **is** a real finding: the
+original reward reliably doubles the rule-violation rate, which is hypothesis H2
+from the Run 1 diagnosis confirmed on held-out data rather than inferred after
+the fact. A compliance component that is 96.5% saturated exerts almost no
+pressure to stay compliant. And the policy **could not** let this control
+complete, because it asks the control to behave like the model it started from
+while the control exists to demonstrate that it does not.
+
+### Why the policy was under-specified rather than wrong
+
+The guardrails were derived from the SFT baseline's own variability, which is a
+sound way to ask whether a run still resembles its starting point. It is the
+wrong question for a control arm whose purpose is to reproduce a known
+degradation so that a treatment arm can be shown to fix it. The policy was
+written before any GRPO reference existed; nothing available at the time could
+have revealed that the control was disqualified by construction.
+
+The amendment splits the guardrails by role. `macro_f1`, `selective_macro_f1`
+and `coverage` still abort on a repeated breach. Rule-violation rate and
+vocabulary validity are measured, reported, and recorded in their own
+`recorded_only_breached_keys` field, but cannot end a run. No threshold changed.
+The change applies to both arms, because applying it to one would make the arms
+differ in more than their reward.
+
+For Arm B the same numbers will mean the opposite. Its dense reward prices each
+rule violation directly, so failing to hold these metrics is that arm's headline
+result rather than an operational fault.
+
+### Amending a predeclared policy, and the boundary that keeps it honest
+
+This is a predeclared rule changed after seeing data, which this project's
+discipline exists to resist. Three properties keep it defensible. The
+justification is that the policy could not be satisfied by the experiment it
+governs, and that was demonstrable from Run 1's completed trajectory without
+reference to Arm A's outcome. No metric threshold moved; only the consequence of
+breaching two of them. And the amendment cannot make a failing arm look
+successful, because the primary endpoint and its abort conditions are untouched.
+A test proves a run breaching compliance at every checkpoint is still stoppable
+on quality.
+
+Amending a contract-pinned execution file invalidated the causal contract's
+lineage check, which is the check working. The full chain was rebuilt at commit
+`a08f8b6` and every stage passed:
+
+| artifact | status |
+|---|---|
+| `runs/grpo-run2-causal-experiment-contract-v2.json` | `locked_no_gpu_training_dispatched` |
+| `runs/grpo-run2-causal-preflight-v2.json` | `passed_read_only_no_training_dispatch` |
+| `runs/grpo-run2-causal-construction-v2.json` | `both_arm_configs_constructed_no_trainer_no_dispatch` |
+
+The v1 artifacts are retained unmodified as the original predeclaration, and the
+aborted run's monitor evidence is archived at
+`runs/grpo-run2-arm-a-aborted-attempt-1/` rather than deleted. The reasoning is
+recorded separately in `W2_GRPO_RUN2_POLICY_AMENDMENT.md`.
+
+Direct finding: an abort policy calibrated on a baseline can be structurally
+unsatisfiable by the experiment it governs, and the run it kills can be the one
+whose primary metric was improving. Intuition: the smoke alarm was set to the
+temperature of an empty kitchen, and the experiment was cooking. Limitation:
+the amendment rests on one completed reference run, and the claim that Arm A was
+behaving normally rather than badly depends on Run 1's frozen-set rate being
+comparable to a development-set rate, which it is only approximately.
+
+### An observation worth carrying into the analysis
+
+Arm A's macro-F1 on 360 held-out development prompts was slightly **above** the
+SFT baseline at both checkpoints, while Run 1 regressed on the frozen set. The
+sets and protocols differ, so this is not a contradiction, but it sharpens the
+Run 1 story: the original reward may not be making the model worse at choosing
+tags so much as sloppier about the constraints between them. If that holds at
+step 300, the regression Run 1 measured is more specifically a compliance
+failure than a general quality failure, and Arm B's per-violation cost is aimed
+at precisely the right thing.

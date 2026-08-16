@@ -1,0 +1,216 @@
+{
+  "arm_output_paths_created": false,
+  "arms": {
+    "A": {
+      "config": {
+        "generation_batch_size": 8,
+        "prompts_per_generation_batch": 1,
+        "settings": {
+          "adam_beta1": 0.9,
+          "adam_beta2": 0.999,
+          "adam_epsilon": 1e-08,
+          "beta": 0.0,
+          "bf16": true,
+          "data_seed": 42,
+          "epsilon": 0.2,
+          "epsilon_high": 0.28,
+          "fp16": false,
+          "gradient_accumulation_steps": 1,
+          "gradient_checkpointing": true,
+          "learning_rate": 5e-06,
+          "log_completions": false,
+          "logging_first_step": true,
+          "logging_steps": 1,
+          "logging_strategy": "steps",
+          "loss_type": "dapo",
+          "lr_scheduler_type": "cosine",
+          "mask_truncated_completions": true,
+          "max_completion_length": 170,
+          "max_grad_norm": 1.0,
+          "max_prompt_length": 600,
+          "max_steps": 300,
+          "num_completions_to_print": 8,
+          "num_generations": 8,
+          "num_iterations": 1,
+          "optim": "adamw_8bit",
+          "output_dir": "runs/grpo-run2-arm-a-original",
+          "per_device_train_batch_size": 8,
+          "remove_unused_columns": false,
+          "repetition_penalty": 1.0,
+          "report_to": [],
+          "reward_weights": [
+            1.0,
+            1.0,
+            2.0
+          ],
+          "run_name": "grpo-run2-arm-a-original",
+          "save_only_model": true,
+          "save_steps": 100,
+          "save_strategy": "steps",
+          "save_total_limit": 2,
+          "scale_rewards": "group",
+          "seed": 42,
+          "shuffle_dataset": false,
+          "steps_per_generation": 1,
+          "temperature": 0.7,
+          "top_p": 0.95,
+          "use_vllm": false,
+          "warmup_ratio": 0.1,
+          "weight_decay": 0.001
+        },
+        "settings_match_contract": true
+      },
+      "config_class": "GRPOConfig",
+      "config_module": "trl.trainer.grpo_config",
+      "model_constructed": false,
+      "reward_callable_modules": [
+        "training.rewards",
+        "training.rewards",
+        "training.rewards"
+      ],
+      "reward_callable_names": [
+        "format_validity_reward",
+        "vocab_rule_compliance_reward",
+        "golden_agreement_reward"
+      ],
+      "trainer_constructed": false,
+      "training_dispatched": false
+    },
+    "B": {
+      "config": {
+        "generation_batch_size": 8,
+        "prompts_per_generation_batch": 1,
+        "settings": {
+          "adam_beta1": 0.9,
+          "adam_beta2": 0.999,
+          "adam_epsilon": 1e-08,
+          "beta": 0.0,
+          "bf16": true,
+          "data_seed": 42,
+          "epsilon": 0.2,
+          "epsilon_high": 0.28,
+          "fp16": false,
+          "gradient_accumulation_steps": 1,
+          "gradient_checkpointing": true,
+          "learning_rate": 5e-06,
+          "log_completions": false,
+          "logging_first_step": true,
+          "logging_steps": 1,
+          "logging_strategy": "steps",
+          "loss_type": "dapo",
+          "lr_scheduler_type": "cosine",
+          "mask_truncated_completions": true,
+          "max_completion_length": 170,
+          "max_grad_norm": 1.0,
+          "max_prompt_length": 600,
+          "max_steps": 300,
+          "num_completions_to_print": 8,
+          "num_generations": 8,
+          "num_iterations": 1,
+          "optim": "adamw_8bit",
+          "output_dir": "runs/grpo-run2-arm-b-ua",
+          "per_device_train_batch_size": 8,
+          "remove_unused_columns": false,
+          "repetition_penalty": 1.0,
+          "report_to": [],
+          "reward_weights": [
+            1.0
+          ],
+          "run_name": "grpo-run2-arm-b-ua",
+          "save_only_model": true,
+          "save_steps": 100,
+          "save_strategy": "steps",
+          "save_total_limit": 2,
+          "scale_rewards": "group",
+          "seed": 42,
+          "shuffle_dataset": false,
+          "steps_per_generation": 1,
+          "temperature": 0.7,
+          "top_p": 0.95,
+          "use_vllm": false,
+          "warmup_ratio": 0.1,
+          "weight_decay": 0.001
+        },
+        "settings_match_contract": true
+      },
+      "config_class": "GRPOConfig",
+      "config_module": "trl.trainer.grpo_config",
+      "model_constructed": false,
+      "reward_callable_modules": [
+        "training.run2_rewards"
+      ],
+      "reward_callable_names": [
+        "candidate_ua_reward"
+      ],
+      "trainer_constructed": false,
+      "training_dispatched": false
+    }
+  },
+  "causal_difference_audit": {
+    "all_other_trainer_settings_equal": true,
+    "beta_equal_and_explicitly_zero": true,
+    "intended_causal_difference": "reward definition",
+    "noncausal_bookkeeping_differences": [
+      "output_dir",
+      "run_name"
+    ],
+    "reward_difference": {
+      "A": {
+        "functions": [
+          "format_validity_reward",
+          "vocab_rule_compliance_reward",
+          "golden_agreement_reward"
+        ],
+        "implementation": "training/rewards.py",
+        "policy": "original_1_1_2",
+        "weights": [
+          1.0,
+          1.0,
+          2.0
+        ]
+      },
+      "B": {
+        "functions": [
+          "candidate_ua_reward"
+        ],
+        "implementation": "training/run2_rewards.py",
+        "policy": "candidate_ua",
+        "weights": [
+          1.0
+        ]
+      }
+    },
+    "trainer_config_differences": {
+      "output_dir": {
+        "A": "runs/grpo-run2-arm-a-original",
+        "B": "runs/grpo-run2-arm-b-ua"
+      },
+      "run_name": {
+        "A": "grpo-run2-arm-a-original",
+        "B": "grpo-run2-arm-b-ua"
+      }
+    }
+  },
+  "contract": {
+    "bytes": 24437,
+    "path": "runs/grpo-run2-causal-experiment-contract-v2.json",
+    "sha256": "3d87a360cc9fa50482ea6e0349f39e7978719b63d0850ac2106c1c51e017046c"
+  },
+  "cuda_context": {
+    "initialized_after_config_construction": true,
+    "initialized_before_config_construction": false,
+    "material_cuda_allocation": false,
+    "maximum_allowed_allocated_bytes": 67108864,
+    "torch_allocated_bytes_after": 0
+  },
+  "model_constructed": false,
+  "preflight": {
+    "bytes": 3256,
+    "path": "runs/grpo-run2-causal-preflight-v2.json",
+    "sha256": "8b025f6446750451f428df4f94117a892b43ad6c4a7a6b7a2dba3f9c441ffef3"
+  },
+  "status": "both_arm_configs_constructed_no_trainer_no_dispatch",
+  "trainer_constructed": false,
+  "training_dispatched": false,
+  "version": "grpo-run2-causal-config-construction-v1"
+}

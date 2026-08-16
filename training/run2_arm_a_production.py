@@ -27,7 +27,9 @@ from typing import Any, Sequence
 ARM = "A"
 VERSION = "grpo-run2-arm-a-production-v1"
 DEFAULT_PACK = "packs/vastraa_taste_v1"
-DEFAULT_CONTRACT = "runs/grpo-run2-causal-experiment-contract.json"
+# v2 supersedes v1 after the quality-policy amendment; v1 is retained
+# unchanged as the original predeclaration. See W2_GRPO_RUN2_POLICY_AMENDMENT.md.
+DEFAULT_CONTRACT = "runs/grpo-run2-causal-experiment-contract-v2.json"
 DEFAULT_MONITOR_CONTRACT = "runs/grpo-run2-checkpoint-monitor-contract.json"
 MAX_SEQUENCE_LENGTH = 896
 

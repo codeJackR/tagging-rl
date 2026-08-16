@@ -1,0 +1,720 @@
+{
+  "arm_B_gate": {
+    "arm_A_checkpoint_300_monitor_receipt_required": true,
+    "arm_A_success_manifest_required": true,
+    "disk_floor_required": true,
+    "same_execution_code_and_environment_required": true
+  },
+  "arm_order": [
+    "A",
+    "B"
+  ],
+  "arms": {
+    "A": {
+      "arm": "A",
+      "config": {
+        "adam_beta1": 0.9,
+        "adam_beta2": 0.999,
+        "adam_epsilon": 1e-08,
+        "beta": 0.0,
+        "bf16": true,
+        "data_seed": 42,
+        "epsilon": 0.2,
+        "epsilon_high": 0.28,
+        "fp16": false,
+        "gradient_accumulation_steps": 1,
+        "gradient_checkpointing": true,
+        "learning_rate": 5e-06,
+        "log_completions": false,
+        "logging_first_step": true,
+        "logging_steps": 1,
+        "logging_strategy": "steps",
+        "loss_type": "dapo",
+        "lr_scheduler_type": "cosine",
+        "mask_truncated_completions": true,
+        "max_completion_length": 170,
+        "max_grad_norm": 1.0,
+        "max_prompt_length": 600,
+        "max_steps": 300,
+        "num_completions_to_print": 8,
+        "num_generations": 8,
+        "num_iterations": 1,
+        "optim": "adamw_8bit",
+        "output_dir": "runs/grpo-run2-arm-a-original",
+        "per_device_train_batch_size": 8,
+        "remove_unused_columns": false,
+        "repetition_penalty": 1.0,
+        "report_to": "none",
+        "run_name": "grpo-run2-arm-a-original",
+        "save_only_model": true,
+        "save_steps": 100,
+        "save_strategy": "steps",
+        "save_total_limit": 2,
+        "scale_rewards": "group",
+        "seed": 42,
+        "shuffle_dataset": false,
+        "steps_per_generation": 1,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "use_vllm": false,
+        "warmup_ratio": 0.1,
+        "weight_decay": 0.001
+      },
+      "control_dir": "runs/grpo-run2-arm-a-original-control",
+      "failure_dir": "runs/grpo-run2-arm-a-original-failed",
+      "monitor_root": "runs/grpo-run2-arm-a-original-monitor",
+      "output_dir": "runs/grpo-run2-arm-a-original",
+      "quality_root": "runs/grpo-run2-arm-a-original-monitor-quality",
+      "reward": {
+        "functions": [
+          "format_validity_reward",
+          "vocab_rule_compliance_reward",
+          "golden_agreement_reward"
+        ],
+        "implementation": "training/rewards.py",
+        "policy": "original_1_1_2",
+        "weights": [
+          1.0,
+          1.0,
+          2.0
+        ]
+      },
+      "role": "corrected_control"
+    },
+    "B": {
+      "arm": "B",
+      "config": {
+        "adam_beta1": 0.9,
+        "adam_beta2": 0.999,
+        "adam_epsilon": 1e-08,
+        "beta": 0.0,
+        "bf16": true,
+        "data_seed": 42,
+        "epsilon": 0.2,
+        "epsilon_high": 0.28,
+        "fp16": false,
+        "gradient_accumulation_steps": 1,
+        "gradient_checkpointing": true,
+        "learning_rate": 5e-06,
+        "log_completions": false,
+        "logging_first_step": true,
+        "logging_steps": 1,
+        "logging_strategy": "steps",
+        "loss_type": "dapo",
+        "lr_scheduler_type": "cosine",
+        "mask_truncated_completions": true,
+        "max_completion_length": 170,
+        "max_grad_norm": 1.0,
+        "max_prompt_length": 600,
+        "max_steps": 300,
+        "num_completions_to_print": 8,
+        "num_generations": 8,
+        "num_iterations": 1,
+        "optim": "adamw_8bit",
+        "output_dir": "runs/grpo-run2-arm-b-ua",
+        "per_device_train_batch_size": 8,
+        "remove_unused_columns": false,
+        "repetition_penalty": 1.0,
+        "report_to": "none",
+        "run_name": "grpo-run2-arm-b-ua",
+        "save_only_model": true,
+        "save_steps": 100,
+        "save_strategy": "steps",
+        "save_total_limit": 2,
+        "scale_rewards": "group",
+        "seed": 42,
+        "shuffle_dataset": false,
+        "steps_per_generation": 1,
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "use_vllm": false,
+        "warmup_ratio": 0.1,
+        "weight_decay": 0.001
+      },
+      "control_dir": "runs/grpo-run2-arm-b-ua-control",
+      "failure_dir": "runs/grpo-run2-arm-b-ua-failed",
+      "monitor_root": "runs/grpo-run2-arm-b-ua-monitor",
+      "output_dir": "runs/grpo-run2-arm-b-ua",
+      "quality_root": "runs/grpo-run2-arm-b-ua-monitor-quality",
+      "reward": {
+        "functions": [
+          "candidate_ua_reward"
+        ],
+        "implementation": "training/run2_rewards.py",
+        "policy": "candidate_ua",
+        "weights": [
+          1.0
+        ]
+      },
+      "role": "dense_reward_treatment"
+    }
+  },
+  "boundaries": {
+    "confirmation_data_allowed": false,
+    "gpu_training_dispatched_by_contract_build": false,
+    "kl_arm_included": false,
+    "legacy_frozen_300_allowed": false,
+    "legacy_run1_is_historical_not_control": true,
+    "multi_seed_claim_allowed": false
+  },
+  "causal_difference_audit": {
+    "all_other_trainer_settings_equal": true,
+    "beta_equal_and_explicitly_zero": true,
+    "intended_causal_difference": "reward definition",
+    "noncausal_bookkeeping_differences": [
+      "output_dir",
+      "run_name"
+    ],
+    "reward_difference": {
+      "A": {
+        "functions": [
+          "format_validity_reward",
+          "vocab_rule_compliance_reward",
+          "golden_agreement_reward"
+        ],
+        "implementation": "training/rewards.py",
+        "policy": "original_1_1_2",
+        "weights": [
+          1.0,
+          1.0,
+          2.0
+        ]
+      },
+      "B": {
+        "functions": [
+          "candidate_ua_reward"
+        ],
+        "implementation": "training/run2_rewards.py",
+        "policy": "candidate_ua",
+        "weights": [
+          1.0
+        ]
+      }
+    },
+    "trainer_config_differences": {
+      "output_dir": {
+        "A": "runs/grpo-run2-arm-a-original",
+        "B": "runs/grpo-run2-arm-b-ua"
+      },
+      "run_name": {
+        "A": "grpo-run2-arm-a-original",
+        "B": "grpo-run2-arm-b-ua"
+      }
+    }
+  },
+  "deferral_audit": {
+    "deferred_decisions": [],
+    "passed": true,
+    "unresolved_output_paths": [],
+    "unresolved_parameters": [],
+    "unresolved_thresholds": []
+  },
+  "endpoint": {
+    "bootstrap_replicates": 10000,
+    "bootstrap_seed": 20260821,
+    "confidence_level": 0.95,
+    "earlier_checkpoints_are_diagnostic_not_selection_candidates": true,
+    "paired_unit": "development product/SKU",
+    "primary": "checkpoint-300 representative greedy macro_f1, B minus A"
+  },
+  "environment": {
+    "gpu": {
+      "driver": "590.48.01",
+      "memory_mib": 24576,
+      "name": "NVIDIA GeForce RTX 3090"
+    },
+    "no_environment_change_between_arms": true,
+    "offline_model_cache_required": true,
+    "required": {
+      "accelerate": "1.14.0",
+      "bitsandbytes": "0.50.0",
+      "datasets": "4.3.0",
+      "peft": "0.19.1",
+      "python": "3.12.12",
+      "safetensors": "0.8.0",
+      "torch": "2.11.0",
+      "transformers": "4.57.6",
+      "trl": "0.24.0",
+      "unsloth": "2026.7.5"
+    },
+    "single_visible_gpu_required": true
+  },
+  "execution_code": {
+    "evalharness/metrics.py": {
+      "bytes": 10267,
+      "path": "evalharness/metrics.py",
+      "sha256": "98763087717a8c904a8cb7e5ab6728797354320c45f5f9675df77a7f5a08c4ad"
+    },
+    "evalharness/predictions.py": {
+      "bytes": 4617,
+      "path": "evalharness/predictions.py",
+      "sha256": "87967600fe842af202f21d404fcb8c1ee47e3e2bc8997c9b704e67f0d255913c"
+    },
+    "labeling/records.py": {
+      "bytes": 8974,
+      "path": "labeling/records.py",
+      "sha256": "727f1b361834eeb985acaac7861cb2eff5df5ea3cff758ecce0b724ec5f0a683"
+    },
+    "training/audit_data_boundaries.py": {
+      "bytes": 21398,
+      "path": "training/audit_data_boundaries.py",
+      "sha256": "80920cefb81f81895645c46b20c893af9a0f7fe59783f9959233ea878bff7a53"
+    },
+    "training/build_run2_causal_schedule.py": {
+      "bytes": 8713,
+      "path": "training/build_run2_causal_schedule.py",
+      "sha256": "04e228a7f4947e05a5246f8a9c054086defc6f0103d9b8181f8fcfbd0745ab27"
+    },
+    "training/dataset.py": {
+      "bytes": 6057,
+      "path": "training/dataset.py",
+      "sha256": "fb213b56a54fdfb5b3c8044a9f58eaaec23dd420ddeda96dd8bc3efe02f99d80"
+    },
+    "training/grpo_detached_control.py": {
+      "bytes": 20758,
+      "path": "training/grpo_detached_control.py",
+      "sha256": "e63bce55e00cd2b83b60eecde18d9720cbea8311c62ef3ccfad135a8416cc492"
+    },
+    "training/grpo_detached_runtime.py": {
+      "bytes": 13570,
+      "path": "training/grpo_detached_runtime.py",
+      "sha256": "619f75d008333783c1fcfc8c40d46e7525dbe667ca3c89737aea7728187e3061"
+    },
+    "training/grpo_full_run_artifacts.py": {
+      "bytes": 61945,
+      "path": "training/grpo_full_run_artifacts.py",
+      "sha256": "b0f0923a4b3c1a268031a8d258889e6e216e4fc822da4c8429326857f5bbbc2c"
+    },
+    "training/grpo_full_run_evidence.py": {
+      "bytes": 11475,
+      "path": "training/grpo_full_run_evidence.py",
+      "sha256": "6e4c26066ffa648badfa44359c7eee22aaec5430fa6ebd57db05e34fb4f106d0"
+    },
+    "training/grpo_full_run_workload.py": {
+      "bytes": 8027,
+      "path": "training/grpo_full_run_workload.py",
+      "sha256": "05fd32c5549588d4e1b36589049956ccb14f610f6304da70e618d9538444b92b"
+    },
+    "training/grpo_phase_profiler.py": {
+      "bytes": 21272,
+      "path": "training/grpo_phase_profiler.py",
+      "sha256": "d814842a856718f5a5461da93eb5dbfd1d64abff0422a1834fb2f00bad280e9d"
+    },
+    "training/predict.py": {
+      "bytes": 5669,
+      "path": "training/predict.py",
+      "sha256": "1477919e40dcf981c740b69e33e46ada8eba0add63df3e7dfe5806e3a69999e8"
+    },
+    "training/rewards.py": {
+      "bytes": 4671,
+      "path": "training/rewards.py",
+      "sha256": "ac9658028c62a84b32a8ba52c9e53e8d27ecaba05cd6d1703e398917aec1706d"
+    },
+    "training/run2_causal_experiment.py": {
+      "bytes": 42543,
+      "path": "training/run2_causal_experiment.py",
+      "sha256": "34e64f2b0b1c9191bf3b5f42933c869eb92bc558d0322406b418708a648d49fa"
+    },
+    "training/run2_checkpoint_monitor.py": {
+      "bytes": 13785,
+      "path": "training/run2_checkpoint_monitor.py",
+      "sha256": "3a08cb1cee1cda76359470f5860d17698231c5b3e4ad1e7a49ed4f66d71d1acf"
+    },
+    "training/run2_checkpoint_monitor_contract.py": {
+      "bytes": 8129,
+      "path": "training/run2_checkpoint_monitor_contract.py",
+      "sha256": "ff3637988d9f9819a530f4b8094afc02b62be1e7bb138f93abdafb47075f74b3"
+    },
+    "training/run2_checkpoint_monitor_control.py": {
+      "bytes": 17646,
+      "path": "training/run2_checkpoint_monitor_control.py",
+      "sha256": "c05dd3555a23ba8586f1a863a2fc8fbb3fcadd84758959846ecc0728e61c35c5"
+    },
+    "training/run2_checkpoint_monitor_runtime.py": {
+      "bytes": 21481,
+      "path": "training/run2_checkpoint_monitor_runtime.py",
+      "sha256": "dba936f27e6850cb0bf1f5060d3e7d367c452e8955c972e5be877f9c95bf89f5"
+    },
+    "training/run2_rewards.py": {
+      "bytes": 38893,
+      "path": "training/run2_rewards.py",
+      "sha256": "5197095bf77762481cbf8c3803ac651ec0f69733b4b3c52638c7b76923350ab4"
+    },
+    "training/train_grpo.py": {
+      "bytes": 214591,
+      "path": "training/train_grpo.py",
+      "sha256": "c31a9f7f7088adb5f7ff2cba25ca17dc0f7314d0da435135c9d5ede693cf4abb"
+    },
+    "verifier/__init__.py": {
+      "bytes": 8281,
+      "path": "verifier/__init__.py",
+      "sha256": "19ea656adae0003f3a4feeccf7effce8432a26100785ae81b367bd6780627836"
+    },
+    "verifier/rules.py": {
+      "bytes": 7598,
+      "path": "verifier/rules.py",
+      "sha256": "d4c5287fa059237a9af1e12477f8dacd637481fca7b89b904b6d8f6910d3d796"
+    },
+    "verifier/schema.py": {
+      "bytes": 6214,
+      "path": "verifier/schema.py",
+      "sha256": "aed20907d91f677aff5156fbbfafd86fba19c8b878a4bd09d2f14be3fb61805c"
+    }
+  },
+  "expected_execution_code_commit": "a08f8b6c44f82483dd39e074b95e78d8d8644bdb",
+  "inputs": {
+    "baseline_manifest": {
+      "bytes": 7503,
+      "path": "runs/grpo-run2-checkpoint-monitor-baseline-sft/manifest.json",
+      "sha256": "0d9e3a8dacb3f2819097b4217ea967177fab95266908f82462f73f239bf50730"
+    },
+    "baseline_receipt": {
+      "bytes": 1943,
+      "path": "runs/grpo-run2-checkpoint-monitor-baseline-sft.receipt.json",
+      "sha256": "059be1bbba85c1409ae9c4a82389517bc2511413d7a4312d1884adb1dcd45ef5"
+    },
+    "baseline_report": {
+      "bytes": 628546,
+      "path": "runs/grpo-run2-checkpoint-monitor-baseline-sft/report.json",
+      "sha256": "0906d4138ef02b0daca2f44f99f5ce93edec770451e538be6aa622ee4e8cc94c"
+    },
+    "baseline_resource": {
+      "bytes": 1417,
+      "path": "runs/grpo-run2-checkpoint-monitor-baseline-sft/resource.json",
+      "sha256": "6708b47fc0c96ce514a307bb26c982efe8fc777d970c65b521897329f8ecbfba"
+    },
+    "contract_document": {
+      "bytes": 7531,
+      "path": "W2_GRPO_RUN2_CAUSAL_EXPERIMENT_CONTRACT.md",
+      "sha256": "30430f59838bab2fd2658ef86a5e1b88467a8e8c2adb1c2bfc974197a85e33ef"
+    },
+    "corrected_pool": {
+      "bytes": 3191282,
+      "path": "data/train_weak_grpo_cap4_sft_train_v1.jsonl",
+      "sha256": "1ca64f668b0359c2e83850832d5db2ffaf5a5f621556ac4776cf9d5c3fb26a53"
+    },
+    "corrected_pool_manifest": {
+      "bytes": 82235,
+      "path": "runs/sft-difficulty-k8/grpo-pool-cap4-sft-train-v1-manifest.json",
+      "sha256": "42ca7b3ad0b1a1e61539493a693b33ea56238f30004e6a25bcdb9bd24e19282a"
+    },
+    "monitor_contract": {
+      "bytes": 44812,
+      "path": "runs/grpo-run2-checkpoint-monitor-contract.json",
+      "sha256": "81048bff4cdf067ee53b46a4442084728e79c876be5efe572422fce99bc79059"
+    },
+    "monitor_smoke_manifest": {
+      "bytes": 5761,
+      "path": "runs/grpo-run2-checkpoint-monitor-smoke-v3/manifest.json",
+      "sha256": "f58e237579393609dddaf0bc20582b36560e2491cb07a8b1f7844f55ce01cceb"
+    },
+    "monitor_smoke_receipt": {
+      "bytes": 1893,
+      "path": "runs/grpo-run2-checkpoint-monitor-smoke-v3.receipt.json",
+      "sha256": "ce275e03eecbd383106014b69538787e41aa5ad574e5d3a7bb1e4a4a97d3254f"
+    },
+    "pack_rules": {
+      "bytes": 6929,
+      "path": "packs/vastraa_taste_v1/rules.yaml",
+      "sha256": "2d5e186fb5157bd1f371aa2009a02052457d49b94e7c3ef0343ec43632157c56"
+    },
+    "pack_vocab": {
+      "bytes": 48449,
+      "path": "packs/vastraa_taste_v1/vocab.yaml",
+      "sha256": "f98eba2177343867ce7f010b0ef4ec8d745b1154219a7137d29ad1807925c17d"
+    },
+    "reward_gate_g10": {
+      "bytes": 8126,
+      "path": "runs/grpo-run2-gate-g10-result.json",
+      "sha256": "6a602e629a58e6a7c006fb9a86ff7fcee5c1821ed7505f0b88fdfdc89b661e0d"
+    },
+    "reward_gate_g1_g9": {
+      "bytes": 16439,
+      "path": "runs/grpo-run2-d4-gates-g1-g9.json",
+      "sha256": "5ccdb6b440d6621e4fac72f926255f62c2963e9bd9745dab877304f466f45ce2"
+    },
+    "reward_selection": {
+      "bytes": 9855,
+      "path": "runs/grpo-run2-d4-reward-selection.json",
+      "sha256": "ae971264bb4f69f2de8576cedce30ccdef562a668f12db94619b713e0d1c9ead"
+    },
+    "schedule": {
+      "bytes": 664367,
+      "path": "data/grpo_run2_causal_schedule_v1.jsonl",
+      "sha256": "5c76697df7c44c4cf140883d618783559e00dd8b8d6d0874dd562b8f0ec1971e"
+    },
+    "schedule_manifest": {
+      "bytes": 19302,
+      "path": "runs/grpo-run2-causal-schedule.json",
+      "sha256": "211d0b4fcfa031f369da734886b290f79ddecfc08021ac930c9aea7d63a98299"
+    },
+    "sft_selection": {
+      "bytes": 4514,
+      "path": "runs/sft-selection.json",
+      "sha256": "e425635d323b3ffe9e7350fb61a2d9e1848345a95abab6b92032bf64d2718299"
+    }
+  },
+  "monitoring": {
+    "callback": "CausalCheckpointMonitorCoordinator",
+    "checkpoint_steps": [
+      100,
+      200,
+      300
+    ],
+    "minimum_driver_free_bytes_before_child": 6442450944,
+    "phase_f_contract": {
+      "bytes": 44812,
+      "path": "runs/grpo-run2-checkpoint-monitor-contract.json",
+      "sha256": "81048bff4cdf067ee53b46a4442084728e79c876be5efe572422fce99bc79059"
+    },
+    "quality_policy": {
+      "checkpoints": [
+        100,
+        200,
+        300
+      ],
+      "clean_checkpoint_resets_sequence": true,
+      "consecutive_breaches_to_abort": 2,
+      "guardrails": [
+        {
+          "baseline_greedy": 0.8536806947422352,
+          "baseline_sampled_mean": 0.8503905142246487,
+          "baseline_sampled_population_stddev": 0.013314998145339022,
+          "direction": "lower",
+          "key": "representative_all:macro_f1",
+          "metric": "macro_f1",
+          "practical_margin": 0.05,
+          "thresholds": {
+            "greedy": 0.803680694742,
+            "sampled_mean": 0.800390514225
+          },
+          "variability_allowance": 0.05,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.8675592350219463,
+          "baseline_sampled_mean": 0.8682199833870434,
+          "baseline_sampled_population_stddev": 0.01636285988250079,
+          "direction": "lower",
+          "key": "representative_all:selective_macro_f1",
+          "metric": "selective_macro_f1",
+          "practical_margin": 0.05,
+          "thresholds": {
+            "greedy": 0.817559235022,
+            "sampled_mean": 0.818219983387
+          },
+          "variability_allowance": 0.05,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.9769555339175592,
+          "baseline_sampled_mean": 0.9727766958779617,
+          "baseline_sampled_population_stddev": 0.0011177359066825497,
+          "direction": "lower",
+          "key": "representative_all:coverage",
+          "metric": "coverage",
+          "practical_margin": 0.1,
+          "thresholds": {
+            "greedy": 0.876955533918,
+            "sampled_mean": 0.872776695878
+          },
+          "variability_allowance": 0.1,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.9972222222222222,
+          "baseline_sampled_mean": 0.9972222222222222,
+          "baseline_sampled_population_stddev": 0.0,
+          "direction": "lower",
+          "key": "representative_all:schema_validity",
+          "metric": "schema_validity",
+          "practical_margin": 0.02,
+          "thresholds": {
+            "greedy": 0.977222222222,
+            "sampled_mean": 0.977222222222
+          },
+          "variability_allowance": 0.02,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.9416666666666667,
+          "baseline_sampled_mean": 0.9357638888888888,
+          "baseline_sampled_population_stddev": 0.007535602227156468,
+          "direction": "lower",
+          "key": "representative_all:vocab_validity",
+          "metric": "vocab_validity",
+          "practical_margin": 0.02,
+          "thresholds": {
+            "greedy": 0.921666666667,
+            "sampled_mean": 0.915763888889
+          },
+          "variability_allowance": 0.02,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.027777777777777776,
+          "baseline_sampled_mean": 0.034722222222222224,
+          "baseline_sampled_population_stddev": 0.008893228107545623,
+          "direction": "upper",
+          "key": "representative_all:rule_violation_rate",
+          "metric": "rule_violation_rate",
+          "practical_margin": 0.02,
+          "thresholds": {
+            "greedy": 0.047777777778,
+            "sampled_mean": 0.054722222222
+          },
+          "variability_allowance": 0.02,
+          "view": "representative_all"
+        },
+        {
+          "baseline_greedy": 0.9881757748424415,
+          "baseline_sampled_mean": 0.9822207568969996,
+          "baseline_sampled_population_stddev": 0.007472422219767622,
+          "direction": "lower",
+          "key": "easy_retention_6_to_8_of_8:macro_f1",
+          "metric": "macro_f1",
+          "practical_margin": 0.05,
+          "thresholds": {
+            "greedy": 0.938175774842,
+            "sampled_mean": 0.932220756897
+          },
+          "variability_allowance": 0.05,
+          "view": "easy_retention_6_to_8_of_8"
+        },
+        {
+          "baseline_greedy": 0.9977246871444824,
+          "baseline_sampled_mean": 0.9965870307167235,
+          "baseline_sampled_population_stddev": 0.000985239367217806,
+          "direction": "lower",
+          "key": "easy_retention_6_to_8_of_8:coverage",
+          "metric": "coverage",
+          "practical_margin": 0.1,
+          "thresholds": {
+            "greedy": 0.897724687144,
+            "sampled_mean": 0.896587030717
+          },
+          "variability_allowance": 0.1,
+          "view": "easy_retention_6_to_8_of_8"
+        }
+      ],
+      "monitor_failure_aborts_immediately": true,
+      "one_breach_action": "warn_and_continue",
+      "reward_metrics_can_abort": false,
+      "same_key_and_decoding_mode_required": true,
+      "single_checkpoint_quality_abort": false,
+      "status": "baseline_derived_before_training",
+      "version": "grpo-run2-causal-quality-policy-v1"
+    },
+    "synchronous": true
+  },
+  "publication": {
+    "atomic_arm_publication": true,
+    "detached_fail_closed_execution": true,
+    "existing_path_means_collision_not_resume": true,
+    "failed_arms_retained": true,
+    "raw_rollouts_and_step_logs_required": true
+  },
+  "question": "effect of Candidate UA versus original 1:1:2 under corrected identical training",
+  "resources": {
+    "conservative_additive_peak_bytes": 8833412096,
+    "exact_optimizer_resume_available": false,
+    "historical_training_peak_allocated_bytes": 4914862080,
+    "minimum_arm_B_start_bytes": 2684354560,
+    "minimum_post_arm_bytes": 2147483648,
+    "minimum_suite_start_bytes": 3221225472,
+    "monitor_peak_allocated_bytes": 3918550016,
+    "monitor_peak_source": {
+      "bytes": 1417,
+      "path": "runs/grpo-run2-checkpoint-monitor-baseline-sft/resource.json",
+      "sha256": "6708b47fc0c96ce514a307bb26c982efe8fc777d970c65b521897329f8ecbfba"
+    },
+    "save_only_model": true,
+    "save_total_limit": 2
+  },
+  "schedule": {
+    "dataset": {
+      "bytes": 664367,
+      "path": "data/grpo_run2_causal_schedule_v1.jsonl",
+      "sha256": "5c76697df7c44c4cf140883d618783559e00dd8b8d6d0874dd562b8f0ec1971e"
+    },
+    "manifest": {
+      "bytes": 19302,
+      "path": "runs/grpo-run2-causal-schedule.json",
+      "sha256": "211d0b4fcfa031f369da734886b290f79ddecfc08021ac930c9aea7d63a98299"
+    },
+    "one_product_per_step": true,
+    "ordered_sku_sha256": "7a73e21387b344ee67606008b41f3c57c04da7a7345dfb5fdc10a0cb07f344f6",
+    "rows": 300,
+    "trainer_shuffle": false
+  },
+  "smoke_to_full_diff": {
+    "checkpointing": {
+      "causal": "steps 100/200/300; retain 2",
+      "smoke": "none"
+    },
+    "completion_table_logging": {
+      "causal": false,
+      "smoke": true
+    },
+    "dataset": {
+      "causal": "data/grpo_run2_causal_schedule_v1.jsonl",
+      "smoke": "four-row fixture"
+    },
+    "duration_steps": {
+      "causal": 300,
+      "smoke": 5
+    },
+    "inherited_generation_optimizer_lora_settings_rejustified": true,
+    "monitoring": {
+      "causal": "greedy plus 8 sampled development passes",
+      "smoke": "none"
+    },
+    "warmup_ratio": {
+      "causal": 0.1,
+      "smoke": 0.0
+    }
+  },
+  "starting_policy": {
+    "adapter_path": "runs/sft-combined-2epoch/checkpoint-406",
+    "adapter_weights": {
+      "bytes": 73911112,
+      "file": "adapter_model.safetensors",
+      "sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af"
+    },
+    "base_model": "unsloth/Qwen2.5-1.5B-Instruct",
+    "lora": {
+      "alpha": 16,
+      "bias": "none",
+      "dropout": 0,
+      "rank": 16,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj"
+      ],
+      "trainable_parameters": 18464768
+    },
+    "same_bytes_for_both_arms": true
+  },
+  "status": "locked_no_gpu_training_dispatched",
+  "treatment_acceptance": {
+    "all_required": true,
+    "default_if_not_all_pass": "retain_arm_A",
+    "maximum_negative_delta": {
+      "greedy_coverage": -0.03,
+      "greedy_easy_retention_macro_f1": -0.03,
+      "greedy_schema_validity": -0.03,
+      "greedy_vocab_validity": -0.03
+    },
+    "maximum_rule_violation_rate_increase": 0.02,
+    "missing_or_aborted_arm": "experiment_incomplete_no_winner",
+    "primary_interval_lower_bound_must_exceed": 0.0,
+    "primary_minimum_improvement": 0.02,
+    "sampled_macro_f1_mean_minimum_delta": 0.0
+  },
+  "version": "grpo-run2-causal-gpu-experiment-v1"
+}

@@ -194,7 +194,17 @@ def test_driver_headroom_constant_is_six_gib():
 
 
 def test_published_causal_contract_rebuilds_from_its_pinned_code_commit():
-    path = Path(__file__).resolve().parents[1] / "runs/grpo-run2-causal-experiment-contract.json"
+    """The active contract must rebuild byte-for-byte from the commit it pins.
+
+    v2 supersedes v1 after the quality-policy amendment. v1 is retained as the
+    original predeclaration and deliberately no longer rebuilds: the execution
+    file it pinned has since changed, which is exactly the drift this check
+    exists to detect. See W2_GRPO_RUN2_POLICY_AMENDMENT.md.
+    """
+    root = Path(__file__).resolve().parents[1]
+    path = root / "runs/grpo-run2-causal-experiment-contract-v2.json"
+    if not path.exists():
+        path = root / "runs/grpo-run2-causal-experiment-contract.json"
     if not path.exists():
         pytest.skip("causal experiment contract has not been published")
     published = json.loads(path.read_text(encoding="utf-8"))

@@ -1,0 +1,101 @@
+{
+  "adapter_sha256": "00ae54af4e380cff66695b36b244e3f1ff9aca85076b59a8eb6649d8c3a051af",
+  "arm_configuration_difference": {
+    "all_other_trainer_settings_equal": true,
+    "beta_equal_and_explicitly_zero": true,
+    "intended_causal_difference": "reward definition",
+    "noncausal_bookkeeping_differences": [
+      "output_dir",
+      "run_name"
+    ],
+    "reward_difference": {
+      "A": {
+        "functions": [
+          "format_validity_reward",
+          "vocab_rule_compliance_reward",
+          "golden_agreement_reward"
+        ],
+        "implementation": "training/rewards.py",
+        "policy": "original_1_1_2",
+        "weights": [
+          1.0,
+          1.0,
+          2.0
+        ]
+      },
+      "B": {
+        "functions": [
+          "candidate_ua_reward"
+        ],
+        "implementation": "training/run2_rewards.py",
+        "policy": "candidate_ua",
+        "weights": [
+          1.0
+        ]
+      }
+    },
+    "trainer_config_differences": {
+      "output_dir": {
+        "A": "runs/grpo-run2-arm-a-original",
+        "B": "runs/grpo-run2-arm-b-ua"
+      },
+      "run_name": {
+        "A": "grpo-run2-arm-a-original",
+        "B": "grpo-run2-arm-b-ua"
+      }
+    }
+  },
+  "arm_output_paths_created": false,
+  "collision_checked_paths": [
+    "/workspace/tagging-rl/runs/grpo-run2-arm-a-original",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-monitor-quality",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-control",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-a-original-failed",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-monitor",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-monitor-quality",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-control",
+    "/workspace/tagging-rl/runs/grpo-run2-arm-b-ua-failed"
+  ],
+  "contract": {
+    "bytes": 24437,
+    "path": "runs/grpo-run2-causal-experiment-contract-v2.json",
+    "sha256": "3d87a360cc9fa50482ea6e0349f39e7978719b63d0850ac2106c1c51e017046c"
+  },
+  "cuda_imports_performed": false,
+  "current_git_commit": "a08f8b6c44f82483dd39e074b95e78d8d8644bdb",
+  "deferred_decisions": 0,
+  "disk_free_bytes": 3679064064,
+  "environment": {
+    "accelerate": "1.14.0",
+    "bitsandbytes": "0.50.0",
+    "datasets": "4.3.0",
+    "peft": "0.19.1",
+    "python": "3.12.12",
+    "safetensors": "0.8.0",
+    "torch": "2.11.0",
+    "transformers": "4.57.6",
+    "trl": "0.24.0",
+    "unsloth": "2026.7.5"
+  },
+  "execution_code_matches_expected_commit": true,
+  "execution_files_verified": 24,
+  "expected_execution_code_commit": "a08f8b6c44f82483dd39e074b95e78d8d8644bdb",
+  "gpu": {
+    "driver": "590.48.01",
+    "memory_mib": 24576,
+    "memory_used_mib": 396,
+    "name": "NVIDIA GeForce RTX 3090",
+    "utilization_percent": 0
+  },
+  "inputs_verified": 18,
+  "minimum_disk_free_bytes": 3221225472,
+  "model_loaded": false,
+  "schedule_order_sha256": "7a73e21387b344ee67606008b41f3c57c04da7a7345dfb5fdc10a0cb07f344f6",
+  "schedule_rows": 300,
+  "status": "passed_read_only_no_training_dispatch",
+  "trainer_constructed": false,
+  "training_dispatched": false,
+  "version": "grpo-run2-causal-gpu-preflight-v1"
+}
