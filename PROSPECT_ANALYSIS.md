@@ -272,3 +272,83 @@ stronger for being smaller and unable to be argued down. **Limitation:** the
 title proxy is still not the real test. `options` and `variants` remain
 unchecked, and our own audit prohibits the access that would check them on the
 brands we most want to approach.
+
+---
+
+# Vision changes who is worth approaching
+
+A 50-product test sent the product photo alongside the text and asked only for
+the five attributes the text pipeline most often declined.
+
+| attribute | asked | resolved | text-only unknown rate |
+|---|---:|---:|---:|
+| pattern | 41 | **41 (100%)** | 76% |
+| garment_length | 45 | 40 (89%) | 68% |
+| sleeve_style | 41 | 38 (93%) | 63% |
+| fit | 31 | 28 (90%) | 49% |
+| silhouette | 46 | 31 (67%) | 71% |
+| **total** | **204** | **178 (87%)** | |
+
+**Zero vocabulary violations** across 204 answers. Cost well under $3 on Gemini
+Flash.
+
+## Verification
+
+Seven cells across two products were checked against the actual photographs.
+**All seven correct.**
+
+One was initially recorded as an error: a full-length pant labelled
+`garment_length: maxi`, which reads wrong for trousers. The pack disagrees.
+`maxi` carries the aliases `full length` and `ankle length`, so the model
+answered correctly per the vocabulary's own definition and the mistake was in
+the reviewing, not the answer. Worth keeping as a caution: a checker who knows
+the domain less well than the schema will invent errors.
+
+## Projected re-ranking
+
+Applying the measured per-attribute resolution rates to each brand's unknown
+counts. **This is a projection from a 50-product sample, not a measurement.**
+
+| brand | text | +vision | total | move |
+|---|---:|---:|---:|---|
+| fahertybrand.com | 6.4 | 2.6 | **9.0** | - |
+| www.untuckit.com | 4.7 | 3.5 | **8.1** | - |
+| www.taylorstitch.com | 3.3 | 3.8 | 7.1 | +2 |
+| www.american-giant.com | 2.3 | 4.2 | 6.5 | **+5** |
+| ministryofsupply.com | 2.5 | 4.0 | 6.5 | +3 |
+| www.girlfriend.com | 2.9 | 3.6 | 6.5 | +1 |
+| www.outdoorvoices.com | 3.3 | 2.9 | 6.2 | -1 |
+| www.everlane.com | 3.4 | 2.7 | 6.1 | -4 |
+| www.thursdayboots.com | 4.1 | 1.8 | 5.8 | **-6** |
+| www.marinelayer.com | 1.7 | 3.9 | 5.6 | **+4** |
+| www.tentree.com | 2.1 | 3.4 | 5.5 | - |
+| naadam.co | 2.2 | 3.1 | 5.3 | -2 |
+| www.allbirds.com | 2.0 | 1.1 | 3.1 | - |
+| www.rothys.com | 2.1 | 0.7 | 2.8 | -2 |
+
+**Direct finding:** vision resolved 87% of cells the text pipeline declined,
+with no vocabulary violations, and raises the floor for apparel brands from 1.7
+addable attributes per product to 5.3. **Intuition:** the earlier conclusion
+that thin-copy brands are unhelpable was an artefact of reading only text.
+Marine Layer's catalog was never the problem; our input was. Photographs do not
+care how well a merchandiser writes. **Limitation:** the uplift is projected
+from 50 products onto 3,600, the resolution rates carry sampling error at n=31
+to 46 per attribute, and correctness is verified on seven cells by eye against
+photographs rather than against ground truth.
+
+## What this does to the business case
+
+Text-only, half the list was not worth approaching: seven of fourteen brands sat
+under 2.5 addable attributes per product. With vision, every apparel brand in
+the set clears 5.3.
+
+The pitch also changes. Text-only was rearrangement, moving what a merchant
+already wrote into structured fields, which is close to what feed tools do.
+Vision produces attributes that exist in **no** field of their catalog and in
+none of their copy. That is new information, and it is much harder to replicate
+with a prompt and a feed vendor.
+
+**Still unresolved and unchanged by any of this:** there is no accuracy number.
+Vision makes one obtainable without domain expertise, because judging "is this
+striped" from a photograph takes a second and needs no apparel knowledge, which
+was the blocker on measuring it at all.
