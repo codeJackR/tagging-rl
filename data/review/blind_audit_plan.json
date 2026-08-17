@@ -1,0 +1,26 @@
+{
+  "blind": true,
+  "cells_per_attribute": {
+    "closure": 12,
+    "collar_type": 12,
+    "colour_primary": 12,
+    "details": 12,
+    "fit": 12,
+    "garment_category": 12,
+    "garment_length": 12,
+    "material": 12,
+    "neckline": 12,
+    "occasion": 12,
+    "pattern": 12,
+    "silhouette": 12,
+    "sleeve_length": 12,
+    "sleeve_style": 12,
+    "waistline": 12
+  },
+  "note": "The reviewer was not shown the stored label. Scoring these answers measures the labels, not the reviewer's agreement with them.",
+  "per_attribute_floor": 12,
+  "seed": 20260817,
+  "source_sha256": "2d4e3be8d30a15ae8b7e06a8eb20c39b1c0890b25be62888961fc607acca829c",
+  "total_cells": 180,
+  "version": "blind-audit-v1"
+}

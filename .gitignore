@@ -49,3 +49,10 @@ data/eval_300/eval.jsonl
 data/eval_candidates.jsonl
 data/grpo_run2_causal_schedule_v1.jsonl
 data/probe_100.jsonl
+
+# Review working files that carry merchant prose. Same position as the corpus
+# above: the decisions are published, the retailers' copy is not. Regenerate
+# with scripts/build_dataset.py and labeling/blind_audit.py.
+data/review/review_queue.csv
+data/review/review_queue_core.csv
+data/review/blind_audit.csv
