@@ -260,7 +260,19 @@ def inline_figures(html: str) -> str:
     return html
 
 
-def render(source: Path, *, standalone: bool = False) -> str:
+# Where the page will live. og:image must be absolute: a relative one is
+# ignored by every crawler, which is the usual reason a card renders bare.
+DEFAULT_PAGE_URL = "https://www.vastraa.ai/engineering/sft-baseline.html"
+DEFAULT_IMAGE_URL = "https://www.vastraa.ai/engineering/og-sft-baseline.png"
+
+
+def render(
+    source: Path,
+    *,
+    standalone: bool = False,
+    page_url: str = DEFAULT_PAGE_URL,
+    image_url: str = DEFAULT_IMAGE_URL,
+) -> str:
     text = source.read_text(encoding="utf-8")
     text = re.sub(r"<!--.*?-->\n?", "", text, flags=re.DOTALL)
     # ../runs/x -> the public repo, so evidence links work off GitHub too.
@@ -305,7 +317,11 @@ def render(source: Path, *, standalone: bool = False) -> str:
         f'<meta property="og:title" content="{esc(title)}">\n'
         f'<meta property="og:description" content="{esc(desc)}">\n'
         '<meta property="og:type" content="article">\n'
+        f'<meta property="og:url" content="{page_url}">\n'
+        f'<meta property="og:image" content="{image_url}">\n'
         '<meta name="twitter:card" content="summary_large_image">\n'
+        f'<meta name="twitter:image" content="{image_url}">\n'
+        f'<link rel="canonical" href="{page_url}">\n'
         '<meta name="color-scheme" content="light dark">\n'
         f"{head}"
         "</head>\n<body>\n"
@@ -318,6 +334,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=POST)
     parser.add_argument("--output", type=Path, default=ROOT / "blog" / "01-post.html")
+    parser.add_argument("--page-url", default=DEFAULT_PAGE_URL)
+    parser.add_argument("--image-url", default=DEFAULT_IMAGE_URL)
     parser.add_argument(
         "--standalone",
         action="store_true",
@@ -325,7 +343,15 @@ def main() -> int:
              "through artifact hosting, which supplies its own head and body",
     )
     args = parser.parse_args()
-    args.output.write_text(render(args.source, standalone=args.standalone), encoding="utf-8")
+    args.output.write_text(
+        render(
+            args.source,
+            standalone=args.standalone,
+            page_url=args.page_url,
+            image_url=args.image_url,
+        ),
+        encoding="utf-8",
+    )
     try:
         shown = args.output.relative_to(ROOT)
     except ValueError:
