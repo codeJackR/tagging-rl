@@ -1,0 +1,455 @@
+<!doctype html><html lang=en><head><meta charset=utf-8><title>X Article draft</title><style>
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     font-size:17px;line-height:1.6;max-width:44rem;margin:0 auto;padding:40px 24px;color:#111}
+h1{font-size:2em;line-height:1.15}h2{font-size:1.35em;margin-top:2em}h3{font-size:1.1em}
+img{max-width:100%;height:auto;display:block;margin:1.4em 0 .4em}
+blockquote{border-left:3px solid #ccc;margin:1.2em 0;padding:.4em 0 .4em 1em;color:#333}
+blockquote pre{margin:0;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:.85em}
+figcaption{font-size:.85em;color:#666;margin-bottom:1.4em}
+.note{background:#fff8e1;border:1px solid #f0e0a0;padding:14px 16px;border-radius:6px;
+      font-size:.9em;margin-bottom:2em}
+</style></head><body><div class="note"><strong>Paste instructions.</strong> Select all on this page, copy, and paste into the X Articles composer. Headings, bold, lists and quotes carry over. If the images do not come across, upload them from <code>blog/assets/png/</code> at the points marked by their captions. X Articles requires Premium+ or a Verified Organization.</div><h1>An SFT baseline an RL result can stand on</h1>
+<p><em>Fine-tuning Qwen2.5-1.5B to tag apparel catalogs: the full pipeline. Data,
+weak labels, a leakage-proof split, two LoRA arms, checkpoint selection, a
+pre-registered lock, and a one-shot frozen evaluation. Part 1 of a series on
+building an RL product tagger where one verifier serves as both the reward
+function and the production QA gate.</em></p>
+<h2>What this is</h2>
+<p>I'm building a product tagger with reinforcement learning, and this post is
+about everything that has to exist <em>before</em> the RL: the task contract, the
+data, the supervised baseline, and the evaluation discipline that will make a
+GRPO result mean something later. It's a complete walkthrough, every step in
+the order it ran, with the configs, commands, and numbers, so you can follow
+it, argue with it, or reproduce it.</p>
+<p>The headline, up front:</p>
+<p><img src="https://www.vastraa.ai/engineering/img/table-1.png" alt="Table 1"><figcaption>Table 1</figcaption>
+<img src="https://www.vastraa.ai/engineering/img/fig1-frozen-eval.png" alt="Four panels comparing zero-shot and SFT on the frozen eval: macro-F1 0.197 to 0.641, schema validity 62.7% to 100%, vocabulary validity 0% to 88.7%, rule violations 1,204 to 12"><figcaption>Four panels comparing zero-shot and SFT on the frozen eval: macro-F1 0.197 to 0.641, schema validity 62.7% to 100%, vocabulary validity 0% to 88.7%, rule violations 1,204 to 12</figcaption></p>
+<p>Total training compute: about 4.4 cents on a rented RTX 3090. (Yes, an older
+card. I already had it rented on vast.ai for another project, and this
+workload is light enough that it never mattered: a 1.5B model with LoRA uses
+a fifth of its 24 GB. A newer GPU would cost more per hour to shave minutes
+off nine-minute runs.)</p>
+<p>The numbers are not the interesting part, though. The interesting part is how
+easy they would have been to get wrong. Several times, the obvious next step
+would have quietly broken the experiment. Each section below flags one of
+those moments: the tempting shortcut, why it lies, and what I did instead.</p>
+<h2>Step 0: Define &quot;correct&quot; in code before touching a model</h2>
+<p>The task: given the text of an apparel listing, emit one JSON object with 15
+controlled fields. Here is a real training example, exactly as the trainer
+sees it. The input:</p>
+<blockquote><pre>Title: Organic Cotton Pull On Pant
+Brand: NAADAM
+Category: Woven Pants
+Description: The Organic Cotton Pull On Pant is a warm-weather essential in
+100% organic cotton — relaxed, full-length, and endlessly versatile. Throw
+them on for errands, wear them to work, or pull them over your swimsuit; the
+easy elastic waist makes every occasion feel effortless. Inseam: 30.5&quot;
+Tags: 100% cotton, Bottom, Bottoms, Cotton, cottoncollection, elastic,
+full length, New Arrival, pant, pull on pants, summer, ...
+</pre></blockquote>
+<p>And its target, the complete assistant turn, all 15 fields:</p>
+<blockquote><pre>{&quot;closure&quot;: &quot;pullover&quot;, &quot;collar_type&quot;: null, &quot;colour_primary&quot;: &quot;unknown&quot;,
+ &quot;details&quot;: [&quot;unknown&quot;], &quot;fit&quot;: &quot;loose&quot;, &quot;garment_category&quot;: &quot;pants&quot;,
+ &quot;garment_length&quot;: &quot;unknown&quot;, &quot;material&quot;: &quot;cotton&quot;, &quot;neckline&quot;: null,
+ &quot;occasion&quot;: &quot;casual&quot;, &quot;pattern&quot;: &quot;unknown&quot;, &quot;silhouette&quot;: &quot;unknown&quot;,
+ &quot;sleeve_length&quot;: null, &quot;sleeve_style&quot;: null, &quot;waistline&quot;: &quot;unknown&quot;}
+</pre></blockquote>
+<p>Look at the three kinds of answer in that record, because the whole project
+hangs on the distinction:</p>
+<ul>
+<li><code>&quot;cotton&quot;</code>: a <strong>value</strong> from a closed vocabulary. Free text is not allowed.
+There are 156 permitted values across the 15 fields, period.</li>
+<li><code>null</code>: the field <strong>cannot apply</strong>. Pants have no neckline or sleeve.</li>
+<li><code>&quot;unknown&quot;</code>: the field could apply, but the listing <strong>doesn't say</strong>. This
+description never states a colour, so guessing one would be fabrication.</li>
+</ul>
+<p>Collapsing <code>null</code> and <code>&quot;unknown&quot;</code> into one &quot;empty&quot; state would let a model
+earn credit for calling a missing fact inapplicable. They are kept separate
+everywhere: schema, labels, metrics. Abstention becomes a first-class
+<em>action</em> in the RL phase, and an action needs a truthful state to act on.</p>
+<p>Whether an output is correct is decided by a <strong>verifier</strong>, a plain Python
+module that checks three things in order:</p>
+<ol>
+<li><strong>Schema</strong>: is it parseable JSON with the right keys and shapes?</li>
+<li><strong>Vocabulary</strong>: is every value drawn from the closed lists?</li>
+<li><strong>Rules</strong>: do the 34 cross-field constraints hold? (Examples: a sleeveless
+garment can't carry a <code>sleeve_style</code>; a <code>dress</code> needs a <code>garment_length</code>;
+a <code>solid</code> pattern can't coexist with <code>multicolour</code>.)</li>
+</ol>
+<p>The same module is imported by the test suite, the evaluation harness, and,
+in the next post, the GRPO reward function and the production QA gate. One
+implementation, every consumer. That's the architecture bet of the whole
+series: when the reward and the shipping gate are literally the same code,
+&quot;what we trained for&quot; and &quot;what we deploy behind&quot; cannot drift apart.</p>
+<h2>Step 1: Data and weak labels (and why you shouldn't trust them)</h2>
+<p><strong>Product text.</strong> 3,600 apparel listings fetched from public Shopify
+<code>/products.json</code> endpoints across dozens of stores: 49 brands, 297 raw
+merchant category strings. The fetcher round-robins stores with per-pass
+quotas (so no single store dominates), filters to apparel, and prunes
+merchant tags that appear on essentially every product of a store, since a
+ubiquitous tag carries zero signal. For the 14.9% of listings with an empty
+description, the title, category, and tags carry the entire signal.</p>
+<p><strong>Labels.</strong> I was obviously not going to hand-label 54,000 cells (3,600
+products × 15 fields). So the labels are <strong>weak</strong>: a frontier model
+(<code>gpt-5.6-luna</code>, batch API) labeled every product five times under five
+prompt variations, and the five runs were reconciled into consensus labels.
+Cost: about $20. A slice of the conflicted cells was later cross-checked by
+a second model family and by me on a phone-sized review tool. The honest
+total:</p>
+<blockquote>
+<p><strong>Of the 4,500 cells in the frozen eval set (300 rows × 15 attributes),
+exactly 78 were reviewed by a human.</strong> Everything else still says whatever
+the frontier model said.</p>
+</blockquote>
+<img src="https://www.vastraa.ai/engineering/img/fig2-review-grid.png" alt="A grid of 180 squares of which only 3 are filled, showing that 78 of 4,500 evaluation cells were human-reviewed"><figcaption>A grid of 180 squares of which only 3 are filled, showing that 78 of 4,500 evaluation cells were human-reviewed</figcaption>
+<p>So what can a score against these labels actually mean? Not real-world
+accuracy. If my model scores high against labels another model wrote, that
+mostly proves the two models agree. What a score <em>can</em> mean is progress:
+when two checkpoints are graded on the same rows, by the same verifier,
+under the same decoding settings, the difference between them is real even
+though the absolute level is shaky. That is the rule for this entire post:
+<strong>every claim is a comparison, never an absolute.</strong></p>
+<p>One more guard makes those comparisons trustworthy over time. The 300 eval
+rows were frozen early: the file's SHA-256 checksum is committed to git and
+tagged <code>eval-v1</code>, and the harness re-checks it before printing a single
+number. If the answer key ever changes by one byte, every later evaluation
+fails loudly instead of silently becoming incomparable with everything
+measured before.</p>
+<h2>Step 2: A train/validation split that variants can't leak through</h2>
+<p>The 3,600 weak rows needed a train/validation split for choosing training
+duration. A uniform random split would have been quietly wrong, because
+retail feeds are full of near-duplicates:</p>
+<blockquote><pre>Everyday Tote | Red (XL)
+Everyday Tote | Black (M)
+Everyday Tote | Navy (L)     ... 57 variants in one store
+</pre></blockquote>
+<p>Same description, same category, same tags. Train on the red one, validate
+on the black one, and validation measures <em>recognition of a sibling
+product</em>, not generalization.</p>
+<p>So the split operates on <strong>product families</strong>. The family key is the
+normalized brand plus the title with variant text stripped: lowercase,
+remove punctuation, cut everything after spaced separators (<code>&quot; | &quot;</code>,
+<code>&quot; / &quot;</code>, <code>&quot; - &quot;</code>), drop trailing parenthetical sizes. Titles are compared
+only within the same brand, so two brands can both sell a &quot;Classic Tee&quot;
+without becoming one family.</p>
+<p>Grouping this way collapses the 3,600 rows into 2,255 families, and the
+shape of those families shows how much a random split would have leaked.
+Most products are unique: 1,764 families contain a single row. But the other
+491 families are variant clusters, and together they hold 1,836 rows. Half
+the dataset is near-duplicates of the other half.</p>
+<p>Each family then goes entirely into train or entirely into validation. The
+first attempt at this split was thrown away before any training happened: it
+looked fine overall but starved two categories, putting only 3.4% of bag
+rows and 7.1% of shoe rows into validation against a 10% target. The final
+split moves whole families while balancing every garment category to roughly
+10% validation. Result: <strong>3,240 training rows, 360 validation rows</strong>.</p>
+<p>The split is frozen in
+<a href="https://github.com/codeJackR/tagging-rl/blob/master/data/splits/sft-v1.json"><code>data/splits/sft-v1.json</code></a>: the seed, the
+grouping rule, every SKU's assignment, and a checksum of the source data.
+The loader re-checks that checksum and refuses to run if the data changed.
+Both LoRA arms trained from this exact file.</p>
+<h2>Step 3: The training setup</h2>
+<p><strong>Prompt format.</strong> Each example is a chat: a compact system message, the
+listing text as the user turn, the JSON record as the assistant turn. TRL's
+<code>SFTTrainer</code> detects this shape, applies Qwen's own chat template, and masks
+the loss to completion tokens only, so the model learns to <em>write</em> the JSON,
+not to predict the listing.</p>
+<p>The system message, verbatim:</p>
+<blockquote><pre>You label clothing products from their listing text.
+
+Answer with a single JSON object, one key per field:
+closure, collar_type, colour_primary, details, fit, garment_category,
+garment_length, material, neckline, occasion, pattern, silhouette,
+sleeve_length, sleeve_style, waistline.
+
+Rules:
+- &quot;details&quot; is a list; every other field is a single value.
+- Use &quot;unknown&quot; when the text does not say. Never guess.
+- Use null when the field cannot apply to this kind of product.
+- Output only the JSON object, nothing else.
+</pre></blockquote>
+<p>Note what it does <em>not</em> contain: the 156 allowed values. The frontier
+labeler got the full vocabulary spelled out (a ~1,900-token system prompt);
+the 1.5B student gets ~150 tokens naming the keys and the three-state rule.
+Learning the closed vocabulary <strong>is the task</strong>. Spelling it out in every
+prompt would let the model read the answer's shape instead of learning it,
+and would triple the cost of every step.</p>
+<p><strong>Sequence budget.</strong> How long can an example get? Measured with the actual
+Qwen2.5 tokenizer over the whole corpus: the longest prompt is 585 tokens,
+the longest target is 118, and the longest full example (prompt plus target)
+is 833. The training ceiling is set to <strong>896</strong>, comfortably above the
+longest example, so no training row is ever cut off mid-JSON. The lesson
+that generalizes: measure with the real tokenizer. My earlier
+guess-from-character-counts was off by up to 2×.</p>
+<p><strong>LoRA in one paragraph.</strong> Full fine-tuning would update all 1.5 billion
+weights. LoRA freezes every one of them and bolts a small trainable detour
+onto selected weight matrices. Take a matrix that maps 1,536 numbers in to
+1,536 numbers out: the frozen original holds 1536 × 1536 ≈ 2.36M weights.
+The detour is two thin strips: 1536 × 16 going down, 16 × 1536 coming back
+up, about 49k trainable weights, roughly 2% of the original. The layer's
+output is the frozen result plus the detour's result, so training can steer
+the layer without touching it.</p>
+<p><strong>The two arms.</strong> Every one of Qwen's 28 transformer blocks has two halves.
+Attention (four matrices: Q, K, V, output) moves information between words:
+it decides <em>where to look</em>. The MLP (three matrices: gate, up, down)
+transforms what was gathered: it stores <em>what things are</em>. The experiment
+trains two variants that differ only in where the detours attach:</p>
+<ul>
+<li><strong>Arm A</strong> puts detours on the four attention matrices.</li>
+<li><strong>Arm B</strong> puts detours on all seven.</li>
+</ul>
+<p>Same rank (16), same data, same split, same seed, same everything else, so
+if arm B wins, the credit belongs to adapting the MLPs.</p>
+<img src="https://www.vastraa.ai/engineering/img/fig5-lora-arms.png" alt="One transformer block showing seven weight matrices: arm A attaches LoRA to the four attention matrices, arm B also covers the three MLP matrices; beside it, the parameter math showing a frozen 1536 by 1536 matrix next to two thin rank-16 strips"><figcaption>One transformer block showing seven weight matrices: arm A attaches LoRA to the four attention matrices, arm B also covers the three MLP matrices; beside it, the parameter math showing a frozen 1536 by 1536 matrix next to two thin rank-16 strips</figcaption>
+<p><strong>Where the parameter counts come from.</strong> A detour on a matrix with <code>d_in</code>
+inputs and <code>d_out</code> outputs trains <code>16 × (d_in + d_out)</code> weights. Per block:</p>
+<blockquote><pre>arm A   q_proj 16×(1536+1536) = 49,152      arm B adds
+        k_proj 16×(1536+256)  = 28,672      gate_proj 16×(1536+8960) = 167,936
+        v_proj 16×(1536+256)  = 28,672      up_proj   16×(1536+8960) = 167,936
+        o_proj 16×(1536+1536) = 49,152      down_proj 16×(8960+1536) = 167,936
+        ─ per block             155,648     ─ per block   155,648 + 503,808
+        × 28 blocks           4,358,144     × 28 blocks          18,464,768
+</pre></blockquote>
+<p>The MLP matrices are wide (1536 in, 8960 out), so each MLP detour is ~168k,
+and three of them quadruple the total. Arm A trains 0.28% of the model; arm
+B trains 1.18%. Training printed both counts at startup and they matched
+this hand math exactly, which is worth checking: a typo in <code>target_modules</code>
+fails silently otherwise.</p>
+<p>The core of the training script (Unsloth for the model path, TRL for the
+trainer, <a href="https://github.com/codeJackR/tagging-rl/blob/master/training/train_sft.py">full file</a>):</p>
+<blockquote><pre>model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name=&quot;unsloth/Qwen2.5-1.5B-Instruct&quot;,
+    max_seq_length=896,          # measured ceiling, see above
+    load_in_4bit=False,          # bf16 base; 1.5B fits a 24 GB 3090 easily
+)
+model = FastLanguageModel.get_peft_model(
+    model, r=16, lora_alpha=16, lora_dropout=0, bias=&quot;none&quot;,
+    target_modules=target_modules(arm),      # the ONLY thing arms change
+    use_gradient_checkpointing=&quot;unsloth&quot;,
+    random_state=42,
+)
+config = SFTConfig(
+    max_length=896, completion_only_loss=True, packing=False,
+    per_device_train_batch_size=4, gradient_accumulation_steps=4,  # eff. 16
+    learning_rate=1e-4, warmup_ratio=0.05, lr_scheduler_type=&quot;cosine&quot;,
+    optim=&quot;adamw_torch_fused&quot;, num_train_epochs=2,
+    eval_strategy=&quot;epoch&quot;, save_strategy=&quot;epoch&quot;,
+    save_total_limit=2, save_only_model=True,   # disk: 5.3 GB free, total
+    bf16=True, seed=42, data_seed=42,
+)
+</pre></blockquote>
+<p><strong>Environment</strong>, pinned because &quot;it worked on my box&quot; isn't reproducible:
+one RTX 3090 (24 GB, rented at $0.144/hr), CUDA 13.0, PyTorch 2.11.0,
+Transformers 4.57.6, TRL 0.24.0, PEFT 0.19.1, Unsloth 2026.7.5.</p>
+<p><strong>A smoke test before every real run.</strong> Each arm first ran five optimizer
+steps on 64 rows. That answers four cheap questions: did the adapters attach
+to the right matrices (the printed trainable count matches the hand math),
+do gradients flow and stay finite, does the validation pass run, does the
+adapter save to disk. Five steps prove nothing about quality, and aren't
+meant to. The point is that when the real run starts, the only thing left to
+fail is the science.</p>
+<h2>Step 4: Train, and decide how long to train</h2>
+<p>The plan for each arm: train one epoch, inspect, and continue to a second
+epoch only if the evidence says so. A simple plan with two traps inside it.</p>
+<h3>Epoch 1: the model learns the shell before the list</h3>
+<p>The attention arm trained one full epoch: 203 optimizer steps, four and a
+half minutes, peak 4.75 GiB of GPU memory. Training loss fell from 0.52 to
+about 0.06, and validation loss landed at 0.06 too.</p>
+<p>Sounds nearly done. But loss can't be trusted as the judge here. Every
+target starts with the same braces, quotes, and field names, so a model
+earns a low token loss just by mastering the boilerplate. The loss will look
+excellent whether or not the actual tags are right.</p>
+<p>So the decision measure was different: take the saved adapter, have it
+<strong>generate</strong> answers for all 360 validation products, and run the verifier
+over what it wrote. Epoch 1's report card:</p>
+<ul>
+<li>macro-F1 <strong>0.650</strong></li>
+<li>fully vocabulary-valid records: <strong>67.9%</strong></li>
+<li>rule violations: <strong>25</strong></li>
+</ul>
+<p>Schema was already near-perfect (358 of 360 parsed). The model had mastered
+the JSON shell but was still inventing values: <code>&quot;woven&quot;</code> for material,
+<code>&quot;patchwork&quot;</code> for pattern. Reasonable English, not in the contract. Clear
+verdict: the vocabulary still has room, keep training.</p>
+<h3>The trap inside &quot;just keep training&quot;</h3>
+<p>The obvious move is to load the epoch-1 adapter and train one more epoch.
+Two things break, one ordinary and one sneaky.</p>
+<p>The ordinary one: the checkpoint was saved without optimizer state
+(<code>save_only_model=True</code>, a disk decision; the box had 5.3 GB free in
+total). &quot;Resuming&quot; from it would really be a fresh optimization that starts
+warm.</p>
+<p>The sneaky one is the learning-rate schedule. Cosine decay plans its descent
+over the <em>total steps it expects to run</em>. A 1-epoch run plans 203 steps, so
+by step 203 the learning rate has decayed to zero. A 2-epoch run plans 406,
+so at step 203 it is only halfway down, still at about half its peak:</p>
+<img src="https://www.vastraa.ai/engineering/img/fig3-cosine-confound.png" alt="Two cosine learning-rate curves, one planned for 203 steps and one for 406; at step 203 the first sits at learning rate near zero while the second is mid-decay at about 5.4e-5"><figcaption>Two cosine learning-rate curves, one planned for 203 steps and one for 406; at step 203 the first sits at learning rate near zero while the second is mid-decay at about 5.4e-5</figcaption>
+<p>Same step number, different training state. Comparing &quot;my 1-epoch run&quot;
+against &quot;that run plus a bolted-on second epoch&quot; would mix two effects that
+can't be separated afterward: seeing the data twice, and following a
+different learning-rate curve from the start.</p>
+<p>The clean fix costs almost nothing: start over. One fresh 2-epoch run, same
+base model, seed, and split, saving a checkpoint at step 203 on the way
+through. Now step 203 and step 406 live inside the same run, the same
+optimizer, the same schedule. The only difference between them is the second
+pass over the data, which is exactly the question. Price of doing it right:
+nine minutes, about two cents.</p>
+<h3>Epoch 1 vs epoch 2, measured fairly</h3>
+<p>Both checkpoints of the fresh run generated answers for the same 360
+validation products, identical settings (greedy decoding, 170-token cap):</p>
+<p><img src="https://www.vastraa.ai/engineering/img/table-2.png" alt="Table 2"><figcaption>Table 2</figcaption>
+The second pass earned its keep exactly where epoch 1 was weak: 43 more
+records fully inside the closed vocabulary. Per attribute, 12 of 15 scores
+improved (<code>closure</code> most, 0.285 → 0.549), <code>waistline</code> was flat, and two
+fields slipped by under 0.01. Averages don't get to hide that. Epoch 2
+selected.</p>
+<p>The combined arm then ran the identical protocol: smoke test, fresh 2-epoch
+run, generation test at both checkpoints
+(W&amp;B: <a href="https://wandb.ai/rushabhsp95-vastraa/tagging-rl/runs/s0ar902g"><code>s0ar902g</code></a>
+combined, <a href="https://wandb.ai/rushabhsp95-vastraa/tagging-rl/runs/iwsrgsn2"><code>iwsrgsn2</code></a>
+attention). It also earned its second epoch: macro-F1 0.814 → 0.854,
+vocabulary validity 92.5% → 94.4%, rule violations 15 → 10.</p>
+<h3>Why every evaluation is greedy and unconstrained</h3>
+<p>Two decoding decisions hold for every number in this post. <strong>Greedy</strong>,
+because checkpoint comparisons shouldn't carry sampling noise. And
+<strong>unconstrained</strong>: no grammar, no JSON mode, the model writes free text and
+the verifier judges it. Constrained decoding would make schema validity free
+and unmeasurable, and format behavior is one of the things under study, here
+and especially in the RL phase. A production deployment might well turn
+constrained decoding on and buy 100% schema validity by construction. That's
+a deployment choice; this is a measurement choice.</p>
+<h2>Step 5: Pick the arm</h2>
+<p>Each arm now has one best checkpoint, chosen on validation generations. Side
+by side:</p>
+<p><img src="https://www.vastraa.ai/engineering/img/table-3.png" alt="Table 3"><figcaption>Table 3</figcaption>
+The combined arm won everywhere: higher macro-F1 on <strong>all 15 attributes</strong>,
+more records inside the vocabulary, fewer rule violations. And the cost of
+those 4.2× more trainable parameters was 42 seconds of wall time and 0.2 GiB
+of memory. At this scale the ablation was nearly free to run and one-sided
+in its answer.</p>
+<p><em>Where</em> arm B won is the interesting part. Its biggest gains were
+silhouette, sleeve style, waistline, occasion, and garment length. What
+those fields share: their values are facts the model has to know (which
+words map to which allowed label), not context it can look up elsewhere in
+the listing. That fits the textbook division of labor from Step 3: attention
+decides where to look, MLPs store what things are, and a 156-value closed
+vocabulary is exactly &quot;what things are&quot; knowledge. One task and one seed, so
+treat this as a datapoint, not a law. But if your fine-tune has to memorize
+a contract, giving LoRA the MLPs looks like money well spent.</p>
+<p>So the SFT baseline is <code>runs/sft-combined-2epoch/checkpoint-406</code>.</p>
+<h2>Step 6: Lock the choice, then evaluate exactly once</h2>
+<p>One thing remained: run the winner on the frozen 300. This is where quiet
+self-deception normally happens. Evaluate a couple of candidates &quot;just to
+check&quot;, report the best, and the frozen set has silently become a validation
+set.</p>
+<p>So the selection was <strong>pre-registered</strong>. Before any frozen inference,
+<a href="https://github.com/codeJackR/tagging-rl/blob/master/runs/sft-selection.json"><code>runs/sft-selection.json</code></a> was committed with
+status <code>locked_before_frozen_eval</code>, recording:</p>
+<ul>
+<li>the selected checkpoint path (<code>runs/sft-combined-2epoch/checkpoint-406</code>)
+and its adapter file's SHA-256 (<code>00ae54af…a051af</code>);</li>
+<li>the full LoRA config and both arms' validation evidence;</li>
+<li>the split manifest's hash, and the frozen set's own hash with the frozen
+set explicitly marked <code>not_run_as_of_lock</code>.</li>
+</ul>
+<p>The git commit (<code>8bff4c6</code>) proves the choice predates the result.</p>
+<img src="https://www.vastraa.ai/engineering/img/fig4-lock-timeline.png" alt="Timeline showing training and selection iterating freely, then the lock commit 8bff4c6 as a boundary, then a single frozen evaluation run recorded in commit 4c3e986"><figcaption>Timeline showing training and selection iterating freely, then the lock commit 8bff4c6 as a boundary, then a single frozen evaluation run recorded in commit 4c3e986</figcaption>
+<p>The evaluation then ran once. Before generating: re-verify every identity in
+the lock (adapter hash, split hash, frozen file hash, row count, all
+<code>MATCH</code>; destination file confirmed absent). After generating: the
+prediction file passed four integrity checks (exactly 300 records, 300
+unique SKUs, exact set-equality with the gold SKUs, a raw string on every
+record) and its own SHA-256 (<code>cae3dbd1…6ba4b</code>) went into the manifest. Those
+checks close off the boring ways an eval flatters a model: partial runs,
+duplicated easy rows, silently pre-parsed output.</p>
+<h2>Step 7: The one-shot result, read honestly</h2>
+<p><img src="https://www.vastraa.ai/engineering/img/table-4.png" alt="Table 4"><figcaption>Table 4</figcaption>
+Three reading notes, because this table is easy to over-read.</p>
+<p><strong>The zero-shot F1 is conditional.</strong> The base model produced nothing
+scorable for 104 of 300 products; its 0.197 is computed over the 196
+survivors. The harness does not zero-fill failures, since that would turn
+one format error into fifteen wrong answers. So the two F1 numbers alone
+<em>understate</em> the gap: the validity columns are part of the result, not
+garnish.</p>
+<p><strong>The gain is not a handful of lucky rows.</strong> A paired row bootstrap (5,000
+replicates, same resampled rows for both models, seed <code>20260801</code>) puts SFT
+at 0.641 [95% CI 0.626–0.671] and the paired improvement at +0.444
+[+0.425–+0.496].</p>
+<p><strong>The 100% schema validity is real generated behavior.</strong> Longest completion:
+117 tokens against a 170 cap; p95 was 114; zero outputs truncated. Nothing
+was rescued by constrained decoding or post-processing.</p>
+<p>The frozen score (0.641) sits well below the validation score (0.854). I'm
+deliberately not attributing that gap to a single cause: eval-set label
+composition, class support, and ordinary validation optimism all plausibly
+contribute. Revealing performance your selection process never got to
+optimize against is what a frozen set is <em>for</em>.</p>
+<p>Treat that paragraph as the load-bearing one. When the RL runs came, the same
+split reappeared at close to the same size, and the two sets disagreed about
+whether RL had helped at all: on the set I watched during training it looked
+like a small win, and on this frozen set it was a measurable loss. Everything
+that made that legible was built here, before any of it happened.</p>
+<p>Per-attribute, every field improved over zero-shot. The strong ones: <code>fit</code>
+0.950, <code>garment_category</code> 0.835, <code>material</code> 0.833. The weak tail: <code>closure</code>
+0.405, <code>silhouette</code> 0.410, <code>waistline</code> 0.444, <code>details</code> 0.463. That tail is
+the target list for error analysis and, later, reward shaping.</p>
+<h2>Step 8: What SFT did not fix</h2>
+<p>My favorite failure. An Everlane maxi dress whose listing literally says
+&quot;surplice neckline&quot;. The model's answer:</p>
+<blockquote><pre>{&quot;closure&quot;: &quot;unknown&quot;, &quot;collar_type&quot;: &quot;none&quot;, &quot;colour_primary&quot;: &quot;black&quot;,
+ &quot;details&quot;: [&quot;gather&quot;], &quot;fit&quot;: &quot;unknown&quot;, &quot;garment_category&quot;: &quot;dress&quot;,
+ &quot;garment_length&quot;: &quot;maxi&quot;, &quot;material&quot;: &quot;silk&quot;, &quot;neckline&quot;: &quot;supraprise&quot;,
+ &quot;occasion&quot;: &quot;casual&quot;, &quot;pattern&quot;: &quot;floral&quot;, ...}
+</pre></blockquote>
+<p>Structurally perfect. Category, length, material, colour, pattern all
+correct. And <code>&quot;supraprise&quot;</code> is not a word: a phonetic near-miss of
+<em>surplice</em> that no enum consumer will ever accept, sitting inside flawless
+JSON. That is the residual failure class in one line: <strong>semantically
+plausible, contract-invalid.</strong></p>
+<p>The inventory across the frozen 300: 34 records invented at least one
+out-of-vocabulary value (<code>silhouette</code> 7, <code>neckline</code> 5, <code>colour_primary</code> 5;
+things like <code>strap</code> as a closure, <code>cutout</code> as a neckline, <code>normal</code> as a
+garment length); 12 cross-field rule violations across 11 records; and one
+SKU that emits a vocabulary-word-salad preamble before its JSON at every
+checkpoint of both arms.</p>
+<p>SFT taught the shell and most of the vocabulary. It did not fully
+internalize that every value comes from a closed list, and it has no
+mechanism for relationships <em>between</em> fields. The verifier already catches
+both of these mechanically.</p>
+<p>Whether a reward built on that verifier actually <em>fixes</em> them is post 2's
+question, and I'll spoil the shape of the answer because it changes how you
+should read this post: it fixed one and not the other. Cross-field rules
+came down. The closed-vocabulary discipline, the thing <code>&quot;supraprise&quot;</code> is an
+instance of, did not move at all. That is a more interesting post than the
+one I expected to write.</p>
+<h2>Reproduce this</h2>
+<p>Every command, config and artifact is in the repo, and every table above recomputes from committed files: <a href="https://www.vastraa.ai/engineering/sft-baseline.html">the full walkthrough</a> and <a href="https://github.com/codeJackR/tagging-rl">the repository</a>.</p>
+<h2>The bill</h2>
+<p><img src="https://www.vastraa.ai/engineering/img/table-5.png" alt="Table 5"><figcaption>Table 5</figcaption>
+The GPU is ~1/450th of the label bill. When a controlled rerun costs two
+cents, &quot;we couldn't afford the ablation&quot; stops being a real excuse. The
+binding constraints are label quality and experimental discipline, which is
+the actual thesis of this post.</p>
+<h2>Limitations</h2>
+<ul>
+<li><strong>Weak gold labels.</strong> 78 of 4,500 frozen cells human-reviewed, and those 78
+were the <em>contested</em> ones, where two model families disagreed. On those the
+frontier labeller was right 72% of the time, which is a lower bound chosen
+for difficulty rather than an estimate; its overall accuracy sits somewhere
+in 0.72 to 0.96 and the upper end was never measured. Every claim here is a
+delta under a fixed evaluator, not a production-accuracy claim.</li>
+<li><strong>Conditional zero-shot F1</strong>, computed over its 196 parsed survivors.</li>
+<li><strong>One model size, one domain, one seed.</strong> No claim that combined LoRA
+always beats attention-only; the bootstrap quantifies eval-row
+uncertainty, not training-run variance.</li>
+<li><strong>No constrained decoding</strong>, deliberate for measurement, and production
+differs by more than &quot;likely&quot;. Running the frontier model over these same
+300 products with the schema enforced during decoding took its rule
+violations from 6 to 79, because a JSON Schema enum constrains one field at
+a time and applicability is a relationship <em>between</em> fields.</li>
+<li><strong>Duration-ablation metrics are regenerated</strong> from preserved raw
+predictions (hash-verified), not training-time saves.</li>
+</ul>
+<hr />
+<p><em>Next in the series: the verifier stops being a report card and becomes the
+reward. GRPO from this checkpoint, unconstrained decoding, and the
+documented ways a 1.5B model finds to cheat a mechanical judge.</em></p>
+</body></html>

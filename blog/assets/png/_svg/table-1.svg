@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="748" height="262" viewBox="0 0 748 262">
+<rect width="748" height="262" fill="#fcfcfb"/>
+<text x="43" y="50" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c" font-weight="600">measure (frozen 300-row eval)</text>
+<text x="545" y="50" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c" font-weight="600">zero-shot Qwen2.5-1.5B</text>
+<text x="705" y="50" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c" font-weight="600">after LoRA-SFT</text>
+<line x1="26" y1="60" x2="722" y2="60" stroke="#1b1e1c" stroke-width="2"/>
+<text x="43" y="84" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">macro-F1</text>
+<text x="545" y="84" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">0.197</text>
+<text x="705" y="84" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">0.641</text>
+<line x1="26" y1="94" x2="722" y2="94" stroke="#dedbd2" stroke-width="1"/>
+<text x="43" y="118" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">schema-valid outputs</text>
+<text x="545" y="118" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">62.7%</text>
+<text x="705" y="118" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">100%</text>
+<line x1="26" y1="128" x2="722" y2="128" stroke="#dedbd2" stroke-width="1"/>
+<text x="43" y="152" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">fully vocabulary-valid outputs</text>
+<text x="545" y="152" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">0.0%</text>
+<text x="705" y="152" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">88.7%</text>
+<line x1="26" y1="162" x2="722" y2="162" stroke="#dedbd2" stroke-width="1"/>
+<text x="43" y="186" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">verifier rule violations</text>
+<text x="545" y="186" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">1,204</text>
+<text x="705" y="186" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">12</text>
+<line x1="26" y1="196" x2="722" y2="196" stroke="#dedbd2" stroke-width="1"/>
+<text x="43" y="220" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">unscorable outputs</text>
+<text x="545" y="220" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">104 / 300</text>
+<text x="705" y="220" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">0</text>
+</svg>

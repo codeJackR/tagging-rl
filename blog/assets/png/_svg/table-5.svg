@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="561" height="262" viewBox="0 0 561 262">
+<rect width="561" height="262" fill="#fcfcfb"/>
+<text x="43" y="50" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c" font-weight="600">item</text>
+<text x="518" y="50" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c" font-weight="600">cost</text>
+<line x1="26" y1="60" x2="535" y2="60" stroke="#1b1e1c" stroke-width="2"/>
+<text x="43" y="84" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">weak labels (frontier batch API, 5 passes)</text>
+<text x="518" y="84" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">~$20</text>
+<line x1="26" y1="94" x2="535" y2="94" stroke="#dedbd2" stroke-width="1"/>
+<text x="43" y="118" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">attention arm, 2 epochs</text>
+<text x="518" y="118" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">$0.021</text>
+<line x1="26" y1="128" x2="535" y2="128" stroke="#dedbd2" stroke-width="1"/>
+<text x="43" y="152" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">combined arm, 2 epochs</text>
+<text x="518" y="152" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">$0.023</text>
+<line x1="26" y1="162" x2="535" y2="162" stroke="#dedbd2" stroke-width="1"/>
+<text x="43" y="186" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">superseded standalone 1-epoch run</text>
+<text x="518" y="186" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">$0.011</text>
+<line x1="26" y1="196" x2="535" y2="196" stroke="#dedbd2" stroke-width="1"/>
+<text x="43" y="220" text-anchor="start" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">all training compute in this post</text>
+<text x="518" y="220" text-anchor="end" font-family="Menlo, 'DejaVu Sans Mono', monospace" font-size="15" fill="#1b1e1c">&lt; $0.06</text>
+</svg>
