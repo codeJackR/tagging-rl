@@ -203,3 +203,72 @@ unmeasured.
 The check I would run before any of it: take one Faherty product, pull its
 public product JSON, and see whether metafields carry attributes we are counting
 as missing. If they do, the gap numbers shrink and tier A changes.
+
+---
+
+# Correction, after checking the collector
+
+Section 6 flagged that merchant coverage was read from `category` and `raw_tags`
+only, and that this was the most likely way these numbers were wrong. It was.
+Two checks, both from local evidence, no fetching.
+
+## Pruning does not inflate the gap
+
+`tools/fetch_shopify.py:prune_ubiquitous_tags` drops tags carried by more than
+90% of a store's products, which sounded like it could remove real attribute
+tags. It cannot: the function **explicitly protects any tag appearing in the
+pack's vocabulary**, matching across plural and singular. Ops noise is removed,
+attribute tags survive. This concern is closed.
+
+## Titles were never counted, and they carry a lot
+
+`to_row` keeps title, description, tags and product_type, and drops `options`
+and `variants`, which is where Shopify usually carries Size and Colour. I could
+not check that directly, because **all four tier A and B brands are marked
+`prohibited` in our own terms audit**, so fetching their product JSON to
+validate our numbers is not available to us.
+
+The title is a usable proxy, and it moves the number:
+
+| | gap |
+|---|---:|
+| counting category + tags only | **68%** |
+| also crediting the product title | **53%** |
+
+Colour is most of the difference: 788 of 2,407 colour values appear in the
+title and not in the tags. **Every colour-based claim in this document is
+overstated** and should be treated as unreliable until options data is
+available.
+
+## What survives both checks
+
+| attribute | values | in tags | in title | truly absent |
+|---|---:|---:|---:|---:|
+| occasion | 1,915 | 109 | 21 | **1,785 (93%)** |
+| fit | 994 | 28 | 20 | **946 (95%)** |
+| details | 948 | 6 | 103 | **839 (88%)** |
+| garment_category | 3,600 | 1,908 | 220 | 1,472 (41%) |
+| material | 2,629 | 1,181 | 321 | 1,127 (43%) |
+
+## The distinction this forces
+
+"In the title" is not the same as structured, and which number is honest depends
+on the claim:
+
+- **For on-site filtering and faceting**, a title is useless. The shopper cannot
+  filter on prose. **68% stands.**
+- **For agent search and feed attributes**, a title is parseable text and a
+  model will read it. **53% is the honest floor.**
+
+Leading with 71% or 68% against an agent-search pitch would be overclaiming, and
+a technical buyer would catch it.
+
+**Direct finding:** the gap is 53% once titles are credited, not 71%; colour is
+the single most affected attribute and its numbers here are unreliable.
+**Intuition:** the three attributes that survive every deflation are `occasion`,
+`fit` and `details`, at 88 to 95% truly absent. Those are exactly the
+"what it's like" attributes from the original observation, and the case is
+stronger for being smaller and unable to be argued down. **Limitation:** the
+title proxy is still not the real test. `options` and `variants` remain
+unchecked, and our own audit prohibits the access that would check them on the
+brands we most want to approach.
