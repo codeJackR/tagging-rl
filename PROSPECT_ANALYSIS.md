@@ -352,3 +352,83 @@ with a prompt and a feed vendor.
 Vision makes one obtainable without domain expertise, because judging "is this
 striped" from a photograph takes a second and needs no apparel knowledge, which
 was the blocker on measuring it at all.
+
+---
+
+# Human calibration of the judge panel
+
+30 of the judges' verdicts were checked by eye against the photographs. The
+question asked was not "is the tagger right" but "are the judges right", because
+a panel nobody has calibrated is just a third model with an opinion.
+
+The sample was weighted, not random: all 5 cells the panel called errors, all 9
+where the judges split, and 16 of the 158 they unanimously passed. A random draw
+would have been ~29 easy agreements and would have measured nothing.
+
+| panel verdict | cards | human agreed | rate |
+|---|---:|---:|---:|
+| both judges say correct | 16 | 16 | **100%** |
+| both judges say wrong | 5 | 4 | 80% |
+| judges disagree | 9 | 6 | 67% |
+| **total** | **30** | **26** | **87%** |
+
+## The headline survives, because of where the disagreements landed
+
+The 96.9% figure is computed over *decided* cells only, meaning the judges
+agreed with each other. Those are the two top rows.
+
+**Sixteen of sixteen unanimous passes were confirmed by eye.** Not one was a
+rubber stamp. That is the verdict class the entire number rests on.
+
+Of the five the panel called errors, four were confirmed as genuine errors. The
+fifth, a cashmere sweater called `solid`, the human judged fine. Correcting for
+that moves the accuracy slightly **up**, not down, so nothing here inflates the
+claim.
+
+Three of the four human disagreements sit in the **split** bucket, which the
+headline already excludes. The exclusion was a judgement call when it was made;
+the calibration confirms it was the right one.
+
+## sleeve_style is the weak attribute and should be held back
+
+Three of the four disagreements are `sleeve_style`, all three in cells where the
+judges had already disagreed with each other:
+
+- `dropped_shoulder` on the SolarCool Tourist Shirt
+- `set_in` on the Nimbus Insulated Rain Jacket
+- `set_in` on the Jacquard Sherpa Full Zip Jacket
+
+The panel had already flagged this attribute: `sleeve_style` carried 4 of the 9
+splits. Model disagreement and human disagreement land on the same attribute,
+which is a coherent signal rather than noise. On a jacket or a hoodie, a single
+front-facing photograph often does not settle where the shoulder seam sits.
+
+| attribute | panel accuracy | human check | sell it? |
+|---|---:|---|---|
+| garment_length | 100% | 3/3 agreed | yes |
+| fit | 100% | 2/2 agreed | yes |
+| pattern | 93% | 4/5 agreed | yes |
+| silhouette | 96% | 5/5 agreed | yes |
+| **sleeve_style** | 97% | **1/4 agreed** | **no, hold back** |
+
+Note that `sleeve_style` scores 97% on the panel and fails the human check. The
+panel's own accuracy figure did not surface this; only the calibration did.
+
+**Direct finding:** 26 of 30 judge verdicts confirmed by eye, including 16 of 16
+unanimous passes, so the 96.9% headline stands; three of the four disagreements
+are `sleeve_style` in cells the judges had already split on. **Intuition:** the
+panel is trustworthy exactly where it is confident, and its confidence is
+honestly distributed. Where a photograph cannot settle a question, the judges
+split, and the human splits with them. **Limitation:** 30 cells, one reviewer,
+judged by eye against photographs rather than against garments; the reviewer is
+not an apparel expert, which is why the check was framed as agreement with
+judges rather than as ground truth.
+
+## What can be said to a prospect now
+
+> On attributes our pipeline commits to, two independent frontier models
+> confirm the answer 97% of the time, and a human spot-check confirmed the
+> panel on 16 of 16 of its confident calls.
+
+Sell four attributes. Hold `sleeve_style` until a second photograph or a
+back view is available.
